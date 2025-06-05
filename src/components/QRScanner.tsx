@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, CameraOff, QrCode, Camera, Smartphone, AlertCircle } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { X, QrCode, Camera, Smartphone, AlertCircle } from 'lucide-react'
 
 interface QRScannerProps {
   onScan: (data: string) => void
@@ -10,47 +10,31 @@ interface QRScannerProps {
 }
 
 export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const [isVideoReady, setIsVideoReady] = useState(false)
-  const streamRef = useRef<MediaStream | null>(null)
+  const [stream, setStream] = useState<MediaStream | null>(null)
 
   const cleanup = useCallback(() => {
     console.log('Cleaning up camera resources...')
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => {
+    if (stream) {
+      stream.getTracks().forEach(track => {
         track.stop()
         console.log('Stopped track:', track.kind)
       })
-      streamRef.current = null
+      setStream(null)
     }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null
+    
+    // Find video element by ID and clean it up
+    const video = document.getElementById('qr-scanner-video') as HTMLVideoElement
+    if (video) {
+      video.srcObject = null
     }
+    
     setIsVideoReady(false)
     setIsLoading(false)
     setError('')
-  }, [])
-
-  const waitForVideoElement = useCallback((): Promise<HTMLVideoElement> => {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Video element not found after 3 seconds'))
-      }, 3000)
-
-      const checkVideo = () => {
-        if (videoRef.current) {
-          clearTimeout(timeout)
-          resolve(videoRef.current)
-        } else {
-          setTimeout(checkVideo, 100)
-        }
-      }
-
-      checkVideo()
-    })
-  }, [])
+  }, [stream])
 
   const startCamera = useCallback(async () => {
     console.log('Starting camera...')
@@ -67,15 +51,19 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
         throw new Error('Camera not supported on this device')
       }
 
-      // Wait for video element to be available
-      console.log('Waiting for video element...')
-      const video = await waitForVideoElement()
-      console.log('Video element found!')
+      // Wait for DOM to be ready
+      await new Promise(resolve => setTimeout(resolve, 300))
 
-      console.log('Requesting camera permission...')
+      // Find video element by ID
+      const video = document.getElementById('qr-scanner-video') as HTMLVideoElement
+      if (!video) {
+        throw new Error('Video element not found in DOM')
+      }
+
+      console.log('Video element found, requesting camera permission...')
       
       // Simple constraints that work on most devices
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
           width: { ideal: 640 },
@@ -84,27 +72,39 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
       })
 
       console.log('Camera permission granted, setting up video...')
-      streamRef.current = stream
+      setStream(mediaStream)
       
       // Set up video element
-      video.srcObject = stream
+      video.srcObject = mediaStream
       video.autoplay = true
       video.playsInline = true
       video.muted = true
 
-      // Wait for video to be ready
+      // Wait for video to be ready and play
       const setupVideo = () => {
         return new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('Video setup timeout'))
-          }, 5000)
+          }, 10000)
 
           const onLoadedMetadata = () => {
             console.log('Video metadata loaded')
             video.removeEventListener('loadedmetadata', onLoadedMetadata)
             video.removeEventListener('error', onError)
             clearTimeout(timeout)
-            resolve()
+            
+            // Try to play
+            video.play()
+              .then(() => {
+                console.log('Video playing successfully!')
+                setIsVideoReady(true)
+                setIsLoading(false)
+                resolve()
+              })
+              .catch((playError) => {
+                console.error('Video play failed:', playError)
+                reject(new Error('Video play failed'))
+              })
           }
 
           const onError = (e: Event) => {
@@ -121,19 +121,6 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
       }
 
       await setupVideo()
-      
-      // Try to play the video
-      console.log('Playing video...')
-      try {
-        await video.play()
-        console.log('Video playing successfully!')
-        setIsVideoReady(true)
-        setIsLoading(false)
-      } catch (playError) {
-        console.error('Video play failed:', playError)
-        // Try clicking to play (some browsers require user interaction)
-        throw new Error('Click "Start Camera" to begin')
-      }
 
     } catch (err: any) {
       console.error('Camera error:', err)
@@ -153,12 +140,12 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
       
       setError(errorMessage)
     }
-  }, [cleanup, waitForVideoElement])
+  }, [cleanup])
 
   useEffect(() => {
     if (isOpen) {
-      // Ensure DOM is ready before starting camera
-      const timer = setTimeout(startCamera, 200)
+      // Ensure component is mounted before starting camera
+      const timer = setTimeout(startCamera, 500)
       return () => clearTimeout(timer)
     } else {
       cleanup()
@@ -186,7 +173,7 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
 
   const handleRetry = () => {
     cleanup()
-    setTimeout(startCamera, 500)
+    setTimeout(startCamera, 1000)
   }
 
   if (!isOpen) return null
@@ -248,6 +235,16 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
                 <p className="text-lg font-semibold text-gray-800 mb-1">Starting Camera</p>
                 <p className="text-gray-500 text-sm">Please allow camera access when prompted</p>
               </div>
+              
+              {/* Add manual input option during loading too */}
+              <div className="pt-4">
+                <button
+                  onClick={handleManualInput}
+                  className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                >
+                  Enter Order ID Instead
+                </button>
+              </div>
             </div>
           ) : isVideoReady ? (
             // Camera Active State
@@ -255,7 +252,7 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
               {/* Video Container */}
               <div className="relative bg-black rounded-lg overflow-hidden">
                 <video
-                  ref={videoRef}
+                  id="qr-scanner-video"
                   className="w-full h-64 object-cover"
                   autoPlay
                   playsInline
@@ -315,10 +312,16 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
               </div>
             </div>
           ) : (
-            // Initial State (should not show due to loading)
+            // Initial/Preparing State
             <div className="text-center py-12">
               <QrCode className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">Preparing camera...</p>
+              <button
+                onClick={handleManualInput}
+                className="mt-4 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+              >
+                Enter Order ID Instead
+              </button>
             </div>
           )}
         </div>
