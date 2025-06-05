@@ -6,6 +6,11 @@ export default withAuth(
     const token = req.nextauth.token
     const { pathname } = req.nextUrl
 
+    // Allow API routes to pass through without authentication checks
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.next()
+    }
+
     // If user is authenticated and trying to access root/landing page
     if (token && pathname === '/') {
       // Redirect based on user role
@@ -43,12 +48,17 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl
         
+        // Always allow API routes
+        if (pathname.startsWith('/api/')) {
+          return true
+        }
+        
         // Allow access to public routes
         if (pathname === '/' || 
             pathname.startsWith('/auth/') || 
-            pathname.startsWith('/api/auth/') ||
             pathname.startsWith('/_next/') ||
-            pathname.startsWith('/favicon.ico')) {
+            pathname.startsWith('/public/') ||
+            pathname === '/favicon.ico') {
           return true
         }
 
@@ -62,12 +72,12 @@ export default withAuth(
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * Match all request paths except for:
+     * - API routes (handled separately)
+     * - Static files
+     * - Image optimization files  
+     * - Favicon
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api/|_next/static|_next/image|favicon.ico|public/).*)',
   ],
 } 
