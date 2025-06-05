@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { CheckCircle, Package, IndianRupee, X, User, Clock } from 'lucide-react'
+import { CheckCircle, Package, X, User, Clock, Home } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface OrderForServing {
@@ -9,6 +8,7 @@ interface OrderForServing {
   orderNumber: string
   customerName: string
   studentId: string | null
+  roomNumber?: string
   items: Array<{
     name: string
     quantity: number
@@ -52,7 +52,7 @@ export default function ScannedOrderModal({
               <Package className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Scanned Order</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Order Ready to Serve</h3>
               <p className="text-sm text-gray-600">#{order.orderNumber}</p>
             </div>
           </div>
@@ -66,33 +66,31 @@ export default function ScannedOrderModal({
 
         {/* Order Details */}
         <div className="p-6 space-y-6">
-          {/* Customer Info */}
+          {/* Student Info */}
           <div className="bg-blue-50 rounded-lg p-4">
             <div className="flex items-center space-x-3 mb-3">
               <User className="w-5 h-5 text-blue-600" />
-              <span className="font-medium text-blue-900">Customer Details</span>
+              <span className="font-medium text-blue-900">Student Details</span>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <p className="text-lg font-semibold text-gray-900">{order.customerName}</p>
               {order.studentId && (
                 <p className="text-sm text-gray-600">Student ID: {order.studentId}</p>
               )}
+              {order.roomNumber && (
+                <div className="flex items-center space-x-1">
+                  <Home className="w-4 h-4 text-blue-600" />
+                  <p className="text-sm text-gray-600">Room: {order.roomNumber}</p>
+                </div>
+              )}
               <p className="text-sm text-gray-600 flex items-center">
                 <Clock className="w-4 h-4 mr-1" />
-                Ordered: {format(new Date(order.createdAt), 'MMM dd, h:mm a')}
+                Ordered: {format(new Date(order.createdAt), 'h:mm a')}
               </p>
             </div>
           </div>
 
-          {/* Order Status */}
-          <div className="flex items-center justify-center space-x-2">
-            <div className="flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-800 rounded-full border border-green-200">
-              <CheckCircle className="w-4 h-4" />
-              <span className="font-medium">{order.status}</span>
-            </div>
-          </div>
-
-          {/* Items */}
+          {/* Items to Serve */}
           <div>
             <h4 className="font-medium text-gray-900 mb-3">Items to Serve:</h4>
             <div className="space-y-3">
@@ -105,28 +103,17 @@ export default function ScannedOrderModal({
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">Qty: {item.quantity}</p>
+                    <p className="text-xl font-bold text-gray-900">x{item.quantity}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Total Amount */}
-          <div className="border-t border-gray-100 pt-4">
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-medium text-gray-900">Total Amount</span>
-              <span className="text-xl font-bold text-gray-900 flex items-center">
-                <IndianRupee className="w-5 h-5 mr-1" />
-                {order.totalAmount.toFixed(2)}
-              </span>
-            </div>
-          </div>
-
           {/* Instructions */}
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
             <p className="text-amber-800 text-sm">
-              <strong>Instructions:</strong> Please prepare and serve all items listed above to the customer. 
+              <strong>Instructions:</strong> Please prepare and serve all items listed above to the student. 
               Click &quot;Mark as Served&quot; only after handing over the complete order.
             </p>
           </div>
