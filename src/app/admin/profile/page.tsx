@@ -6,6 +6,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import BottomNavigation from '@/components/BottomNavigation'
 import { format } from 'date-fns'
+import { cachedFetch } from '@/lib/cache'
 
 interface ProfileData {
   id: string
@@ -87,9 +88,8 @@ export default function AdminProfile() {
   const fetchProfileData = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/profile')
-      if (response.ok) {
-        const data = await response.json()
+      const data = await cachedFetch('/api/admin/profile', {}, 10) // 10 minute cache
+      if (data.profile) {
         setProfileData(data.profile)
         setEditForm({
           name: data.profile.name || '',

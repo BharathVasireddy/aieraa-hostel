@@ -1,10 +1,11 @@
 'use client'
 
 import { TrendingUp, TrendingDown, Users, DollarSign, ShoppingCart, Calendar, Clock, Target, RefreshCw, Download, BarChart3, PieChart } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import MobileHeader from '@/components/MobileHeader'
 import BottomNavigation from '@/components/BottomNavigation'
 import { useRouter } from 'next/navigation'
+import { cachedFetch } from '@/lib/cache'
 
 interface AnalyticsData {
   period: string
@@ -64,28 +65,33 @@ export default function AdminAnalytics() {
     fetchAnalytics()
   }, [selectedPeriod])
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/admin/analytics?period=${selectedPeriod}`)
-      if (response.ok) {
-        const data = await response.json()
-        setAnalytics(data)
-      } else {
-        console.error('Failed to fetch analytics')
-      }
+      // Use 5 minute cache for analytics to reduce server load
+      const data = await cachedFetch(`/api/admin/analytics?period=${selectedPeriod}`, {}, 5)
+      setAnalytics(data)
     } catch (error) {
       console.error('Error fetching analytics:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedPeriod])
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true)
-    await fetchAnalytics()
+    // Force fresh data by bypassing cache
+    try {
+      const response = await fetch(`/api/admin/analytics?period=${selectedPeriod}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAnalytics(data)
+      }
+    } catch (error) {
+      console.error('Error refreshing analytics:', error)
+    }
     setRefreshing(false)
-  }
+  }, [selectedPeriod])
 
   const getGrowthColor = (growth: number) => {
     if (growth > 0) return 'text-green-600'
