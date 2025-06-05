@@ -29,7 +29,10 @@ export async function GET(
               select: {
                 id: true,
                 name: true,
-                categories: true
+                categories: true,
+                image: true,
+                isVegetarian: true,
+                isVegan: true
               }
             },
             variant: {
@@ -47,6 +50,7 @@ export async function GET(
             email: true,
             phone: true,
             roomNumber: true,
+            studentId: true,
             university: {
               select: {
                 name: true,
@@ -64,10 +68,37 @@ export async function GET(
       }, { status: 404 })
     }
 
-    return NextResponse.json({
-      success: true,
-      order
-    })
+    // Transform the data to match the expected format
+    const transformedOrder = {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      totalAmount: order.totalAmount,
+      subtotalAmount: order.subtotalAmount || order.totalAmount,
+      taxAmount: order.taxAmount || 0,
+      orderDate: order.orderDate,
+      createdAt: order.createdAt,
+      completedAt: order.completedAt,
+      specialInstructions: order.specialInstructions,
+      // Transform orderItems to items array as expected by frontend
+      items: order.orderItems.map(item => ({
+        id: item.id,
+        name: item.menuItem.name,
+        quantity: item.quantity,
+        price: item.price,
+        variant: item.variant ? {
+          name: item.variant.name
+        } : undefined,
+        menuItem: {
+          image: item.menuItem.image,
+          isVegetarian: item.menuItem.isVegetarian || false,
+          isVegan: item.menuItem.isVegan || false
+        }
+      }))
+    }
+
+    return NextResponse.json(transformedOrder)
 
   } catch (error) {
     console.error('Error fetching order details:', error)
