@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { QrCode, Package, CheckCircle, Clock, User, IndianRupee, Search, Filter, RefreshCw } from 'lucide-react'
+import { QrCode, Package, CheckCircle, Clock, IndianRupee, Search, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
-import Link from 'next/link'
 import MobileHeader from '@/components/MobileHeader'
 import BottomNavigation from '@/components/BottomNavigation'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
+import QRScanner from '@/components/QRScanner'
+import ScannedOrderModal from '@/components/ScannedOrderModal'
 import { lightningFetch, lightningCache } from '@/lib/cache'
 
 interface OrderForServing {
@@ -47,7 +48,10 @@ export default function CatererDashboard() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'PREPARING' | 'READY'>('all')
-  const [isScanning, setIsScanning] = useState(false)
+  const [showQRScanner, setShowQRScanner] = useState(false)
+  const [scannedOrder, setScannedOrder] = useState<OrderForServing | null>(null)
+  const [showScannedModal, setShowScannedModal] = useState(false)
+  const [isServing, setIsServing] = useState(false)
   const { notifications, addNotification, removeNotification } = useNotifications()
 
   useEffect(() => {
@@ -125,8 +129,54 @@ export default function CatererDashboard() {
     setFilteredOrders(filtered)
   }
 
+  const handleQRScan = (qrData: string) => {
+    try {
+      // Parse QR code data (should contain order information)
+      const orderData = JSON.parse(qrData)
+      
+      // Find the order by ID or order number
+      const order = orders.find(o => 
+        o.id === orderData.orderId || 
+        o.orderNumber === orderData.orderNumber
+      )
+
+      if (!order) {
+        addNotification({
+          type: 'error',
+          title: 'Order Not Found',
+          message: 'The scanned QR code does not match any pending orders.'
+        })
+        return
+      }
+
+      if (order.status !== 'READY') {
+        addNotification({
+          type: 'error',
+          title: 'Order Not Ready',
+          message: `Order status is ${order.status}. Only READY orders can be served.`
+        })
+        return
+      }
+
+      // Show the order details for serving
+      setScannedOrder(order)
+      setShowScannedModal(true)
+      setShowQRScanner(false)
+
+    } catch (error) {
+      console.error('Error parsing QR code:', error)
+      addNotification({
+        type: 'error',
+        title: 'Invalid QR Code',
+        message: 'The scanned QR code is not valid or corrupted.'
+      })
+    }
+  }
+
   const markAsServed = async (orderId: string) => {
     try {
+      setIsServing(true)
+
       // Update local state immediately for instant feedback
       setOrders(orders =>
         orders.map(order =>
@@ -150,8 +200,8 @@ export default function CatererDashboard() {
 
       addNotification({
         type: 'success',
-        title: 'Order Served',
-        message: 'Order marked as served successfully'
+        title: 'Order Served ✅',
+        message: `Order #${scannedOrder?.orderNumber} has been marked as served successfully!`
       })
 
       // Refresh stats
@@ -169,21 +219,9 @@ export default function CatererDashboard() {
         title: 'Error',
         message: 'Failed to mark order as served'
       })
+    } finally {
+      setIsServing(false)
     }
-  }
-
-  const startQRScan = () => {
-    setIsScanning(true)
-    // TODO: Implement QR code scanning functionality
-    // For now, just show a placeholder
-    setTimeout(() => {
-      setIsScanning(false)
-      addNotification({
-        type: 'info',
-        title: 'QR Scanner',
-        message: 'QR code scanning will be implemented soon'
-      })
-    }, 2000)
   }
 
   const getStatusColor = (status: string) => {
@@ -248,27 +286,24 @@ export default function CatererDashboard() {
       />
 
       <div className="px-4 py-6 space-y-6">
-        {/* QR Scanner */}
+        {/* QR Scanner Section */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold">Scan to Serve</h1>
-              <p className="text-blue-100 mt-1">Scan student QR codes to mark orders as served</p>
+              <h1 className="text-xl font-bold">🎯 QR Scanner</h1>
+              <p className="text-blue-100 mt-1">Scan student QR codes to serve orders</p>
+              <p className="text-blue-200 text-sm mt-2">
+                📱 Only QR scanning is allowed for serving orders
+              </p>
             </div>
             <button
-              onClick={startQRScan}
-              disabled={isScanning}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 p-4 rounded-lg transition-colors disabled:opacity-50"
+              onClick={() => setShowQRScanner(true)}
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 p-4 rounded-lg transition-colors flex items-center space-x-2"
             >
               <QrCode className="w-8 h-8" />
+              <span className="hidden sm:block font-medium">Scan</span>
             </button>
           </div>
-          {isScanning && (
-            <div className="mt-4 text-center">
-              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-              <p className="mt-2 text-sm">Scanning...</p>
-            </div>
-          )}
         </div>
 
         {/* Stats Grid */}
@@ -348,6 +383,9 @@ export default function CatererDashboard() {
         <div className="bg-white rounded-lg border border-gray-100">
           <div className="p-4 border-b border-gray-100">
             <h2 className="text-lg font-semibold text-gray-900">Orders for Serving</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              🔒 Use QR scanner above to serve orders
+            </p>
           </div>
           
           {filteredOrders.length === 0 ? (
@@ -402,20 +440,30 @@ export default function CatererDashboard() {
                     </div>
                   </div>
 
-                  {/* Action Button */}
+                  {/* Status Messages */}
                   {order.status === 'READY' && (
-                    <button
-                      onClick={() => markAsServed(order.id)}
-                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Mark as Served</span>
-                    </button>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                      <div className="flex items-center justify-center space-x-2 text-green-800">
+                        <QrCode className="w-4 h-4" />
+                        <span className="text-sm font-medium">Ready for QR Scan Pickup</span>
+                      </div>
+                      <p className="text-xs text-green-600 mt-1">
+                        Ask customer to show QR code and scan it above
+                      </p>
+                    </div>
                   )}
                   
                   {order.status === 'SERVED' && (
                     <div className="w-full bg-emerald-100 text-emerald-800 py-2 px-4 rounded-lg text-center font-medium">
-                      ✓ Order Served
+                      ✅ Order Served
+                    </div>
+                  )}
+
+                  {order.status !== 'READY' && order.status !== 'SERVED' && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                      <span className="text-sm text-gray-600">
+                        Order is {order.status.toLowerCase()} - not ready for serving yet
+                      </span>
                     </div>
                   )}
                 </div>
@@ -424,6 +472,25 @@ export default function CatererDashboard() {
           )}
         </div>
       </div>
+
+      {/* QR Scanner Modal */}
+      <QRScanner
+        isOpen={showQRScanner}
+        onScan={handleQRScan}
+        onClose={() => setShowQRScanner(false)}
+      />
+
+      {/* Scanned Order Modal */}
+      <ScannedOrderModal
+        order={scannedOrder}
+        isOpen={showScannedModal}
+        onClose={() => {
+          setShowScannedModal(false)
+          setScannedOrder(null)
+        }}
+        onServe={markAsServed}
+        isServing={isServing}
+      />
 
       <BottomNavigation />
     </div>

@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import QRCodeComponent from 'react-qr-code'
 import MobileHeader from '@/components/MobileHeader'
 import BottomNavigation from '@/components/BottomNavigation'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
@@ -102,10 +103,15 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
     const qrData = {
       orderId: orderData.id,
       orderNumber: orderData.orderNumber,
-      studentName: session?.user?.name,
+      studentName: session?.user?.name || 'Unknown',
       totalAmount: orderData.totalAmount,
       status: orderData.status,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      items: orderData.items.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        variant: item.variant?.name
+      }))
     }
     setQrCodeData(JSON.stringify(qrData))
   }
@@ -448,12 +454,17 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
               <p className="text-sm text-gray-600 mb-6">Present this QR code to the counter staff to collect your order</p>
               
               {/* QR Code Placeholder - In a real app, you'd use a QR code library */}
-              <div className="w-48 h-48 mx-auto bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center mb-6">
-                <div className="text-center">
-                  <QrCode className="w-16 h-16 text-gray-400 mx-auto mb-2" />
-                  <p className="text-xs text-gray-500">QR Code</p>
-                  <p className="text-xs text-gray-400">#{order.orderNumber}</p>
-                </div>
+              <div className="w-48 h-48 mx-auto bg-white rounded-lg flex items-center justify-center mb-6 p-4">
+                <QRCodeComponent 
+                  value={qrCodeData} 
+                  size={180}
+                  style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                />
+              </div>
+              
+              <div className="text-center mb-4">
+                <p className="text-sm font-medium text-gray-900">Order #{order.orderNumber}</p>
+                <p className="text-xs text-gray-500 mt-1">Show this QR code to the counter staff</p>
               </div>
               
               <div className="flex space-x-3">
