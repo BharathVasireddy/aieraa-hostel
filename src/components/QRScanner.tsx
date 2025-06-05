@@ -33,6 +33,25 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
     setError('')
   }, [])
 
+  const waitForVideoElement = useCallback((): Promise<HTMLVideoElement> => {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Video element not found after 3 seconds'))
+      }, 3000)
+
+      const checkVideo = () => {
+        if (videoRef.current) {
+          clearTimeout(timeout)
+          resolve(videoRef.current)
+        } else {
+          setTimeout(checkVideo, 100)
+        }
+      }
+
+      checkVideo()
+    })
+  }, [])
+
   const startCamera = useCallback(async () => {
     console.log('Starting camera...')
     setIsLoading(true)
@@ -48,6 +67,11 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
         throw new Error('Camera not supported on this device')
       }
 
+      // Wait for video element to be available
+      console.log('Waiting for video element...')
+      const video = await waitForVideoElement()
+      console.log('Video element found!')
+
       console.log('Requesting camera permission...')
       
       // Simple constraints that work on most devices
@@ -61,12 +85,6 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
 
       console.log('Camera permission granted, setting up video...')
       streamRef.current = stream
-
-      if (!videoRef.current) {
-        throw new Error('Video element not found')
-      }
-
-      const video = videoRef.current
       
       // Set up video element
       video.srcObject = stream
@@ -135,12 +153,12 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
       
       setError(errorMessage)
     }
-  }, [cleanup])
+  }, [cleanup, waitForVideoElement])
 
   useEffect(() => {
     if (isOpen) {
-      // Small delay to ensure DOM is ready
-      const timer = setTimeout(startCamera, 100)
+      // Ensure DOM is ready before starting camera
+      const timer = setTimeout(startCamera, 200)
       return () => clearTimeout(timer)
     } else {
       cleanup()
@@ -296,7 +314,13 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
                 </button>
               </div>
             </div>
-          ) : null}
+          ) : (
+            // Initial State (should not show due to loading)
+            <div className="text-center py-12">
+              <QrCode className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Preparing camera...</p>
+            </div>
+          )}
         </div>
       </div>
 
