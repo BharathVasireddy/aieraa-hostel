@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import StudentLayout from '@/components/StudentLayout'
 import { getVietnamTime, isPastOrderingCutoff } from '@/lib/timezone'
 import { useUser } from '@/components/UserProvider'
+import { lightningFetch, lightningCache } from '@/lib/cache'
 
 interface OrderItem {
   id: string
@@ -54,16 +55,42 @@ export default function CheckoutPage() {
 
       // Fetch menu items to get actual names and prices
       try {
-        const response = await fetch(`/api/student/menu?date=${cartData.orderDate}`)
-        const data = await response.json()
+        // Check instant cache first
+        const cacheKey = `menu_${cartData.orderDate}`
+        const cachedMenu = lightningCache.getInstant<{success: boolean, menuItems: any[]}>(cacheKey)
+        if (cachedMenu && cachedMenu.menuItems) {
+          console.log('⚡ INSTANT menu from cache for checkout')
+          const items: OrderItem[] = Object.entries(cartData.items).map(([itemId, quantity]) => {
+            const menuItem = cachedMenu.menuItems.find((item: any) => item.id === itemId)
+            if (menuItem) {
+              return {
+                id: itemId,
+                name: menuItem.name,
+                quantity: quantity as number,
+                price: menuItem.price || menuItem.basePrice
+              }
+            }
+            return {
+              id: itemId,
+              name: `Menu Item ${itemId}`,
+              quantity: quantity as number,
+              price: 50
+            }
+          })
+          setOrderItems(items)
+          setLoading(false)
+          return
+        }
         
-        if (data.success && data.menuItems) {
+        const response = await lightningFetch(`/api/student/menu?date=${cartData.orderDate}`, {}, 15)
+        
+        if (response.success && response.menuItems) {
           const items: OrderItem[] = Object.entries(cartData.items).map(([itemId, quantity]) => {
             // Handle both regular items and variations (e.g., "item123-variation456")
             const baseItemId = itemId.includes('-') ? itemId.split('-')[0] : itemId
             const variationId = itemId.includes('-') ? itemId.split('-')[1] : null
             
-            const menuItem = data.menuItems.find((item: any) => item.id === baseItemId)
+            const menuItem = response.menuItems.find((item: any) => item.id === baseItemId)
             
             if (menuItem) {
               let itemPrice = menuItem.price || menuItem.basePrice
@@ -108,6 +135,8 @@ export default function CheckoutPage() {
           })
           
           setOrderItems(items)
+          // Store in instant cache for future checkout visits
+          lightningCache.setInstant(cacheKey, response)
         } else {
           setError('Failed to load menu items - menu may be empty')
         }

@@ -1,167 +1,159 @@
-// Simple in-memory cache for improved performance
-// In production, use Redis or similar external cache
-
+// Lightning-fast cache system for instant app performance
 interface CacheItem<T> {
   data: T
   timestamp: number
-  ttl: number // Time to live in milliseconds
+  ttl: number
 }
 
-class MemoryCache {
+class LightningCache {
   private cache = new Map<string, CacheItem<any>>()
+  private memoryCache = new Map<string, any>() // Instant memory cache
+  private requestCache = new Map<string, Promise<any>>() // Prevent duplicate requests
 
-  set<T>(key: string, data: T, ttlMs: number = 300000): void { // Default 5 minutes
+  // Instant memory cache for frequently accessed data
+  setInstant<T>(key: string, data: T): void {
+    this.memoryCache.set(key, data)
+  }
+
+  getInstant<T>(key: string): T | null {
+    return this.memoryCache.get(key) || null
+  }
+
+  // Regular cache with TTL
+  set<T>(key: string, data: T, ttlMinutes: number = 30): void {
+    // Store in both instant and regular cache
+    this.memoryCache.set(key, data)
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl: ttlMs
+      ttl: ttlMinutes * 60 * 1000
     })
   }
 
   get<T>(key: string): T | null {
+    // Try instant cache first
+    const instant = this.memoryCache.get(key)
+    if (instant) return instant
+
+    // Fall back to regular cache
     const item = this.cache.get(key)
-    
-    if (!item) {
-      return null
-    }
+    if (!item) return null
 
-    const now = Date.now()
-    const isExpired = (now - item.timestamp) > item.ttl
-
+    const isExpired = (Date.now() - item.timestamp) > item.ttl
     if (isExpired) {
       this.cache.delete(key)
+      this.memoryCache.delete(key)
       return null
     }
 
+    // Store in instant cache for next time
+    this.memoryCache.set(key, item.data)
     return item.data
   }
 
-  delete(key: string): boolean {
-    return this.cache.delete(key)
+  delete(key: string): void {
+    this.cache.delete(key)
+    this.memoryCache.delete(key)
+    this.requestCache.delete(key)
   }
 
   clear(): void {
     this.cache.clear()
+    this.memoryCache.clear()
+    this.requestCache.clear()
   }
 
-  // Clean up expired entries
-  cleanup(): void {
-    const now = Date.now()
+  // Deduplicated fetch - prevents multiple identical requests
+  async deduplicatedFetch(url: string, options?: RequestInit): Promise<any> {
+    const cacheKey = `${url}_${JSON.stringify(options || {})}`
     
-    for (const [key, item] of Array.from(this.cache.entries())) {
-      const isExpired = (now - item.timestamp) > item.ttl
-      if (isExpired) {
-        this.cache.delete(key)
-      }
-    }
-  }
-
-  // Get cache statistics
-  getStats() {
-    return {
-      size: this.cache.size,
-      keys: Array.from(this.cache.keys())
-    }
-  }
-}
-
-// Global cache instance
-export const cache = new MemoryCache()
-
-// Cache key generators
-export const CacheKeys = {
-  userProfile: (userId: string) => `user:profile:${userId}`,
-  menuItems: (universityId: string, date: string) => `menu:${universityId}:${date}`,
-  orderStats: (universityId: string) => `stats:orders:${universityId}`,
-  universitiesDropdown: () => 'universities:dropdown',
-  userSession: (userId: string) => `session:${userId}`
-}
-
-// Utility functions for common caching patterns
-export async function getCachedOrFetch<T>(
-  key: string,
-  fetchFn: () => Promise<T>,
-  ttlMs: number = 300000
-): Promise<T> {
-  // Try to get from cache first
-  const cached = cache.get<T>(key)
-  if (cached !== null) {
-    return cached
-  }
-
-  // Fetch fresh data
-  const data = await fetchFn()
-  
-  // Store in cache
-  cache.set(key, data, ttlMs)
-  
-  return data
-}
-
-// Clean up expired entries every 10 minutes
-setInterval(() => {
-  cache.cleanup()
-}, 600000)
-
-// Client-side cache for reducing API calls
-class ClientCache {
-  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>()
-
-  set(key: string, data: any, ttlMinutes: number = 5) {
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl: ttlMinutes * 60 * 1000 // Convert to milliseconds
-    })
-  }
-
-  get(key: string): any | null {
-    const item = this.cache.get(key)
-    if (!item) return null
-
-    const isExpired = Date.now() - item.timestamp > item.ttl
-    if (isExpired) {
-      this.cache.delete(key)
-      return null
+    // Check if request is already in flight
+    if (this.requestCache.has(cacheKey)) {
+      console.log(`🔄 DEDUPED: ${url}`)
+      return this.requestCache.get(cacheKey)
     }
 
-    return item.data
-  }
+    // Make new request
+    const requestPromise = fetch(url, options)
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        return response.json()
+      })
+      .then(data => {
+        this.requestCache.delete(cacheKey)
+        return data
+      })
+      .catch(error => {
+        this.requestCache.delete(cacheKey)
+        throw error
+      })
 
-  clear() {
-    this.cache.clear()
-  }
-
-  delete(key: string) {
-    this.cache.delete(key)
+    this.requestCache.set(cacheKey, requestPromise)
+    return requestPromise
   }
 }
 
-export const clientCache = new ClientCache()
+export const lightningCache = new LightningCache()
 
-// Cached fetch function
-export async function cachedFetch(url: string, options?: RequestInit, cacheMinutes: number = 5): Promise<any> {
-  const cacheKey = `fetch_${url}_${JSON.stringify(options || {})}`
+// Lightning-fast fetch with instant cache fallback
+export async function lightningFetch(url: string, options?: RequestInit, cacheMinutes: number = 30): Promise<any> {
+  const cacheKey = `${url}_${JSON.stringify(options || {})}`
   
-  // Try to get from cache first
-  const cachedData = clientCache.get(cacheKey)
+  // INSTANT: Check memory cache first
+  const instantData = lightningCache.getInstant(cacheKey)
+  if (instantData) {
+    console.log(`⚡ INSTANT cache hit: ${url}`)
+    return instantData
+  }
+
+  // FAST: Check regular cache
+  const cachedData = lightningCache.get(cacheKey)
   if (cachedData) {
-    console.log(`📦 Cache hit for: ${url}`)
+    console.log(`🚀 Fast cache hit: ${url}`)
     return cachedData
   }
 
-  // If not in cache, fetch from API
-  console.log(`🌐 Fetching from API: ${url}`)
-  const response = await fetch(url, options)
+  // NETWORK: Fetch from API with deduplication
+  console.log(`🌐 Network fetch: ${url}`)
+  const data = await lightningCache.deduplicatedFetch(url, options)
   
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-  
-  const data = await response.json()
-  
-  // Store in cache
-  clientCache.set(cacheKey, data, cacheMinutes)
+  // Store in lightning cache
+  lightningCache.set(cacheKey, data, cacheMinutes)
   
   return data
-} 
+}
+
+// Pre-populate cache with static data
+export function preloadStaticData() {
+  // Cache categories
+  const categories = [
+    { key: 'all', label: 'All Items', emoji: '🍽️' },
+    { key: 'breakfast', label: 'Breakfast', emoji: '🌅' },
+    { key: 'lunch', label: 'Lunch', emoji: '🌞' },
+    { key: 'dinner', label: 'Dinner', emoji: '🌙' },
+    { key: 'beverages', label: 'Beverages', emoji: '☕' },
+    { key: 'snacks', label: 'Snacks', emoji: '🍿' }
+  ]
+  lightningCache.setInstant('categories', categories)
+  
+  // Cache common data
+  lightningCache.setInstant('app_config', {
+    taxRate: 0.1,
+    deliveryFee: 0,
+    minOrderAmount: 50
+  })
+}
+
+// Initialize static cache
+preloadStaticData()
+
+// Legacy cache exports for compatibility
+export const cache = {
+  set: lightningCache.set.bind(lightningCache),
+  get: lightningCache.get.bind(lightningCache),
+  delete: lightningCache.delete.bind(lightningCache),
+  clear: lightningCache.clear.bind(lightningCache)
+}
+
+export const clientCache = lightningCache
+export const cachedFetch = lightningFetch 

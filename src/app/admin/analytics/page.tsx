@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import MobileHeader from '@/components/MobileHeader'
 import BottomNavigation from '@/components/BottomNavigation'
 import { useRouter } from 'next/navigation'
-import { cachedFetch } from '@/lib/cache'
+import { lightningFetch, lightningCache } from '@/lib/cache'
 
 interface AnalyticsData {
   period: string
@@ -68,9 +68,23 @@ export default function AdminAnalytics() {
   const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true)
-      // Use 5 minute cache for analytics to reduce server load
-      const data = await cachedFetch(`/api/admin/analytics?period=${selectedPeriod}`, {}, 5)
+      
+      // Check instant cache first
+      const cacheKey = `analytics_${selectedPeriod}`
+      const cachedAnalytics = lightningCache.getInstant<AnalyticsData>(cacheKey)
+      if (cachedAnalytics) {
+        console.log('⚡ INSTANT analytics from cache')
+        setAnalytics(cachedAnalytics)
+        setLoading(false)
+        return
+      }
+      
+      // Use lightning fetch with 10 minute cache for analytics
+      const data = await lightningFetch(`/api/admin/analytics?period=${selectedPeriod}`, {}, 10)
       setAnalytics(data)
+      
+      // Store in instant cache for immediate future access
+      lightningCache.setInstant(cacheKey, data)
     } catch (error) {
       console.error('Error fetching analytics:', error)
     } finally {
@@ -80,12 +94,17 @@ export default function AdminAnalytics() {
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
-    // Force fresh data by bypassing cache
+    // Clear cache and force fresh data
+    const cacheKey = `analytics_${selectedPeriod}`
+    lightningCache.delete(cacheKey)
+    
     try {
       const response = await fetch(`/api/admin/analytics?period=${selectedPeriod}`)
       if (response.ok) {
         const data = await response.json()
         setAnalytics(data)
+        // Store fresh data in instant cache
+        lightningCache.setInstant(cacheKey, data)
       }
     } catch (error) {
       console.error('Error refreshing analytics:', error)

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { User, University, UniversitySettings } from '@/generated/prisma'
-import { cachedFetch, clientCache } from '@/lib/cache'
+import { lightningFetch, lightningCache } from '@/lib/cache'
 
 // Custom type that includes university relationship
 interface UserWithUniversity extends User {
@@ -28,7 +28,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isMounted, setIsMounted] = useState(false)
-  const [fetchAttempted, setFetchAttempted] = useState(false)
 
   // Set mounted state to prevent SSR hydration issues
   useEffect(() => {
@@ -42,21 +41,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // Prevent multiple simultaneous fetches
-    if (fetchAttempted && loading) {
-      return
-    }
-
     try {
-      setFetchAttempted(true)
       setLoading(true)
       setError(null)
       
-      // Use cached fetch with 10 minute cache for user data
-      const data = await cachedFetch(`/api/user/${session.user.id}`, {}, 10)
+      // Check instant cache first
+      const cacheKey = `user_${session.user.id}`
+      const cachedUser = lightningCache.getInstant<UserWithUniversity>(cacheKey)
+      if (cachedUser) {
+        console.log('⚡ INSTANT user data from cache')
+        setUser(cachedUser)
+        setLoading(false)
+        return
+      }
+      
+      // Use lightning fetch with 30 minute cache for user data
+      const data = await lightningFetch(`/api/user/${session.user.id}`, {}, 30)
       
       if (data.user) {
         setUser(data.user)
+        // Store in instant cache for immediate future access
+        lightningCache.setInstant(cacheKey, data.user)
       } else {
         throw new Error('User data not found in response')
       }
@@ -82,16 +87,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
     } finally {
       setLoading(false)
-      setFetchAttempted(false)
     }
-  }, [session?.user?.id, fetchAttempted, loading])
+  }, [session?.user?.id])
 
   useEffect(() => {
     if (!isMounted || status === 'loading') return
     
     if (status === 'authenticated' && session?.user?.id) {
-      // Only fetch if we don't have user data or session changed
-      if (!user || user.id !== session.user.id) {
+      // Check if we have instant cached data first
+      const cacheKey = `user_${session.user.id}`
+      const cachedUser = lightningCache.getInstant<UserWithUniversity>(cacheKey)
+      
+      if (cachedUser && (!user || user.id !== session.user.id)) {
+        console.log('⚡ Loading user from instant cache')
+        setUser(cachedUser)
+        setLoading(false)
+      } else if (!user || user.id !== session.user.id) {
         fetchUserData()
       } else {
         setLoading(false)
@@ -100,7 +111,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setLoading(false)
       // Clear cache when user logs out
-      clientCache.clear()
+      lightningCache.clear()
     }
   }, [session, status, isMounted, user, fetchUserData])
 

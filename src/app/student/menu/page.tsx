@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { format, addDays, startOfToday, set } from 'date-fns'
 import StudentLayout from '@/components/StudentLayout'
 import { getVietnamTime, getOrderingCountdown } from '@/lib/timezone'
+import { lightningCache, lightningFetch } from '@/lib/cache'
 
 interface MenuItem {
   id: string
@@ -191,12 +192,21 @@ export default function StudentMenu() {
           vegOnly: showVegOnly.toString()
         })
         
-        const response = await fetch(`/api/student/menu?${params}`)
-        const data = await response.json()
+        // Check instant cache first
+        const cacheKey = `menu_${selectedDate}_${selectedCategory}_${searchQuery}_${showVegOnly}`
+        const cachedMenu = lightningCache.getInstant<MenuItem[]>(cacheKey)
+        if (cachedMenu) {
+          console.log('⚡ INSTANT menu from cache')
+          setMenuItems(cachedMenu)
+          setLoading(false)
+          return
+        }
         
-        if (data.success) {
+        const response = await lightningFetch(`/api/student/menu?${params}`, {}, 15) // 15 min cache
+        
+        if (response.success) {
           // Transform API response to match component interface
-          const transformedItems: MenuItem[] = data.menuItems.map((item: any) => ({
+          const transformedItems: MenuItem[] = response.menuItems.map((item: any) => ({
             id: item.id,
             name: item.name,
             description: item.description,
@@ -215,8 +225,10 @@ export default function StudentMenu() {
           }))
           
           setMenuItems(transformedItems)
+          // Store in instant cache for immediate future access
+          lightningCache.setInstant(cacheKey, transformedItems)
         } else {
-          console.error('Failed to fetch menu items:', data.error)
+          console.error('Failed to fetch menu items:', response.error)
           setMenuItems([])
         }
       } catch (error) {
