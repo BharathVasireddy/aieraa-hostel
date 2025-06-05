@@ -1,0 +1,12 @@
+# 🔑 Copy these EXACT values to your Vercel Dashboard
+# Go to: https://vercel.com/dashboard → Your Project → Settings → Environment Variables
+
+DATABASE_URL=postgresql://neondb_owner:npg_qKGr2mCjkH1f@ep-polished-wind-a1r7ql03-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+
+NEXTAUTH_SECRET=aieraa-hostel-production-secret-key-2024-very-secure-random-string
+
+NEXTAUTH_URL=https://hostel.aieraa.com
+
+# Optional (add when you get Razorpay account):
+# RAZORPAY_KEY_ID=your-razorpay-key-id
+# RAZORPAY_KEY_SECRET=your-razorpay-secret
