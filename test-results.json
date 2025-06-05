@@ -1,0 +1,130 @@
+[
+  {
+    "timestamp": "2025-06-05T08:55:14.144Z",
+    "api": "/api/seed-demo-user",
+    "method": "POST",
+    "status": 200,
+    "response": "{\"success\":true,\"message\":\"Demo user already exists\",\"userId\":\"cmbj53vlt0001uqwt5o5v5ywr\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:14.191Z",
+    "api": "/api/universities",
+    "method": "GET",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:14.235Z",
+    "api": "/api/auth/signup",
+    "method": "POST",
+    "status": 400,
+    "response": "{\"error\":\"Please enter a valid Indian or Vietnamese phone number\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:15.877Z",
+    "api": "/api/menu",
+    "method": "GET",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:17.348Z",
+    "api": "/api/menu/availability",
+    "method": "GET",
+    "status": 500,
+    "response": "{\"error\":\"Failed to fetch menu availability\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:18.211Z",
+    "api": "/api/student/popular-dishes",
+    "method": "GET",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:18.604Z",
+    "api": "/api/student/todays-specials",
+    "method": "GET",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:19.144Z",
+    "api": "/api/student/menu",
+    "method": "GET",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:20.374Z",
+    "api": "/api/orders",
+    "method": "GET",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:20.396Z",
+    "api": "/api/orders",
+    "method": "POST",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:21.793Z",
+    "api": "/api/admin/users",
+    "method": "GET",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:23.120Z",
+    "api": "/api/admin/orders",
+    "method": "GET",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:24.806Z",
+    "api": "/api/admin/analytics",
+    "method": "GET",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:26.248Z",
+    "api": "/api/admin/profile",
+    "method": "GET",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:26.942Z",
+    "api": "/api/admin/menu",
+    "method": "POST",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  },
+  {
+    "timestamp": "2025-06-05T08:55:27.593Z",
+    "api": "/api/user/[id]",
+    "method": "GET",
+    "status": 401,
+    "response": "{\"error\":\"Unauthorized\"}",
+    "error": null
+  }
+]

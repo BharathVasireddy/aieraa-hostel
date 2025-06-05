@@ -1,0 +1,28 @@
+{
+  "name": "Aieraa Hostel Food Ordering",
+  "short_name": "Aieraa Hostel",
+  "description": "Order delicious meals from your hostel kitchen",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#059669",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "https://aieraa.com/wp-content/uploads/2020/08/Aieraa-Overseas-Logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://aieraa.com/wp-content/uploads/2020/08/Aieraa-Overseas-Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["food", "lifestyle", "education"],
+  "lang": "en",
+  "dir": "ltr"
+} 

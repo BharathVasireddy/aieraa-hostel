@@ -1,0 +1,329 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// University model for multi-university support
+model University {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique // e.g., "MIT", "STAN"
+  address     String?
+  contactInfo String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users     User[]
+  menuItems MenuItem[]
+  orders    Order[]
+  settings  UniversitySettings?
+
+  @@map("universities")
+}
+
+// University-specific settings
+model UniversitySettings {
+  id           String @id @default(cuid())
+  universityId String @unique
+  
+  // Ordering settings
+  cutoffHours         Int     @default(22) // 10 PM cutoff
+  maxAdvanceOrderDays Int     @default(7)  // 7 days advance ordering
+  minAdvanceOrderHours Int    @default(12) // Minimum 12 hours advance
+  
+  // Other settings
+  allowWeekendOrders Boolean @default(true)
+  taxRate           Float   @default(0.0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@map("university_settings")
+}
+
+// User roles enum
+enum UserRole {
+  STUDENT
+  MANAGER  // University manager (previously ADMIN)
+  ADMIN    // Super admin (manages all universities and managers)
+  CATERER
+}
+
+// User status enum
+enum UserStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}
+
+// User model for authentication
+model User {
+  id          String     @id @default(cuid())
+  email       String     @unique
+  password    String
+  name        String
+  phone       String?
+  role        UserRole   @default(STUDENT)
+  status      UserStatus @default(PENDING)
+  universityId String
+  
+  // Student specific fields
+  studentId   String?    @unique // University student ID
+  roomNumber  String?
+  course      String?
+  year        Int?
+  
+  // Profile
+  profileImage String?
+  
+  // Preferences
+  dietaryPreferences String[] // ["vegetarian", "vegan", "no-nuts"]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lastLoginAt DateTime?
+  forcedLogoutAt DateTime? // Timestamp when user was forced to logout by admin
+
+  // Relations
+  university   University @relation(fields: [universityId], references: [id])
+  orders       Order[]
+  accounts     Account[]
+  sessions     Session[]
+
+  @@map("users")
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+// Menu category enum
+enum MenuCategory {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACKS
+  BEVERAGES
+}
+
+// Menu item model
+model MenuItem {
+  id           String       @id @default(cuid())
+  name         String
+  description  String?
+  basePrice    Float        // Base price for the item
+  offerPrice   Float?       // Sale/offer price
+  categories   MenuCategory[] // Changed to array for multiple categories
+  image        String?
+  isVegetarian Boolean      @default(false)
+  isVegan      Boolean      @default(false)
+  isFeatured   Boolean      @default(false)
+  allergens    String[]     // ["nuts", "dairy", "gluten"]
+  
+  // Product variants (sizes, weights, etc.)
+  variants     MenuItemVariant[]
+  
+  // Availability
+  isActive     Boolean      @default(true)
+  universityId String
+  
+  // Nutritional info
+  calories     Int?
+  protein      Float?
+  carbs        Float?
+  fat          Float?
+  
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  university        University          @relation(fields: [universityId], references: [id])
+  availability      MenuItemAvailability[]
+  orderItems        OrderItem[]
+
+  @@map("menu_items")
+}
+
+// Product variants model (for different sizes, weights, etc.)
+model MenuItemVariant {
+  id         String   @id @default(cuid())
+  menuItemId String
+  name       String   // e.g., "250gms", "500gms", "Regular", "Large"
+  price      Float    // Price for this variant
+  isDefault  Boolean  @default(false) // Is this the default variant
+  isActive   Boolean  @default(true)
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  menuItem   MenuItem    @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@map("menu_item_variants")
+}
+
+// Menu item availability by date
+model MenuItemAvailability {
+  id         String   @id @default(cuid())
+  menuItemId String
+  date       DateTime @db.Date
+  isAvailable Boolean @default(true)
+  maxQuantity Int?    // Optional quantity limit
+  currentQuantity Int @default(0) // Track how many ordered
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([menuItemId, date])
+  @@map("menu_item_availability")
+}
+
+// Order status enum
+enum OrderStatus {
+  PENDING
+  APPROVED
+  PREPARING
+  READY
+  SERVED
+  REJECTED
+  CANCELLED
+}
+
+// Payment status enum
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// Order model
+model Order {
+  id         String        @id @default(cuid())
+  orderNumber String       @unique // Human readable order number
+  userId     String
+  universityId String?     // Made optional to handle existing data
+  orderDate  DateTime      @db.Date // Date for which the order is placed
+  status     OrderStatus   @default(PENDING)
+  
+  // Payment info
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod String        @default("cash") // razorpay, cash, etc.
+  paymentId     String?       // Razorpay payment ID
+  totalAmount   Float
+  taxAmount     Float         @default(0.0)
+  subtotalAmount Float        @default(0.0)
+  
+  // Order details
+  specialInstructions String?
+  
+  // Admin actions
+  approvedAt    DateTime?
+  approvedBy    String?       // Admin user ID
+  rejectedAt    DateTime?
+  rejectedBy    String?       // Admin user ID
+  rejectionReason String?
+  
+  // Delivery
+  deliveryInstructions String?
+  completedAt         DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user       User        @relation(fields: [userId], references: [id])
+  university University? @relation(fields: [universityId], references: [id])
+  orderItems OrderItem[]
+
+  @@map("orders")
+}
+
+// Order items model
+model OrderItem {
+  id         String @id @default(cuid())
+  orderId    String
+  menuItemId String
+  variantId  String? // Reference to MenuItemVariant for size/weight selection
+  quantity   Int
+  price      Float  // Price at the time of order
+  
+  createdAt  DateTime @default(now())
+
+  // Relations
+  order    Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem         @relation(fields: [menuItemId], references: [id])
+  variant  MenuItemVariant? @relation(fields: [variantId], references: [id])
+
+  @@map("order_items")
+}
+
+// Push notification tokens
+model PushNotificationToken {
+  id       String   @id @default(cuid())
+  userId   String
+  token    String   @unique
+  platform String   // "web", "android", "ios"
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("push_notification_tokens")
+}
