@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST='{"components/QRScanner.tsx -> @zxing/library":{"id":76142,"files":["static/chunks/6142.a2172616367f6a65.js"]}}';
+self.__REACT_LOADABLE_MANIFEST="{}";
