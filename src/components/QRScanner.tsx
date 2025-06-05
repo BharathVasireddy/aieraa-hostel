@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { X, CameraOff, QrCode, Camera, Smartphone } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { X, CameraOff, QrCode, Camera, Smartphone, AlertCircle } from 'lucide-react'
 
 interface QRScannerProps {
   onScan: (data: string) => void
@@ -11,199 +11,177 @@ interface QRScannerProps {
 
 export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [isScanning, setIsScanning] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
-  const [cameraStatus, setCameraStatus] = useState<'idle' | 'requesting' | 'active' | 'error'>('idle')
+  const [isVideoReady, setIsVideoReady] = useState(false)
   const streamRef = useRef<MediaStream | null>(null)
-  const animationFrameRef = useRef<number>()
 
-  useEffect(() => {
-    if (isOpen) {
-      initCamera()
-    } else {
-      cleanup()
-    }
-
-    return cleanup
-  }, [isOpen])
-
-  const cleanup = () => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current)
-    }
-    
+  const cleanup = useCallback(() => {
+    console.log('Cleaning up camera resources...')
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => {
         track.stop()
+        console.log('Stopped track:', track.kind)
       })
       streamRef.current = null
     }
-    
     if (videoRef.current) {
       videoRef.current.srcObject = null
     }
-    
-    setIsScanning(false)
-    setCameraStatus('idle')
+    setIsVideoReady(false)
+    setIsLoading(false)
     setError('')
-  }
+  }, [])
 
-  const initCamera = async () => {
+  const startCamera = useCallback(async () => {
+    console.log('Starting camera...')
+    setIsLoading(true)
+    setError('')
+    setIsVideoReady(false)
+
     try {
-      setCameraStatus('requesting')
-      setError('')
+      // Clean up any existing streams first
+      cleanup()
 
-      // Check for camera support
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error('Camera not supported on this device')
       }
 
-      // Simple camera constraints for maximum compatibility
-      const constraints = {
+      console.log('Requesting camera permission...')
+      
+      // Simple constraints that work on most devices
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
           width: { ideal: 640 },
           height: { ideal: 480 }
-        },
-        audio: false
-      }
-
-      console.log('Requesting camera access...')
-      const stream = await navigator.mediaDevices.getUserMedia(constraints)
-      
-      if (!videoRef.current) {
-        console.error('Video element not available')
-        return
-      }
-
-      streamRef.current = stream
-      const video = videoRef.current
-
-      // Set video properties for mobile compatibility
-      video.srcObject = stream
-      video.playsInline = true
-      video.muted = true
-      video.autoplay = true
-
-      // Wait for video to be ready
-      return new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Video failed to load within 10 seconds'))
-        }, 10000)
-
-        video.onloadedmetadata = () => {
-          console.log('Video metadata loaded')
-          video.play()
-            .then(() => {
-              clearTimeout(timeout)
-              setCameraStatus('active')
-              setIsScanning(true)
-              console.log('Video playing successfully')
-              startScanning()
-              resolve()
-            })
-            .catch((playError) => {
-              clearTimeout(timeout)
-              console.error('Video play error:', playError)
-              reject(new Error('Failed to start video playback'))
-            })
-        }
-
-        video.onerror = (e) => {
-          clearTimeout(timeout)
-          console.error('Video error:', e)
-          reject(new Error('Video failed to load'))
         }
       })
 
-    } catch (err: any) {
-      console.error('Camera initialization error:', err)
-      setCameraStatus('error')
-      
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setError('Camera permission denied. Please allow camera access in your browser settings.')
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        setError('No camera found on this device.')
-      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        setError('Camera is being used by another application.')
-      } else {
-        setError(err.message || 'Failed to access camera. Please try again.')
+      console.log('Camera permission granted, setting up video...')
+      streamRef.current = stream
+
+      if (!videoRef.current) {
+        throw new Error('Video element not found')
       }
-    }
-  }
-
-  const startScanning = () => {
-    if (!videoRef.current || !canvasRef.current) return
-
-    const scan = () => {
-      if (!isScanning || !videoRef.current || !canvasRef.current) return
 
       const video = videoRef.current
-      const canvas = canvasRef.current
-      const context = canvas.getContext('2d')
-
-      if (!context || video.readyState !== video.HAVE_ENOUGH_DATA) {
-        animationFrameRef.current = requestAnimationFrame(scan)
-        return
-      }
-
-      // Set canvas size to match video
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-
-      // Draw current video frame to canvas
-      context.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-      // Try to detect QR code using ImageData
-      try {
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
-        // Simple QR detection would go here
-        // For now, we'll rely on manual input
-      } catch (e) {
-        console.log('QR detection error:', e)
-      }
-
-      // Continue scanning
-      animationFrameRef.current = requestAnimationFrame(scan)
-    }
-
-    animationFrameRef.current = requestAnimationFrame(scan)
-  }
-
-  const handleManualInput = () => {
-    const qrData = prompt('Enter order ID or scan data for testing:')
-    if (qrData) {
-      // Try to create valid QR data format
-      let scanData = qrData
       
-      // If it's just an order ID, wrap it in JSON format
-      if (!qrData.startsWith('{')) {
-        scanData = JSON.stringify({
-          orderId: qrData,
-          orderNumber: qrData,
-          type: 'order'
+      // Set up video element
+      video.srcObject = stream
+      video.autoplay = true
+      video.playsInline = true
+      video.muted = true
+
+      // Wait for video to be ready
+      const setupVideo = () => {
+        return new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Video setup timeout'))
+          }, 5000)
+
+          const onLoadedMetadata = () => {
+            console.log('Video metadata loaded')
+            video.removeEventListener('loadedmetadata', onLoadedMetadata)
+            video.removeEventListener('error', onError)
+            clearTimeout(timeout)
+            resolve()
+          }
+
+          const onError = (e: Event) => {
+            console.error('Video error:', e)
+            video.removeEventListener('loadedmetadata', onLoadedMetadata)
+            video.removeEventListener('error', onError)
+            clearTimeout(timeout)
+            reject(new Error('Video failed to load'))
+          }
+
+          video.addEventListener('loadedmetadata', onLoadedMetadata)
+          video.addEventListener('error', onError)
         })
       }
+
+      await setupVideo()
       
-      onScan(scanData)
+      // Try to play the video
+      console.log('Playing video...')
+      try {
+        await video.play()
+        console.log('Video playing successfully!')
+        setIsVideoReady(true)
+        setIsLoading(false)
+      } catch (playError) {
+        console.error('Video play failed:', playError)
+        // Try clicking to play (some browsers require user interaction)
+        throw new Error('Click "Start Camera" to begin')
+      }
+
+    } catch (err: any) {
+      console.error('Camera error:', err)
+      setIsLoading(false)
+      
+      let errorMessage = 'Failed to access camera'
+      
+      if (err.name === 'NotAllowedError') {
+        errorMessage = 'Camera permission denied. Please allow camera access.'
+      } else if (err.name === 'NotFoundError') {
+        errorMessage = 'No camera found on this device.'
+      } else if (err.name === 'NotReadableError') {
+        errorMessage = 'Camera is already in use by another app.'
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
+      setError(errorMessage)
+    }
+  }, [cleanup])
+
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(startCamera, 100)
+      return () => clearTimeout(timer)
+    } else {
+      cleanup()
+    }
+  }, [isOpen, startCamera, cleanup])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return cleanup
+  }, [cleanup])
+
+  const handleManualInput = () => {
+    const input = prompt('Enter Order ID:')?.trim()
+    if (input) {
+      // Create proper QR data format
+      const qrData = JSON.stringify({
+        orderId: input,
+        orderNumber: input,
+        type: 'order'
+      })
+      onScan(qrData)
       onClose()
     }
   }
 
-  const retryCamera = () => {
+  const handleRetry = () => {
     cleanup()
-    setTimeout(initCamera, 500)
+    setTimeout(startCamera, 500)
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-sm max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl w-full max-w-sm max-h-[90vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Scan QR Code</h3>
+          <div className="flex items-center space-x-2">
+            <QrCode className="w-5 h-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900">QR Scanner</h3>
+          </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -212,71 +190,78 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
           </button>
         </div>
 
+        {/* Content */}
         <div className="flex-1 p-4">
-          {cameraStatus === 'error' ? (
-            <div className="text-center py-8">
-              <CameraOff className="w-16 h-16 text-red-400 mx-auto mb-4" />
-              <p className="text-red-600 mb-4 text-sm font-medium">Camera Error</p>
-              <p className="text-gray-600 mb-6 text-sm">{error}</p>
+          {error ? (
+            // Error State
+            <div className="text-center py-8 space-y-4">
+              <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
+              <div>
+                <h4 className="text-lg font-semibold text-red-600 mb-2">Camera Error</h4>
+                <p className="text-gray-600 text-sm mb-6">{error}</p>
+              </div>
+              
               <div className="space-y-3">
                 <button
-                  onClick={retryCamera}
-                  className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  onClick={handleRetry}
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center space-x-2"
                 >
-                  <Camera className="w-4 h-4 inline mr-2" />
-                  Try Again
+                  <Camera className="w-4 h-4" />
+                  <span>Try Again</span>
                 </button>
+                
                 <button
                   onClick={handleManualInput}
-                  className="w-full bg-gray-100 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center justify-center space-x-2"
                 >
-                  <Smartphone className="w-4 h-4 inline mr-2" />
-                  Manual Input
+                  <Smartphone className="w-4 h-4" />
+                  <span>Enter Order ID</span>
                 </button>
               </div>
             </div>
-          ) : cameraStatus === 'requesting' ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-700 font-medium mb-2">Starting Camera...</p>
-              <p className="text-gray-500 text-sm">Please allow camera access when prompted</p>
+          ) : isLoading ? (
+            // Loading State
+            <div className="text-center py-12 space-y-4">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto"></div>
+                <Camera className="w-6 h-6 text-blue-600 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-gray-800 mb-1">Starting Camera</p>
+                <p className="text-gray-500 text-sm">Please allow camera access when prompted</p>
+              </div>
             </div>
-          ) : cameraStatus === 'active' ? (
+          ) : isVideoReady ? (
+            // Camera Active State
             <div className="space-y-4">
-              {/* Camera View */}
+              {/* Video Container */}
               <div className="relative bg-black rounded-lg overflow-hidden">
                 <video
                   ref={videoRef}
                   className="w-full h-64 object-cover"
+                  autoPlay
                   playsInline
                   muted
-                  autoPlay
-                  style={{
-                    transform: 'scaleX(-1)', // Mirror for better UX
-                  }}
-                />
-                <canvas
-                  ref={canvasRef}
-                  className="hidden"
                 />
                 
                 {/* Scanning Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="relative">
-                    {/* Corner brackets */}
+                    {/* Scanning Frame */}
                     <div className="w-48 h-48 relative">
-                      <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400"></div>
-                      <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400"></div>
-                      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400"></div>
-                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400"></div>
+                      {/* Corner brackets */}
+                      <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400 rounded-tl-lg"></div>
+                      <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400 rounded-tr-lg"></div>
+                      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400 rounded-bl-lg"></div>
+                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400 rounded-br-lg"></div>
                       
-                      {/* Scanning line */}
+                      {/* Animated scanning line */}
                       <div className="absolute inset-0 overflow-hidden">
                         <div 
-                          className="absolute w-full h-0.5 bg-green-400 opacity-75"
+                          className="absolute w-full h-1 bg-green-400 opacity-75 rounded-full"
                           style={{
                             top: '50%',
-                            animation: 'scanner-line 2s ease-in-out infinite'
+                            animation: 'scanLine 2s ease-in-out infinite'
                           }}
                         />
                       </div>
@@ -284,28 +269,28 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
                   </div>
                 </div>
 
-                {/* Status */}
+                {/* Status Bar */}
                 <div className="absolute bottom-3 left-3 right-3">
-                  <div className="bg-black bg-opacity-75 text-white px-3 py-2 rounded-lg text-center">
+                  <div className="bg-black/75 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-center">
                     <div className="flex items-center justify-center space-x-2">
-                      <QrCode className="w-4 h-4 text-green-400" />
-                      <span className="text-sm font-medium">
-                        {isScanning ? 'Scanning for QR codes...' : 'Camera ready'}
-                      </span>
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium">Position QR code in frame</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Instructions */}
-              <div className="text-center space-y-3">
-                <p className="text-gray-600 text-sm">
-                  Position the QR code within the green frame
-                </p>
+              <div className="space-y-3">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-blue-800 text-sm text-center">
+                    <strong>Camera is active!</strong> Hold the QR code steady within the green frame.
+                  </p>
+                </div>
                 
                 <button
                   onClick={handleManualInput}
-                  className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                  className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
                 >
                   Enter Order ID Manually
                 </button>
@@ -315,11 +300,12 @@ export default function QRScanner({ onScan, onClose, isOpen }: QRScannerProps) {
         </div>
       </div>
 
+      {/* CSS Animations */}
       <style jsx>{`
-        @keyframes scanner-line {
-          0% { transform: translateY(-100%); }
-          50% { transform: translateY(100%); }
-          100% { transform: translateY(-100%); }
+        @keyframes scanLine {
+          0% { transform: translateY(-100%); opacity: 0; }
+          50% { opacity: 1; }
+          100% { transform: translateY(100%); opacity: 0; }
         }
       `}</style>
     </div>
