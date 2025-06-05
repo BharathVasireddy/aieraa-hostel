@@ -4,10 +4,10 @@ import bcrypt from 'bcryptjs'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await context.params
 
     if (id === 'seed') {
       // Seed demo users
@@ -36,7 +36,7 @@ export async function GET(
         create: {
           name: 'Bharath Malpe University',
           code: 'BMU',
-          location: 'Malpe, Karnataka',
+          address: 'Malpe, Karnataka',
           isActive: true
         }
       })
@@ -46,7 +46,7 @@ export async function GET(
       const hashedStudentPassword = await bcrypt.hash('student123', 12)
 
       // Create demo admin
-      const demoAdmin = await prisma.user.create({
+      await prisma.user.create({
         data: {
           email: 'admin@bmu.edu.vn',
           password: hashedAdminPassword,
@@ -54,15 +54,13 @@ export async function GET(
           role: 'ADMIN',
           status: 'APPROVED',
           universityId: demoUniversity.id,
-          hostelBlock: 'Admin Block',
           roomNumber: 'A001',
-          phoneNumber: '+91 9876543210',
-          isVerified: true
+          phone: '+91 9876543210'
         }
       })
 
       // Create demo student
-      const demoStudent = await prisma.user.create({
+      await prisma.user.create({
         data: {
           email: 'student@bmu.edu.vn',
           password: hashedStudentPassword,
@@ -70,10 +68,8 @@ export async function GET(
           role: 'STUDENT',
           status: 'APPROVED',
           universityId: demoUniversity.id,
-          hostelBlock: 'Block A',
           roomNumber: '201',
-          phoneNumber: '+91 9876543211',
-          isVerified: true
+          phone: '+91 9876543211'
         }
       })
 
