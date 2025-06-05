@@ -88,8 +88,9 @@ export async function GET(request: NextRequest) {
     })
 
     // Filter items that are available on the requested date
+    // If no availability record exists, assume item is available (default behavior)
     const availableItems = menuItems.filter(item => 
-      item.availability.some(avail => avail.isAvailable)
+      item.availability.length === 0 || item.availability.some(avail => avail.isAvailable)
     )
 
     // Transform items to include variant information
