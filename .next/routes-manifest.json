@@ -63,6 +63,14 @@
       "namedRegex": "^/api/auth/(?<nxtPnextauth>.+?)(?:/)?$"
     },
     {
+      "page": "/api/caterer/orders/[id]/serve",
+      "regex": "^/api/caterer/orders/([^/]+?)/serve(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/caterer/orders/(?<nxtPid>[^/]+?)/serve(?:/)?$"
+    },
+    {
       "page": "/api/orders/[id]",
       "regex": "^/api/orders/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -179,6 +187,12 @@
       "regex": "^/auth/signup(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/auth/signup(?:/)?$"
+    },
+    {
+      "page": "/caterer",
+      "regex": "^/caterer(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/caterer(?:/)?$"
     },
     {
       "page": "/student",

@@ -1,448 +1,489 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { 
-  ArrowLeft, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Calendar, 
-  IndianRupee, 
-  User, 
-  MessageSquare,
-  Package,
-  ChefHat,
-  QrCode,
-  Copy,
-  Check
-} from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { ArrowLeft, Package, Clock, CheckCircle, Star, IndianRupee, MapPin, Phone, QrCode, Download, Share2 } from 'lucide-react'
 import { format } from 'date-fns'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import Image from 'next/image'
+import MobileHeader from '@/components/MobileHeader'
+import BottomNavigation from '@/components/BottomNavigation'
+import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
+import { lightningFetch, lightningCache } from '@/lib/cache'
 
-// Helper function to safely format dates
-const formatDate = (dateString: string | undefined | null, formatString: string, fallback: string) => {
-  try {
-    if (!dateString || dateString === 'Invalid Date' || dateString === 'null' || dateString === 'undefined') {
-      return fallback;
-    }
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return fallback;
-    }
-    return format(date, formatString);
-  } catch (error) {
-    console.error('Date formatting error:', error);
-    return fallback;
-  }
-};
-
-interface OrderItem {
-  id: string
-  quantity: number
-  price: number
-  menuItem: {
-    id: string
-    name: string
-    categories: string[]
-  }
-  variant?: {
-    id: string
-    name: string
-  }
-}
-
-interface Order {
+interface OrderDetail {
   id: string
   orderNumber: string
-  orderDate: string
   status: string
   paymentStatus: string
   totalAmount: number
-  taxAmount: number
   subtotalAmount: number
-  specialInstructions?: string
+  taxAmount: number
+  orderDate: string
   createdAt: string
-  approvedAt?: string
-  rejectedAt?: string
   completedAt?: string
-  orderItems: OrderItem[]
-  user: {
+  specialInstructions?: string
+  items: Array<{
     id: string
     name: string
-    email: string
-    phone?: string
-    roomNumber?: string
-    university: {
+    quantity: number
+    price: number
+    variant?: {
       name: string
-      address?: string
     }
-  }
+    menuItem: {
+      image?: string
+      isVegetarian: boolean
+      isVegan: boolean
+    }
+  }>
 }
 
-export default function OrderDetails() {
-  const params = useParams()
+export default function StudentOrderDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { data: session } = useSession()
   const router = useRouter()
-  const [order, setOrder] = useState<Order | null>(null)
+  const [order, setOrder] = useState<OrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [qrCodeCopied, setQrCodeCopied] = useState(false)
+  const [showQR, setShowQR] = useState(false)
+  const [qrCodeData, setQrCodeData] = useState('')
+  const [orderId, setOrderId] = useState<string>('')
+  const { notifications, addNotification, removeNotification } = useNotifications()
 
   useEffect(() => {
-    fetchOrderDetails()
-  }, [params.id])
+    const getOrderId = async () => {
+      const resolvedParams = await params
+      setOrderId(resolvedParams.id)
+    }
+    getOrderId()
+  }, [params])
 
-  const fetchOrderDetails = async () => {
+  useEffect(() => {
+    if (session?.user && orderId) {
+      fetchOrderDetail()
+    }
+  }, [session, orderId])
+
+  const fetchOrderDetail = async () => {
     try {
       setLoading(true)
-      setError(null)
       
-      if (!params.id) {
-        setError('No order ID provided')
-        setOrder(null)
+      // Check instant cache first
+      const cacheKey = `student_order_${orderId}`
+      const cachedOrder = lightningCache.getInstant<OrderDetail>(cacheKey)
+      if (cachedOrder) {
+        console.log('⚡ INSTANT order detail from cache')
+        setOrder(cachedOrder)
+        generateQRCode(cachedOrder)
+        setLoading(false)
         return
       }
 
-      const response = await fetch(`/api/orders/${params.id}`)
+      const orderData = await lightningFetch(`/api/orders/${orderId}`, {}, 5) // 5 min cache
+      setOrder(orderData)
+      generateQRCode(orderData)
       
-      if (!response.ok) {
-        if (response.status === 404) {
-          setError('Order not found')
-          setOrder(null)
-        } else {
-          throw new Error(`Failed to fetch order: ${response.status}`)
-        }
-        return
-      }
-
-      const data = await response.json()
-      
-      // The API returns { success: true, order: {...} }
-      if (data.success && data.order) {
-        setOrder(data.order)
-      } else {
-        setError('Invalid order data received')
-        setOrder(null)
-      }
-      
+      // Store in instant cache
+      lightningCache.setInstant(cacheKey, orderData)
     } catch (error) {
-      console.error('Error fetching order details:', error)
-      setError('Failed to load order details')
-      setOrder(null)
+      console.error('Error fetching order detail:', error)
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to fetch order details'
+      })
     } finally {
       setLoading(false)
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return <Clock className="w-5 h-5 text-orange-600" />
-      case 'APPROVED':
-        return <CheckCircle className="w-5 h-5 text-blue-600" />
-      case 'PREPARING':
-        return <ChefHat className="w-5 h-5 text-purple-600" />
-      case 'READY':
-        return <Package className="w-5 h-5 text-green-600" />
-      case 'SERVED':
-        return <CheckCircle className="w-5 h-5 text-emerald-600" />
-      case 'CANCELLED':
-        return <XCircle className="w-5 h-5 text-red-600" />
-      default:
-        return <Clock className="w-5 h-5 text-gray-600" />
+  const generateQRCode = (orderData: OrderDetail) => {
+    // Generate QR code data containing order information for caterer scanning
+    const qrData = {
+      orderId: orderData.id,
+      orderNumber: orderData.orderNumber,
+      studentName: session?.user?.name,
+      totalAmount: orderData.totalAmount,
+      status: orderData.status,
+      timestamp: new Date().toISOString()
     }
+    setQrCodeData(JSON.stringify(qrData))
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'PENDING': return 'text-orange-800 bg-orange-100 border-orange-300'
-      case 'APPROVED': return 'text-blue-800 bg-blue-100 border-blue-300'
-      case 'PREPARING': return 'text-purple-800 bg-purple-100 border-purple-300'
-      case 'READY': return 'text-green-800 bg-green-100 border-green-300'
-      case 'SERVED': return 'text-emerald-800 bg-emerald-100 border-emerald-300'
-      case 'CANCELLED': return 'text-red-800 bg-red-100 border-red-300'
-      default: return 'text-gray-800 bg-gray-100 border-gray-300'
+      case 'PENDING': return 'text-orange-600 bg-orange-50 border-orange-200'
+      case 'APPROVED': return 'text-blue-600 bg-blue-50 border-blue-200'
+      case 'PREPARING': return 'text-purple-600 bg-purple-50 border-purple-200'
+      case 'READY': return 'text-green-600 bg-green-50 border-green-200'
+      case 'SERVED': return 'text-emerald-600 bg-emerald-50 border-emerald-200'
+      case 'REJECTED': return 'text-red-600 bg-red-50 border-red-200'
+      case 'CANCELLED': return 'text-gray-600 bg-gray-50 border-gray-200'
+      default: return 'text-gray-600 bg-gray-50 border-gray-200'
     }
   }
 
-  const getStatusText = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'PENDING': return 'Pending for Approval'
-      case 'APPROVED': return 'Approved'
-      case 'PREPARING': return 'Preparing'
-      case 'READY': return 'Ready to Collect'
-      case 'SERVED': return 'Served'
-      case 'CANCELLED': return 'Cancelled'
-      default: return status
+      case 'PENDING': return <Clock className="w-4 h-4" />
+      case 'APPROVED': return <CheckCircle className="w-4 h-4" />
+      case 'PREPARING': return <Package className="w-4 h-4" />
+      case 'READY': return <CheckCircle className="w-4 h-4" />
+      case 'SERVED': return <Star className="w-4 h-4" />
+      case 'REJECTED': return <CheckCircle className="w-4 h-4" />
+      case 'CANCELLED': return <CheckCircle className="w-4 h-4" />
+      default: return <Clock className="w-4 h-4" />
     }
   }
 
-  const getStatusDescription = (status: string) => {
+  const getStatusMessage = (status: string) => {
     switch (status) {
-      case 'PENDING': return 'Your order has been placed and is waiting for approval'
-      case 'APPROVED': return 'Your order has been approved and will be prepared soon'
-      case 'PREPARING': return 'Your order is being prepared by the kitchen'
-      case 'READY': return 'Your order is ready for collection'
-      case 'SERVED': return 'Your order has been served'
-      case 'CANCELLED': return 'This order was cancelled'
+      case 'PENDING': return 'Your order is pending approval'
+      case 'APPROVED': return 'Your order has been approved and is being prepared'
+      case 'PREPARING': return 'Your order is being prepared'
+      case 'READY': return 'Your order is ready for pickup! Show your QR code to the counter staff'
+      case 'SERVED': return 'Your order has been served. Enjoy your meal!'
+      case 'REJECTED': return 'Your order was rejected'
+      case 'CANCELLED': return 'Your order was cancelled'
       default: return ''
     }
   }
 
-  const generateQRData = (order: Order) => {
-    return JSON.stringify({
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      studentId: order.user.id,
-      studentName: order.user.name,
-      totalAmount: order.totalAmount,
-      items: order.orderItems.length,
-      timestamp: new Date().toISOString()
-    })
-  }
-
-  const copyQRData = async () => {
-    if (!order) return
-    
-    const qrData = generateQRData(order)
-    await navigator.clipboard.writeText(qrData)
-    setQrCodeCopied(true)
-    setTimeout(() => setQrCodeCopied(false), 2000)
-  }
-
-  const generateQRCodeURL = (data: string) => {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data)}`
+  const shareOrder = async () => {
+    if (navigator.share && order) {
+      try {
+        await navigator.share({
+          title: `Order #${order.orderNumber}`,
+          text: `My food order is ${order.status.toLowerCase()}`,
+          url: window.location.href
+        })
+      } catch (error) {
+        console.log('Error sharing:', error)
+      }
+    } else {
+      // Fallback to clipboard
+      navigator.clipboard.writeText(window.location.href)
+      addNotification({
+        type: 'success',
+        title: 'Link Copied',
+        message: 'Order link copied to clipboard'
+      })
+    }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-10">
-          <div className="flex items-center space-x-3">
-            <button 
-              onClick={() => router.back()}
-              className="p-2 -ml-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-lg font-bold text-gray-900">Order Details</h1>
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <MobileHeader 
+          title="Order Details" 
+          showNotifications={true}
+          rightElement={
+            <Link href="/student/orders" className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </Link>
+          }
+        />
+        <div className="px-4 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="bg-gray-200 h-32 rounded-lg"></div>
+            <div className="bg-gray-200 h-48 rounded-lg"></div>
+            <div className="bg-gray-200 h-24 rounded-lg"></div>
           </div>
         </div>
-
-        <div className="px-4 py-6 space-y-6">
-          <div className="animate-pulse">
-            <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-6"></div>
-            
-            <div className="space-y-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-20 bg-gray-200 rounded-xl"></div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <BottomNavigation />
       </div>
     )
   }
 
-  if (error || !order) {
+  if (!order) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Package className="w-8 h-8 text-gray-600" />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {error || 'Order not found'}
-          </h3>
-          <p className="text-gray-600 mb-4">
-            {error === 'Order not found' 
-              ? "The order you're looking for doesn't exist." 
-              : "There was an error loading the order details."
-            }
-          </p>
-          <button 
-            onClick={() => router.push('/student/orders')}
-            className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <MobileHeader 
+          title="Order Details" 
+          rightElement={
+            <Link href="/student/orders" className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </Link>
+          }
+        />
+        <div className="px-4 py-8 text-center">
+          <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-medium text-gray-900 mb-2">Order not found</h3>
+          <p className="text-gray-600 mb-6">The order you&apos;re looking for doesn&apos;t exist or you don&apos;t have permission to view it.</p>
+          <Link
+            href="/student/orders"
+            className="inline-flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Back to Orders
-          </button>
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Orders</span>
+          </Link>
         </div>
+        <BottomNavigation />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-10">
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={() => router.back()}
-            className="p-2 -ml-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-gray-900">#{order.orderNumber}</h1>
-            <p className="text-sm text-gray-600">Order Details</p>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <NotificationSystem 
+        notifications={notifications} 
+        onRemove={removeNotification} 
+      />
+      
+      <MobileHeader 
+        title={`Order #${order.orderNumber}`}
+        rightElement={
+          <div className="flex items-center space-x-2">
+            <Link href="/student/orders" className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </Link>
+            <button
+              onClick={shareOrder}
+              className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <Share2 className="w-5 h-5 text-gray-600" />
+            </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       <div className="px-4 py-6 space-y-6">
         {/* Order Status */}
-        <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-          <div className="flex items-center space-x-3 mb-4">
-            {getStatusIcon(order.status)}
-            <div className="flex-1">
-              <h2 className="text-lg font-semibold text-gray-900">{getStatusText(order.status)}</h2>
-              <p className="text-sm text-gray-600">{getStatusDescription(order.status)}</p>
+        <div className="bg-white rounded-lg p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className={`flex items-center space-x-2 px-3 py-2 rounded-full text-sm font-medium border ${getStatusColor(order.status)}`}>
+              {getStatusIcon(order.status)}
+              <span>{order.status}</span>
             </div>
-            <span className={`px-3 py-1.5 rounded-xl text-sm font-medium border ${getStatusColor(order.status)}`}>
-              {order.status}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-            <div className="flex items-center text-sm text-gray-600">
-              <Calendar className="w-4 h-4 mr-2" />
-              <span>For {formatDate(order.orderDate, 'MMM dd, yyyy', 'N/A')}</span>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Order Date</p>
+              <p className="font-medium">{format(new Date(order.orderDate), 'MMM dd, yyyy')}</p>
             </div>
-            <div className="flex items-center text-sm text-gray-600">
-              <Clock className="w-4 h-4 mr-2" />
-              <span>Ordered {formatDate(order.createdAt, 'MMM dd, h:mm a', 'N/A')}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* QR Code Section - Only show for READY orders */}
-        {order.status === 'READY' && (
-          <div className="bg-purple-50 rounded-xl p-6 border border-purple-200">
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <QrCode className="w-6 h-6 text-purple-600 mr-2" />
-                <h3 className="text-lg font-semibold text-gray-900">Collection QR Code</h3>
-              </div>
-              
-              <div className="bg-white p-4 rounded-xl inline-block mb-4">
-                <img 
-                  src={generateQRCodeURL(generateQRData(order))}
-                  alt="Order QR Code"
-                  className="w-48 h-48 mx-auto"
-                />
-              </div>
-              
-              <p className="text-sm text-gray-600 mb-4">
-                Show this QR code at the food counter to collect your order
-              </p>
-              
-              <button
-                onClick={copyQRData}
-                className="flex items-center space-x-2 mx-auto px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                {qrCodeCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{qrCodeCopied ? 'Copied!' : 'Copy QR Data'}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Order Items */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-          <div className="p-6 pb-0">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Items</h3>
           </div>
           
-          <div className="px-6">
-            {(order.orderItems || []).map((item, index) => (
-              <div key={item.id} className={`py-4 ${index < (order.orderItems?.length || 0) - 1 ? 'border-b border-gray-100' : ''}`}>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{item.menuItem?.name || 'Unknown Item'}</h4>
-                    <div className="flex items-center mt-2 space-x-4">
-                      <span className="text-sm text-gray-500">Qty: {item.quantity || 0}</span>
-                      <span className="text-sm text-gray-500">₹{item.price || 0} each</span>
-                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{item.menuItem?.categories.join(', ') || 'N/A'}</span>
+          <p className="text-gray-700 mb-4">{getStatusMessage(order.status)}</p>
+          
+          {order.status === 'READY' && (
+            <button
+              onClick={() => setShowQR(true)}
+              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+            >
+              <QrCode className="w-5 h-5" />
+              <span>Show QR Code for Pickup</span>
+            </button>
+          )}
+
+          {order.completedAt && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-sm text-gray-600">
+                Completed: {format(new Date(order.completedAt), 'MMM dd, yyyy h:mm a')}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Order Items */}
+        <div className="bg-white rounded-lg border border-gray-100">
+          <div className="p-4 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">Order Items</h2>
+          </div>
+          
+          <div className="divide-y divide-gray-100">
+            {order.items.map((item) => (
+              <div key={item.id} className="p-4 flex items-center space-x-4">
+                <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                  {item.menuItem.image ? (
+                    <Image
+                      src={item.menuItem.image}
+                      alt={item.name}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="w-6 h-6 text-gray-400" />
                     </div>
-                  </div>
-                  <div className="text-right ml-4">
-                    <div className="flex items-center text-lg font-semibold text-gray-900">
-                      <IndianRupee className="w-4 h-4 mr-1" />
-                      <span>₹{((item.price || 0) * (item.quantity || 0)).toFixed(0)}</span>
+                  )}
+                </div>
+                
+                <div className="flex-1">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-900">{item.name}</h3>
+                      {item.variant && (
+                        <p className="text-sm text-gray-600">{item.variant.name}</p>
+                      )}
+                      <div className="flex items-center space-x-2 mt-1">
+                        {item.menuItem.isVegetarian && (
+                          <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
+                        )}
+                        {item.menuItem.isVegan && (
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                            Vegan
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900 flex items-center">
+                        <IndianRupee className="w-3 h-3 mr-0.5" />
+                        {item.price.toFixed(2)}
+                      </p>
+                      <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                     </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+        </div>
 
-          {/* Order Summary */}
-          <div className="p-6 pt-0">
-            <div className="border-t border-gray-200 pt-4 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="text-gray-900">₹{(order.subtotalAmount || order.totalAmount - order.taxAmount).toFixed(0)}</span>
+        {/* Payment Summary */}
+        <div className="bg-white rounded-lg p-6 border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Summary</h2>
+          
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="font-medium flex items-center">
+                <IndianRupee className="w-3 h-3 mr-0.5" />
+                {order.subtotalAmount.toFixed(2)}
+              </span>
+            </div>
+            
+            {order.taxAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Tax</span>
+                <span className="font-medium flex items-center">
+                  <IndianRupee className="w-3 h-3 mr-0.5" />
+                  {order.taxAmount.toFixed(2)}
+                </span>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Tax & Fees</span>
-                <span className="text-gray-900">₹{(order.taxAmount || 0).toFixed(0)}</span>
+            )}
+            
+            <div className="border-t border-gray-100 pt-3">
+              <div className="flex justify-between">
+                <span className="text-lg font-semibold text-gray-900">Total</span>
+                <span className="text-lg font-bold text-gray-900 flex items-center">
+                  <IndianRupee className="w-4 h-4 mr-0.5" />
+                  {order.totalAmount.toFixed(2)}
+                </span>
               </div>
-              <div className="flex items-center justify-between text-lg font-semibold pt-2 border-t border-gray-200">
-                <span className="text-gray-900">Total</span>
-                <div className="flex items-center text-gray-900">
-                  <IndianRupee className="w-5 h-5 mr-1" />
-                  <span>₹{(order.totalAmount || 0).toFixed(0)}</span>
-                </div>
+            </div>
+            
+            <div className="pt-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Payment Status</span>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  order.paymentStatus === 'PAID' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-orange-100 text-orange-800'
+                }`}>
+                  {order.paymentStatus}
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Order Information */}
-        <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Information</h3>
+        {/* Special Instructions */}
+        {order.specialInstructions && (
+          <div className="bg-white rounded-lg p-6 border border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Special Instructions</h2>
+            <p className="text-gray-700">{order.specialInstructions}</p>
+          </div>
+        )}
+
+        {/* Order Timeline */}
+        <div className="bg-white rounded-lg p-6 border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Timeline</h2>
           
           <div className="space-y-4">
             <div className="flex items-start space-x-3">
-              <User className="w-5 h-5 text-green-500 mt-0.5" />
+              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <Clock className="w-3 h-3 text-white" />
+              </div>
               <div>
-                <h4 className="font-medium text-gray-900">Student Information</h4>
-                <p className="text-sm text-gray-600">
-                  {order.user.name}<br />
-                  {order.user.email}
-                </p>
+                <p className="font-medium text-gray-900">Order Placed</p>
+                <p className="text-sm text-gray-600">{format(new Date(order.createdAt), 'MMM dd, yyyy h:mm a')}</p>
               </div>
             </div>
-
-            {order.specialInstructions && (
+            
+            {['APPROVED', 'PREPARING', 'READY', 'SERVED'].includes(order.status) && (
               <div className="flex items-start space-x-3">
-                <MessageSquare className="w-5 h-5 text-purple-500 mt-0.5" />
+                <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-3 h-3 text-white" />
+                </div>
                 <div>
-                  <h4 className="font-medium text-gray-900">Special Instructions</h4>
-                  <p className="text-sm text-gray-600">{order.specialInstructions}</p>
+                  <p className="font-medium text-gray-900">Order Approved</p>
+                  <p className="text-sm text-gray-600">Your order is being prepared</p>
                 </div>
               </div>
             )}
-
-            <div className="flex items-start space-x-3">
-              <Package className="w-5 h-5 text-blue-500 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-gray-900">Payment Status</h4>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className="text-sm text-gray-600">Cash on Collection</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    order.paymentStatus === 'PAID' 
-                      ? 'text-green-800 bg-green-100' 
-                      : 'text-orange-800 bg-orange-100'
-                  }`}>
-                    {order.paymentStatus}
-                  </span>
+            
+            {order.status === 'SERVED' && order.completedAt && (
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Star className="w-3 h-3 text-white" />
                 </div>
+                <div>
+                  <p className="font-medium text-gray-900">Order Completed</p>
+                  <p className="text-sm text-gray-600">{format(new Date(order.completedAt), 'MMM dd, yyyy h:mm a')}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* QR Code Modal */}
+      {showQR && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Show this QR Code</h3>
+              <p className="text-sm text-gray-600 mb-6">Present this QR code to the counter staff to collect your order</p>
+              
+              {/* QR Code Placeholder - In a real app, you'd use a QR code library */}
+              <div className="w-48 h-48 mx-auto bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center mb-6">
+                <div className="text-center">
+                  <QrCode className="w-16 h-16 text-gray-400 mx-auto mb-2" />
+                  <p className="text-xs text-gray-500">QR Code</p>
+                  <p className="text-xs text-gray-400">#{order.orderNumber}</p>
+                </div>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowQR(false)}
+                  className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Implement QR code download functionality
+                    addNotification({
+                      type: 'info',
+                      title: 'Feature Coming Soon',
+                      message: 'QR code download will be available soon'
+                    })
+                  }}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Save</span>
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      <BottomNavigation />
     </div>
   )
 } 
