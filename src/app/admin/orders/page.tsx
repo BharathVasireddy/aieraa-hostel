@@ -5,7 +5,9 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { useSession } from 'next-auth/react'
 import BottomNavigation from '@/components/BottomNavigation'
+import MobileHeader from '@/components/MobileHeader'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
+import { lightningFetch, lightningCache } from '@/lib/cache'
 
 interface OrderItem {
   id: string
@@ -72,11 +74,19 @@ export default function AdminOrders() {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch('/api/admin/profile')
-      if (response.ok) {
-        const data = await response.json()
-        setCurrentUserData(data.profile)
+      // Check instant cache first
+      const cacheKey = 'admin_profile'
+      const cachedProfile = lightningCache.getInstant<{profile: any}>(cacheKey)
+      if (cachedProfile) {
+        console.log('⚡ INSTANT admin profile from cache')
+        setCurrentUserData(cachedProfile.profile)
+        return
       }
+
+      const data = await lightningFetch('/api/admin/profile', {}, 30) // 30 min cache
+      setCurrentUserData(data.profile)
+      // Store in instant cache
+      lightningCache.setInstant(cacheKey, data)
     } catch (error) {
       console.error('Failed to fetch current user:', error)
     }
@@ -85,11 +95,21 @@ export default function AdminOrders() {
   const fetchOrders = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/orders')
-      if (response.ok) {
-        const ordersData = await response.json()
-        setOrders(ordersData)
+      
+      // Check instant cache first
+      const cacheKey = 'admin_orders'
+      const cachedOrders = lightningCache.getInstant<Order[]>(cacheKey)
+      if (cachedOrders) {
+        console.log('⚡ INSTANT orders from cache')
+        setOrders(cachedOrders)
+        setLoading(false)
+        return
       }
+
+      const ordersData = await lightningFetch('/api/admin/orders', {}, 5) // 5 min cache for orders
+      setOrders(ordersData)
+      // Store in instant cache
+      lightningCache.setInstant(cacheKey, ordersData)
     } catch (error) {
       console.error('Error fetching orders:', error)
       addNotification({
@@ -104,7 +124,11 @@ export default function AdminOrders() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
+    // Clear cache and force fresh data
+    lightningCache.delete('admin_orders')
+    lightningCache.delete('admin_profile')
     await fetchOrders()
+    await fetchCurrentUser()
     setRefreshing(false)
   }
 
@@ -146,9 +170,14 @@ export default function AdminOrders() {
 
       if (response.ok) {
         const updatedOrder = await response.json()
+        
+        // Update local state immediately for instant feedback
         setOrders(orders.map(order => 
           order.id === orderId ? updatedOrder : order
         ))
+        
+        // Clear cache to force fresh data on next load
+        lightningCache.delete('admin_orders')
         
         const statusMessages = {
           'APPROVED': 'Order approved - ready for kitchen preparation',
@@ -259,46 +288,49 @@ export default function AdminOrders() {
         onRemove={removeNotification} 
       />
       
-      {/* Header - Responsive */}
-      <div className="bg-white border-b border-gray-100 px-4 lg:px-6 py-4 sticky top-0 z-10">
+      {/* Use MobileHeader for consistency */}
+      <MobileHeader 
+        title="Order Management" 
+        showNotifications={true}
+        rightElement={
+          <div className="flex items-center space-x-3">
+            <div className="text-right">
+              <p className="text-sm text-gray-500">Total Orders</p>
+              <p className="text-lg font-bold text-gray-900">{counts.all}</p>
+            </div>
+            <button 
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 bg-gray-100 rounded-lg disabled:opacity-50 hover:bg-gray-200 transition-colors"
+            >
+              <RefreshCw className={`h-5 w-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+        }
+      />
+
+      {/* Header Details */}
+      <div className="bg-white border-b border-gray-100 px-4 py-4">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4">
-            <div className="mb-3 lg:mb-0">
-              <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Order Management</h1>
-              <div className="flex items-center space-x-4 mt-1">
-                {currentUserData?.role === 'ADMIN' ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                    👑 Super Admin
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    🎯 University Manager
-                  </span>
-                )}
-                {currentUserData?.university && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Building className="w-4 h-4 mr-1" />
-                    {currentUserData.university.name}
-                  </div>
-                )}
+          <div className="flex items-center space-x-4 mb-4">
+            {currentUserData?.role === 'ADMIN' ? (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                👑 Super Admin
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                🎯 University Manager
+              </span>
+            )}
+            {currentUserData?.university && (
+              <div className="flex items-center text-sm text-gray-600">
+                <Building className="w-4 h-4 mr-1" />
+                {currentUserData.university.name}
               </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Total Orders</p>
-                <p className="text-2xl font-bold text-gray-900">{counts.all}</p>
-              </div>
-              <button 
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="p-2 bg-gray-100 rounded-lg disabled:opacity-50 hover:bg-gray-200 transition-colors"
-              >
-                <RefreshCw className={`h-5 w-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
+            )}
           </div>
 
-          {/* Search Bar - Responsive */}
+          {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -488,7 +520,10 @@ export default function AdminOrders() {
                     {/* Action Buttons Row */}
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => window.open(`/student/orders/${order.id}`, '_blank')}
+                        onClick={() => {
+                          // Navigate to admin order details page instead of student page
+                          window.open(`/admin/orders/${order.id}`, '_blank')
+                        }}
                         className="flex-1 bg-gray-100 text-gray-700 text-sm py-2 px-3 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
                       >
                         <Eye className="w-4 h-4 mr-1" />

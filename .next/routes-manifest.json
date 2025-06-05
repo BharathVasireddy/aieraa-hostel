@@ -23,6 +23,14 @@
       "namedRegex": "^/admin/menu/(?<nxtPid>[^/]+?)/edit(?:/)?$"
     },
     {
+      "page": "/admin/orders/[id]",
+      "regex": "^/admin/orders/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/admin/orders/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/api/admin/menu/[id]",
       "regex": "^/api/admin/menu/([^/]+?)(?:/)?$",
       "routeKeys": {
