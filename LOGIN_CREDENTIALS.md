@@ -4,7 +4,7 @@
 
 **First, seed the database with demo accounts:**
 
-Visit: **https://hostel.aieraa.com/api/seed-demo-user**
+Visit: **https://hostel.aieraa.com/api/test-order/seed**
 
 This will create demo accounts and sample menu items.
 
@@ -24,7 +24,7 @@ This will create demo accounts and sample menu items.
 
 ## 🎯 **Quick Login Steps**
 
-1. **Initialize Database**: Visit https://hostel.aieraa.com/api/seed-demo-user
+1. **Initialize Database**: Visit https://hostel.aieraa.com/api/test-order/seed
 2. **Admin Login**: Go to https://hostel.aieraa.com/auth/signin
 3. **Use Admin Credentials**: admin@bmu.edu.vn / admin123
 4. **Access Admin Dashboard**: You'll be redirected to /admin
@@ -34,6 +34,11 @@ OR
 1. **Student Login**: Go to https://hostel.aieraa.com/auth/signin  
 2. **Use Student Credentials**: student@bmu.edu.vn / student123
 3. **Access Student Portal**: You'll be redirected to /student
+
+## 🧪 **Test Database Connection**
+
+**Test Endpoint**: https://hostel.aieraa.com/api/test-order/test
+- This will show database connection status and user counts
 
 ## 🍽️ **What You'll See**
 
@@ -53,10 +58,11 @@ OR
 
 ## 🔧 **If Login Still Fails**
 
-1. **Check seeding worked**: Visit the API endpoint first
-2. **Clear browser cache**: Ctrl+Shift+Delete → Clear all
-3. **Try incognito mode**: Rule out browser cache issues
-4. **Wait for deployment**: New code takes 2-3 minutes to deploy
+1. **Check seeding worked**: Visit https://hostel.aieraa.com/api/test-order/seed
+2. **Verify database**: Visit https://hostel.aieraa.com/api/test-order/test
+3. **Clear browser cache**: Ctrl+Shift+Delete → Clear all
+4. **Try incognito mode**: Rule out browser cache issues
+5. **Wait for deployment**: New code takes 2-3 minutes to deploy
 
 ---
 
