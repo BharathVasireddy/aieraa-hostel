@@ -54,10 +54,10 @@ export default function CheckoutPage() {
 
       // Fetch menu items to get actual names and prices
       try {
-        const response = await fetch(`/api/menu?date=${cartData.orderDate}`)
+        const response = await fetch(`/api/student/menu?date=${cartData.orderDate}`)
         const data = await response.json()
         
-        if (data.success) {
+        if (data.success && data.menuItems) {
           const items: OrderItem[] = Object.entries(cartData.items).map(([itemId, quantity]) => {
             // Handle both regular items and variations (e.g., "item123-variation456")
             const baseItemId = itemId.includes('-') ? itemId.split('-')[0] : itemId
@@ -66,19 +66,19 @@ export default function CheckoutPage() {
             const menuItem = data.menuItems.find((item: any) => item.id === baseItemId)
             
             if (menuItem) {
-              let itemPrice = menuItem.price  // API transforms basePrice to price
+              let itemPrice = menuItem.price || menuItem.basePrice
               let itemName = menuItem.name
               
               // If this is a variation, find the specific variation
-              if (variationId && menuItem.variations && menuItem.variations.length > 0) {
-                const variation = menuItem.variations.find((v: any) => v.id === variationId)
+              if (variationId && menuItem.variants && menuItem.variants.length > 0) {
+                const variation = menuItem.variants.find((v: any) => v.id === variationId)
                 if (variation) {
                   itemPrice = variation.price
                   itemName = `${menuItem.name} (${variation.name})`
                 }
-              } else if (menuItem.variations && menuItem.variations.length > 0) {
+              } else if (menuItem.variants && menuItem.variants.length > 0) {
                 // Use default variation if no specific variation selected
-                const defaultVariation = menuItem.variations.find((v: any) => v.isDefault)
+                const defaultVariation = menuItem.variants.find((v: any) => v.isDefault)
                 if (defaultVariation) {
                   itemPrice = defaultVariation.price
                   itemName = `${menuItem.name} (${defaultVariation.name})`
@@ -98,17 +98,18 @@ export default function CheckoutPage() {
               }
             }
             
+            // Fallback for items not found in menu
             return {
               id: itemId,
-              name: `Item ${itemId}`,
+              name: `Menu Item ${itemId}`,
               quantity: quantity as number,
-              price: 100
+              price: 50 // Default price if not found
             }
           })
           
           setOrderItems(items)
         } else {
-          setError('Failed to load menu items')
+          setError('Failed to load menu items - menu may be empty')
         }
       } catch (error) {
         console.error('Error loading menu items:', error)
