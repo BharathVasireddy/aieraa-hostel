@@ -1,9 +1,5 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/orders/[id]/route": "app/api/orders/[id]/route.js",
-  "/api/user/[id]/route": "app/api/user/[id]/route.js",
-  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/student/page": "app/student/page.js",
-  "/student/orders/page": "app/student/orders/page.js",
-  "/student/orders/[id]/page": "app/student/orders/[id]/page.js"
+  "/student/orders/[id]/page": "app/student/orders/[id]/page.js",
+  "/student/orders/page": "app/student/orders/page.js"
 }

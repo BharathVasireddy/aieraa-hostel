@@ -61,11 +61,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/universities/route.js"
     ],
-    "/api/seed-demo-user/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/seed-demo-user/route.js"
-    ],
     "/api/menu/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
