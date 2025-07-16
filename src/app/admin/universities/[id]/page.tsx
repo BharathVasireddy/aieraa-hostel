@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { AlertCircle, ArrowLeft, Building, Building2, Calendar, Check, ChefHat, Crown, Edit, Mail, MapPin, Phone, Plus, Save, Settings, Trash2, User, UserPlus, Users, X } from 'lucide-react'
 
@@ -50,7 +50,7 @@ interface User {
 
 export default function UniversityDetailsPage() {
   const params = useParams()
-    const universityId = params.id as string
+  const universityId = params.id as string
   const router = useRouter()
 
   const [university, setUniversity] = useState<University | null>(null)
@@ -88,10 +88,14 @@ export default function UniversityDetailsPage() {
     }
   })
 
-  // Fetch university details
-  const fetchUniversity = async () => {
+  // Fetch university details with useCallback to prevent infinite re-renders
+  const fetchUniversity = useCallback(async () => {
+    if (!universityId) return
+    
     try {
       setLoading(true)
+      setError('')
+      
       const response = await fetch(`/api/admin/universities/${universityId}`)
       const data = await response.json()
 
@@ -112,10 +116,10 @@ export default function UniversityDetailsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [universityId])
 
   // Fetch available users for staff assignment
-  const fetchAvailableUsers = async () => {
+  const fetchAvailableUsers = useCallback(async () => {
     try {
       setLoadingUsers(true)
       console.log('🔍 Fetching available users...')
@@ -142,7 +146,7 @@ export default function UniversityDetailsPage() {
     } finally {
       setLoadingUsers(false)
     }
-  }
+  }, [])
 
   // Update university details
   const handleUpdateUniversity = async () => {
@@ -266,37 +270,108 @@ export default function UniversityDetailsPage() {
     }
   }
 
+  // Cancel edit mode with proper state reset
+  const cancelEdit = useCallback(() => {
+    if (university) {
+      setEditMode(false)
+      setEditForm({
+        name: university.name,
+        code: university.code,
+        city: university.city,
+        isActive: university.isActive,
+        settings: university.settings
+      })
+      setError('')
+    }
+  }, [university])
+
+  // Load university data on mount and when universityId changes
   useEffect(() => {
     fetchUniversity()
-  }, [universityId, fetchUniversity])
+  }, [fetchUniversity])
 
   const managers = university?.users?.filter(user => user.role === 'MANAGER') || []
   const caterers = university?.users?.filter(user => user.role === 'CATERER') || []
 
+  // Show loading state without flickering
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading university details...</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between py-4">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => router.back()}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div>
+                  <div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="h-4 w-64 bg-gray-200 animate-pulse rounded mt-2"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-6 bg-gray-200 rounded w-1/4"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
+  // Show error state
   if (error && !university) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            Go Back
-          </button>
+          <div className="flex space-x-3 justify-center">
+            <button
+              onClick={() => router.back()}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              Go Back
+            </button>
+            <button
+              onClick={() => {
+                setError('')
+                fetchUniversity()
+              }}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -334,23 +409,7 @@ export default function UniversityDetailsPage() {
               ) : (
                 <div className="flex space-x-2">
                   <button
-                    onClick={() => {
-                      setEditMode(false)
-                      setEditForm({
-                        name: university?.name || '',
-                        code: university?.code || '',
-                        city: university?.city || '',
-                        isActive: university?.isActive || true,
-                        settings: university?.settings || {
-                          cutoffHours: 22,
-                          maxAdvanceOrderDays: 7,
-                          minAdvanceOrderHours: 12,
-                          allowWeekendOrders: true,
-                          baseTaxRate: 0.0,
-                          serviceTaxRate: 0.0
-                        }
-                      })
-                    }}
+                    onClick={cancelEdit}
                     className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                   >
                     <X className="w-4 h-4 mr-2" />

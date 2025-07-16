@@ -1,7 +1,7 @@
 'use client'
 
 import { AlertTriangle, Check, CheckCircle, ChefHat, Clock, Crown, Filter, Mail, Phone, RefreshCw, Search, User, X, XCircle } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
 import { useSession } from 'next-auth/react'
@@ -42,18 +42,35 @@ export default function AdminUsers() {
   const { notifications, addNotification, removeNotification } = useNotifications()
   const session = useSession()
 
-  useEffect(() => {
-    fetchUsers()
-    
-    // Show role-based header message
-    if (session?.data?.user?.role === 'ADMIN') {
-      console.log('Super Admin: Can manage all universities')
-    } else if (session?.data?.user?.role === 'MANAGER') {
-      console.log('Manager: Can manage university students')
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/admin/users')
+      const data = await response.json()
+      
+      if (response.ok) {
+        setUsers(data.users || [])
+      } else {
+        console.error('Error fetching users:', data.error)
+        addNotification({
+          type: 'error',
+          title: 'Error',
+          message: data.error || 'Failed to fetch users'
+        })
+      }
+    } catch (error) {
+      console.error(error)
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to fetch users'
+      })
+    } finally {
+      setLoading(false)
     }
-  }, [session?.data?.user?.role])
+  }, [addNotification])
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...users]
 
     // Apply status filter
@@ -81,39 +98,22 @@ export default function AdminUsers() {
     }
 
     setFilteredUsers(filtered)
-  }
+  }, [users, selectedStatusTab, selectedRoleFilter, searchQuery])
+
+  useEffect(() => {
+    fetchUsers()
+    
+    // Show role-based header message
+    if (session?.data?.user?.role === 'ADMIN') {
+      console.log('Super Admin: Can manage all universities')
+    } else if (session?.data?.user?.role === 'MANAGER') {
+      console.log('Manager: Can manage university students')
+    }
+  }, [fetchUsers, session?.data?.user?.role])
 
   useEffect(() => {
     applyFilters()
-  }, [users, selectedStatusTab, selectedRoleFilter, searchQuery, applyFilters])
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/admin/users')
-      const data = await response.json()
-      
-      if (response.ok) {
-        setUsers(data.users || [])
-      } else {
-        console.error('Error fetching users:', data.error)
-        addNotification({
-          type: 'error',
-          title: 'Error',
-          message: data.error || 'Failed to fetch users'
-        })
-      }
-    } catch (error) {
-    console.error(error)
-      addNotification({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to fetch users'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [applyFilters])
 
   const refreshUsers = async () => {
     setRefreshing(true)
@@ -130,15 +130,24 @@ export default function AdminUsers() {
     try {
       setProcessingUser(userId)
       const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status, reason }),
+        body: JSON.stringify({ status, rejectionReason: reason }),
       })
 
       if (response.ok) {
+        // Update local state immediately for better UX
+        setUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.id === userId ? { ...user, status } : user
+          )
+        )
+        
+        // Also refresh from server to ensure consistency
         await fetchUsers()
+        
         addNotification({
           type: 'success',
           title: 'Success',
@@ -153,7 +162,7 @@ export default function AdminUsers() {
         })
       }
     } catch (error) {
-    console.error(error)
+      console.error(error)
       addNotification({
         type: 'error',
         title: 'Error',

@@ -76,7 +76,18 @@ export const authOptions: NextAuthOptions = {
           // Check status before expensive bcrypt operation
           if (user.status !== UserStatus.APPROVED) {
             console.error('❌ User not approved:', user.status)
-            throw new Error('Account pending approval or suspended')
+            
+            // Provide specific error messages based on user status
+            switch (user.status) {
+              case UserStatus.PENDING:
+                throw new Error('ACCOUNT_PENDING_APPROVAL')
+              case UserStatus.SUSPENDED:
+                throw new Error('ACCOUNT_SUSPENDED')
+              case UserStatus.REJECTED:
+                throw new Error('ACCOUNT_REJECTED')
+              default:
+                throw new Error('ACCOUNT_NOT_APPROVED')
+            }
           }
 
           const isPasswordValid = await bcrypt.compare(
@@ -115,14 +126,29 @@ export const authOptions: NextAuthOptions = {
           })
 
           return authUser
-        } catch (error) {
-    console.error(error)
+        } catch (error: any) {
+          console.error('🔴 Authorization error:', error)
+          console.error('🔴 Error message:', error.message)
+          console.error('🔴 Error type:', typeof error)
+          
+          // For authentication errors, we want to return null so NextAuth handles it as invalid credentials
+          // For status errors, we want to pass the specific error message
+          if (error.message && error.message.startsWith('ACCOUNT_')) {
+            console.log('🔄 Throwing custom error:', error.message)
+            throw error // Re-throw the custom error so NextAuth can handle it
+          }
+          
           return null
         }
       }
     })
   ],
   callbacks: {
+    async signIn({ user, account, profile, email, credentials }) {
+      // This callback runs after authorize and can be used to handle custom logic
+      console.log('🔄 signIn callback called with user:', user)
+      return true
+    },
     async jwt({ token, user, trigger }) {
       try {
         if (user) {

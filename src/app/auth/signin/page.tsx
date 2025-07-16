@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Eye, EyeOff, LogIn } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, LogIn, AlertCircle, Clock, XCircle, Info } from 'lucide-react'
 import { ButtonPress } from '@/components/PageTransition'
 import { Suspense } from 'react'
 
@@ -14,6 +14,7 @@ function SignInForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [errorType, setErrorType] = useState<'auth' | 'status' | 'general'>('general')
   const router = useRouter()
     const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
@@ -22,6 +23,7 @@ function SignInForm() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setErrorType('general')
 
     try {
       const result = await signIn('credentials', {
@@ -30,11 +32,33 @@ function SignInForm() {
         redirect: false,
       })
 
+      // Debug: log the full result to see what NextAuth is returning
+      console.log('🔍 SignIn result:', result)
+      console.log('🔍 Error value:', result?.error)
+      console.log('🔍 Result keys:', Object.keys(result || {}))
+
       if (result?.error) {
-        if (result.error === 'Account pending approval or suspended') {
-          setError('Your account is pending approval or has been suspended. Please contact the admin.')
-        } else {
-          setError('Invalid email or password. Please check your credentials and try again.')
+        // Handle specific error messages based on user status
+        switch (result.error) {
+          case 'ACCOUNT_PENDING_APPROVAL':
+            setError('Your account registration is pending approval. Please wait for an administrator to approve your account, or contact support if you have been waiting for more than 24 hours.')
+            setErrorType('status')
+            break
+          case 'ACCOUNT_SUSPENDED':
+            setError('Your account has been suspended. Please contact the administrator or support team to resolve this issue.')
+            setErrorType('status')
+            break
+          case 'ACCOUNT_REJECTED':
+            setError('Your account registration has been rejected. Please contact the administrator for more information or submit a new registration if eligible.')
+            setErrorType('status')
+            break
+          case 'ACCOUNT_NOT_APPROVED':
+            setError('Your account is not approved for login. Please contact the administrator for assistance.')
+            setErrorType('status')
+            break
+          default:
+            setError('Invalid email or password. Please check your credentials and try again.')
+            setErrorType('auth')
         }
       } else if (result?.ok) {
         // Get the session to determine user role and redirect
@@ -122,6 +146,7 @@ function SignInForm() {
     } catch (error) {
     console.error(error)
       setError('Something went wrong. Please try again.')
+      setErrorType('general')
     } finally {
       setLoading(false)
     }
@@ -141,8 +166,45 @@ function SignInForm() {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800 text-sm">{error}</p>
+          <div className={`border rounded-lg p-4 ${
+            errorType === 'status' 
+              ? 'bg-amber-50 border-amber-200' 
+              : errorType === 'auth'
+              ? 'bg-red-50 border-red-200'
+              : 'bg-red-50 border-red-200'
+          }`}>
+            <div className="flex items-start">
+              {errorType === 'status' && (
+                <>
+                  {error.includes('pending') && <Clock className="w-5 h-5 text-amber-600 mr-2 mt-0.5 flex-shrink-0" />}
+                  {error.includes('suspended') && <XCircle className="w-5 h-5 text-amber-600 mr-2 mt-0.5 flex-shrink-0" />}
+                  {error.includes('rejected') && <XCircle className="w-5 h-5 text-amber-600 mr-2 mt-0.5 flex-shrink-0" />}
+                  {!error.includes('pending') && !error.includes('suspended') && !error.includes('rejected') && <Info className="w-5 h-5 text-amber-600 mr-2 mt-0.5 flex-shrink-0" />}
+                </>
+              )}
+              {errorType === 'auth' && <AlertCircle className="w-5 h-5 text-red-600 mr-2 mt-0.5 flex-shrink-0" />}
+              {errorType === 'general' && <AlertCircle className="w-5 h-5 text-red-600 mr-2 mt-0.5 flex-shrink-0" />}
+              <div className="flex-1">
+                <p className={`text-sm ${
+                  errorType === 'status' 
+                    ? 'text-amber-800' 
+                    : 'text-red-800'
+                }`}>
+                  {error}
+                </p>
+                {errorType === 'status' && (
+                  <div className="mt-3 pt-3 border-t border-amber-200">
+                    <p className="text-xs text-amber-700 mb-2">
+                      <strong>Need help?</strong> Contact support:
+                    </p>
+                    <div className="text-xs text-amber-700 space-y-1">
+                      <p>• Email: support@aieraa.com</p>
+                      <p>• Or contact your university administrator</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
