@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import SessionWrapper from '@/components/SessionWrapper'
@@ -16,11 +16,10 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   title: 'Aieraa Hostel - Food Ordering App',
   description: 'Pre-order your hostel meals easily and skip the queue',
   manifest: '/manifest.json',
-  themeColor: '#16a34a',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
   icons: {
     icon: '/favicon.ico',
     apple: '/icons/icon-192x192.png'
@@ -43,6 +42,14 @@ export const metadata: Metadata = {
     siteName: 'Aieraa Hostel',
     images: '/icons/icon-512x512.png'
   }
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#16a34a'
 }
 
 export default function RootLayout({

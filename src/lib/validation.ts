@@ -1,3 +1,45 @@
+import { OrderStatus } from '@/generated/prisma'
+
+// Valid OrderStatus enum values
+export const VALID_ORDER_STATUSES: OrderStatus[] = [
+  'PENDING',
+  'APPROVED', 
+  'PREPARING',
+  'READY',
+  'SERVED',
+  'REJECTED',
+  'CANCELLED'
+]
+
+/**
+ * Validates if a string is a valid OrderStatus
+ * @param status - The status string to validate
+ * @returns boolean indicating if the status is valid
+ */
+export function isValidOrderStatus(status: string): status is OrderStatus {
+  return VALID_ORDER_STATUSES.includes(status.toUpperCase() as OrderStatus)
+}
+
+/**
+ * Safely converts a string to OrderStatus if valid
+ * @param status - The status string to convert
+ * @returns OrderStatus if valid, undefined otherwise
+ */
+export function toOrderStatus(status: string | null): OrderStatus | undefined {
+  if (!status) return undefined
+  
+  const upperStatus = status.toUpperCase()
+  return isValidOrderStatus(upperStatus) ? upperStatus as OrderStatus : undefined
+}
+
+/**
+ * Gets all valid OrderStatus values as strings
+ * @returns Array of valid OrderStatus strings
+ */
+export function getValidOrderStatuses(): string[] {
+  return VALID_ORDER_STATUSES
+}
+
 // Input validation and sanitization utilities
 
 /**

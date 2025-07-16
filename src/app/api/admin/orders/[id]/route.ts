@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isValidOrderStatus } from '@/lib/validation'
 
 // Notification function for order status changes
 async function sendOrderStatusNotification(order: any, status: string, rejectionReason?: string) {
@@ -172,9 +173,8 @@ export async function PATCH(
       )
     }
 
-    // Validate status - using actual OrderStatus enum values from database
-    const validStatuses = ['PENDING', 'APPROVED', 'PREPARING', 'READY', 'SERVED', 'REJECTED', 'CANCELLED']
-    if (!validStatuses.includes(status)) {
+    // Validate status using utility function
+    if (!isValidOrderStatus(status)) {
       return NextResponse.json(
         { error: 'Invalid status' },
         { status: 400 }

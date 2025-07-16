@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { toOrderStatus } from '@/lib/validation'
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
+    const limit = searchParams.get('limit')
 
     // Build dynamic where clause
     const whereClause: any = {}
@@ -39,11 +41,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter by status
-    if (status && status !== 'all') {
-      whereClause.status = status.toUpperCase()
+    if (status && status !== 'all' && status !== 'recent') {
+      const validStatus = toOrderStatus(status)
+      if (validStatus) {
+        whereClause.status = validStatus
+      }
     }
 
-    const orders = await prisma.order.findMany({
+    // Build query options
+    const queryOptions: any = {
       where: whereClause,
       include: {
         orderItems: {
@@ -76,7 +82,17 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: 'desc'
       }
-    })
+    }
+
+    // Add limit if provided
+    if (limit) {
+      const limitNumber = parseInt(limit, 10)
+      if (!isNaN(limitNumber) && limitNumber > 0) {
+        queryOptions.take = limitNumber
+      }
+    }
+
+    const orders = await prisma.order.findMany(queryOptions)
 
     return NextResponse.json(orders)
   } catch (error) {

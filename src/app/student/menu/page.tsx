@@ -179,7 +179,7 @@ export default function StudentMenu() {
     cartItemsCount: cartItems.reduce((sum, item) => sum + item.quantity, 0)
   }), [cartItems])
 
-  // Mock menu items with variations - optimized loading
+  // Fetch menu items from API - optimized loading
   useEffect(() => {
     const fetchMenuItems = async () => {
       setLoading(true)

@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { useSession, signOut } from 'next-auth/react'
 import { User, University, UniversitySettings } from '@/generated/prisma'
 import { lightningFetch, lightningCache } from '@/lib/cache'
+import { SessionRecovery } from '@/lib/session-recovery'
 
 // Custom type that includes university relationship
 interface UserWithUniversity extends User {
@@ -34,6 +35,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Set mounted state to prevent SSR hydration issues
   useEffect(() => {
     setIsMounted(true)
+    // Enable auto-recovery for session errors
+    SessionRecovery.useAutoRecovery()
   }, [])
 
   const fetchUserData = useCallback(async () => {
@@ -43,6 +46,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setError(null)
       return
     }
+
+    // Skip session validation for now to test authentication flow
+    // const isValidSession = await SessionRecovery.validateSession()
+    // if (!isValidSession) {
+    //   console.log('❌ Session validation failed in UserProvider')
+    //   setError('Session expired. Please login again.')
+    //   await SessionRecovery.forceLogout()
+    //   return
+    // }
 
     try {
       setLoading(true)
@@ -74,24 +86,38 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       console.error('Error fetching user data:', err)
       
+      // Temporarily disable session recovery to test authentication flow
+      // if (err.message?.includes('JWT') || 
+      //     err.message?.includes('session') || 
+      //     err.message?.includes('token') ||
+      //     err.message?.includes('Unable to determine user role')) {
+      //   console.log('🔄 JWT/Session error detected, attempting recovery...')
+      //   
+      //   const recovered = await SessionRecovery.handleSessionError(err)
+      //   if (recovered) {
+      //     console.log('✅ Session recovered, retrying user fetch')
+      //     // Retry the fetch after successful recovery
+      //     setTimeout(() => fetchUserData(), 500)
+      //     return
+      //   } else {
+      //     console.log('❌ Session recovery failed, user will be logged out')
+      //     setError('Session expired. Please login again.')
+      //     return
+      //   }
+      // }
+      
       // Handle specific error cases
       if (err.message?.includes('404')) {
         console.warn('User not found in database')
         setError('User account not found. Please login again.')
         // Don't automatically sign out on first 404, give user a chance to retry
         if (retryCount > 1) {
-          await signOut({ 
-            callbackUrl: '/auth/signin',
-            redirect: true 
-          })
+          await SessionRecovery.forceLogout()
         }
-      } else if (err.message?.includes('401')) {
+      } else if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
         console.warn('Unauthorized access, forcing logout')
         setError('Session expired. Please login again.')
-        await signOut({ 
-          callbackUrl: '/auth/signin',
-          redirect: true 
-        })
+        await SessionRecovery.forceLogout()
       } else {
         setError('Failed to load your account data. Please try again.')
         setRetryCount(prev => prev + 1)

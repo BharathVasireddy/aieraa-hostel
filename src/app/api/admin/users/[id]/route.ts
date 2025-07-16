@@ -43,12 +43,25 @@ export async function PATCH(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Check if current user can manage this user (same university)
-    if (targetUser.universityId !== currentUser.universityId) {
+    // Check if current user can manage this user
+    // Super admins (without university assignment) can manage all users
+    // University managers can only manage users from their university
+    console.log('🔍 Permission check:', {
+      currentUserId: currentUser.id,
+      currentUserUniversityId: currentUser.universityId,
+      targetUserId: targetUser.id,
+      targetUserUniversityId: targetUser.universityId,
+      action: 'update_user_status'
+    })
+    
+    if (currentUser.universityId && targetUser.universityId !== currentUser.universityId) {
+      console.log('❌ Permission denied: Different universities')
       return NextResponse.json({ 
         error: 'Cannot manage users from different universities' 
       }, { status: 403 })
     }
+
+    console.log('✅ Permission granted: Updating user status to:', status)
 
     // Update user status
     const updatedUser = await prisma.user.update({
@@ -130,8 +143,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Check if current user can manage this user (same university)
-    if (targetUser.universityId !== currentUser.universityId) {
+    // Check if current user can manage this user
+    // Super admins (without university assignment) can manage all users
+    // University managers can only manage users from their university
+    if (currentUser.universityId && targetUser.universityId !== currentUser.universityId) {
       return NextResponse.json({ 
         error: 'Cannot manage users from different universities' 
       }, { status: 403 })

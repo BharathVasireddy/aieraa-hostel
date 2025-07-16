@@ -438,14 +438,77 @@ export default function NewMenuItemPage() {
 
               {/* Image URL */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Image URL (Optional)</label>
-                <input
-                  type="url"
-                  value={formData.image}
-                  onChange={(e) => setFormData({...formData, image: e.target.value})}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://example.com/image.jpg"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Menu Item Image (Optional)</label>
+                
+                {/* Image Upload Section */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-4 mb-3">
+                    <label className="flex-1">
+                      <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+                        <div className="text-center">
+                          <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          <span className="mt-2 block text-sm text-gray-600">Upload Image</span>
+                        </div>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          
+                          // Validate file
+                          if (!file.type.startsWith('image/')) {
+                            alert('Please select an image file')
+                            return
+                          }
+                          if (file.size > 5 * 1024 * 1024) {
+                            alert('Please select an image smaller than 5MB')
+                            return
+                          }
+                          
+                          try {
+                            const uploadFormData = new FormData()
+                            uploadFormData.append('file', file)
+                            uploadFormData.append('folder', 'menu-items')
+                            
+                            const response = await fetch('/api/upload/image', {
+                              method: 'POST', 
+                              body: uploadFormData
+                            })
+                            
+                            if (response.ok) {
+                              const data = await response.json()
+                              setFormData({...formData, image: data.url})
+                            } else {
+                              const errorData = await response.json()
+                              throw new Error(errorData.error || 'Upload failed')
+                            }
+                          } catch (error) {
+                            console.error('Upload error:', error)
+                            alert('Failed to upload image')
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+                
+                {/* URL Input as Alternative */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Or enter image URL:</label>
+                  <input
+                    type="url"
+                    value={formData.image}
+                    onChange={(e) => setFormData({...formData, image: e.target.value})}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+                
                 {formData.image && (
                   <div className="mt-3">
                     <img 

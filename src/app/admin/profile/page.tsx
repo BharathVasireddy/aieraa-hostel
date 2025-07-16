@@ -131,9 +131,24 @@ export default function AdminProfile() {
     setUploadingImage(true)
     
     try {
-      // In a real app, you would upload to your file storage service
-      // For now, we'll create a local object URL
-      const imageUrl = URL.createObjectURL(file)
+      // Create FormData for secure upload
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', 'admin-profiles')
+      
+      // Upload through secure API endpoint
+      const uploadResponse = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json()
+        throw new Error(errorData.error || 'Failed to upload image')
+      }
+
+      const uploadData = await uploadResponse.json()
+      const imageUrl = uploadData.url
       
       // Update profile with new image
       const response = await fetch('/api/admin/profile', {

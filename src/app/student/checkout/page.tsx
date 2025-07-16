@@ -15,14 +15,12 @@ interface CartItem {
   quantity: number
   isVegetarian?: boolean
   image?: string
-  spiceLevel?: 'mild' | 'medium' | 'hot'
 }
 
-interface DeliveryDetails {
-  hostelBlock: string
-  roomNumber: string
-  phoneNumber: string
-  specialInstructions?: string
+interface OrderCartData {
+  items: { [key: string]: number }
+  orderDate: string
+  totalAmount: number
 }
 
 export default function CheckoutPage() {
@@ -33,14 +31,8 @@ export default function CheckoutPage() {
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [currentTime, setCurrentTime] = useState(getVietnamTime())
   const [showEditCart, setShowEditCart] = useState(false)
-  
-  // Form states
-  const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetails>({
-    hostelBlock: '',
-    roomNumber: '',
-    phoneNumber: '',
-    specialInstructions: ''
-  })
+  const [specialInstructions, setSpecialInstructions] = useState('')
+  const [menuItems, setMenuItems] = useState<{ [key: string]: any }>({})
   
   // Get selected date from localStorage  
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -65,50 +57,64 @@ export default function CheckoutPage() {
     return getOrderingCountdown(selectedDate)
   }, [selectedDate])
 
-  // Load user profile data for pre-filling
+  // Load cart from localStorage
   useEffect(() => {
-    if (user) {
-      setDeliveryDetails(prev => ({
-        ...prev,
-        phoneNumber: user.phone || '',
-        roomNumber: user.roomNumber || ''
-      }))
-    }
-  }, [user])
-
-  // Mock cart items (in real app, this would come from context/state)
-  useEffect(() => {
-    // Simulate loading cart from previous pages
-    const mockCart: CartItem[] = [
-      {
-        id: '1',
-        name: 'Butter Chicken with Rice',
-        price: 180,
-        quantity: 2,
-        isVegetarian: false,
-        spiceLevel: 'medium',
-        image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=200&h=200&fit=crop'
-      },
-      {
-        id: '2', 
-        name: 'Paneer Tikka Masala',
-        price: 150,
-        quantity: 1,
-        isVegetarian: true,
-        spiceLevel: 'mild',
-        image: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=200&h=200&fit=crop'
-      },
-      {
-        id: '3',
-        name: 'Fresh Lime Juice',
-        price: 40,
-        quantity: 2,
-        isVegetarian: true,
-        image: 'https://images.unsplash.com/photo-1544737151-6e4b001c6a6a?w=200&h=200&fit=crop'
+    const loadCart = async () => {
+      if (typeof window === 'undefined') return
+      
+      const savedCart = localStorage.getItem('orderCart')
+      if (!savedCart) {
+        // If no cart, redirect to menu
+        router.push('/student/menu')
+        return
       }
-    ]
-    setCartItems(mockCart)
-  }, [])
+
+      try {
+        const orderCart: OrderCartData = JSON.parse(savedCart)
+        
+        // Update selected date from cart
+        if (orderCart.orderDate) {
+          setSelectedDate(orderCart.orderDate)
+        }
+
+        // Fetch menu items to get full item details
+        const response = await fetch(`/api/student/menu?date=${orderCart.orderDate}`)
+        if (response.ok) {
+          const menuData = await response.json()
+          
+          // Create a lookup map for menu items
+          const menuItemsMap: { [key: string]: any } = {}
+          menuData.menuItems?.forEach((item: any) => {
+            menuItemsMap[item.id] = item
+          })
+          setMenuItems(menuItemsMap)
+
+          // Convert cart items to CartItem format
+          const cartItemsArray: CartItem[] = []
+          Object.entries(orderCart.items).forEach(([itemId, quantity]) => {
+            const menuItem = menuItemsMap[itemId]
+            if (menuItem) {
+              cartItemsArray.push({
+                id: itemId,
+                name: menuItem.name,
+                price: menuItem.offerPrice || menuItem.price,
+                quantity: quantity as number,
+                isVegetarian: menuItem.isVegetarian,
+                image: menuItem.image
+              })
+            }
+          })
+          
+          setCartItems(cartItemsArray)
+        }
+      } catch (error) {
+        console.error('Error loading cart:', error)
+        router.push('/student/menu')
+      }
+    }
+
+    loadCart()
+  }, [router])
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -141,46 +147,58 @@ export default function CheckoutPage() {
     setCartItems(prev => prev.filter(item => item.id !== itemId))
   }, [])
 
-  // Validation
+  // Simplified validation - only check if cart has items and not past cutoff
   const isValidForm = useMemo(() => {
-    return deliveryDetails.hostelBlock && 
-           deliveryDetails.roomNumber && 
-           deliveryDetails.phoneNumber &&
-           cartItems.length > 0 &&
-           !countdown.isPastCutoff
-  }, [deliveryDetails, cartItems, countdown.isPastCutoff])
+    return cartItems.length > 0 && !countdown.isPastCutoff
+  }, [cartItems, countdown.isPastCutoff])
 
   const handlePlaceOrder = useCallback(async () => {
     if (!isValidForm || loading) return
 
     setLoading(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
+      // Prepare order data for API
       const orderData = {
-        items: cartItems,
-        deliveryDetails,
-        selectedDate,
-        totals,
-        userId: user?.id
+        items: cartItems.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity
+        })),
+        orderDate: selectedDate,
+        specialInstructions: specialInstructions || undefined,
+        paymentMethod: 'cash'
       }
       
-      console.log('Placing order:', orderData)
-      setOrderPlaced(true)
-      
-      // Clear cart
-      setCartItems([])
-      localStorage.removeItem('tempCart')
-      localStorage.removeItem('orderCart')
+      // Call the actual orders API
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData)
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        
+        // Clear cart
+        setCartItems([])
+        localStorage.removeItem('tempCart')
+        localStorage.removeItem('orderCart')
+        
+        // Redirect to order success page
+        router.push(`/student/order-success?orderId=${result.order.id}&orderNumber=${result.order.orderNumber}`)
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to place order')
+      }
       
     } catch (error) {
       console.error('Error placing order:', error)
-      alert('Failed to place order. Please try again.')
+      alert(`Failed to place order: ${error instanceof Error ? error.message : 'Please try again.'}`)
     } finally {
       setLoading(false)
     }
-  }, [isValidForm, loading, cartItems, deliveryDetails, selectedDate, totals, user])
+  }, [isValidForm, loading, cartItems, selectedDate, specialInstructions, router])
 
   // Show loading state if user not loaded
   if (!user) {
@@ -193,36 +211,14 @@ export default function CheckoutPage() {
     )
   }
 
-  // Show success state
-  if (orderPlaced) {
+  // Show loading state if cart is being loaded
+  if (cartItems.length === 0 && !loading) {
     return (
       <StudentLayout>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="max-w-md w-full text-center">
-            <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-12 h-12 text-primary-600" />
-            </div>
-            
-            <h1 className="text-2xl font-bold text-neutral-800 mb-2">Order Placed Successfully! 🎉</h1>
-            <p className="text-neutral-600 mb-6">
-              Your order has been confirmed and will be prepared for {format(new Date(selectedDate), 'MMMM d, yyyy')}
-            </p>
-            
-            <div className="space-y-3">
-              <button
-                onClick={() => router.push('/student/orders')}
-                className="btn-primary w-full"
-              >
-                Track Your Order
-              </button>
-              
-              <button
-                onClick={() => router.push('/student')}
-                className="btn-outline w-full"
-              >
-                Back to Home
-              </button>
-            </div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your cart...</p>
           </div>
         </div>
       </StudentLayout>
@@ -266,221 +262,144 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        {/* Cart Items Section */}
-        <section className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-          <div className="p-4 border-b border-neutral-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <h2 className="font-semibold text-neutral-800">Your Order</h2>
-                <span className="bg-primary-100 text-primary-700 text-xs px-2 py-1 rounded-full">
-                  {totals.itemCount} items
-                </span>
-              </div>
-              <button
-                onClick={() => setShowEditCart(!showEditCart)}
-                className="text-sm text-primary-600 font-medium hover:text-primary-700 transition-colors flex items-center space-x-1"
-              >
-                <Edit3 className="w-4 h-4" />
-                <span>Edit</span>
-              </button>
+        {/* Student Information */}
+        <section className="bg-white rounded-xl border border-neutral-100 p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <User className="w-5 h-5 text-blue-600" />
+            <h2 className="text-lg font-semibold text-neutral-800">Student Information</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <div className="p-3 bg-gray-50 rounded-lg text-gray-900">{user.name}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+              <div className="p-3 bg-gray-50 rounded-lg text-gray-900">{user.studentId}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Room Number</label>
+              <div className="p-3 bg-gray-50 rounded-lg text-gray-900">{user.roomNumber}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <div className="p-3 bg-gray-50 rounded-lg text-gray-900">{user.phone}</div>
             </div>
           </div>
+        </section>
 
-          <div className="divide-y divide-neutral-100">
+        {/* Cart Items Section */}
+        <section className="bg-white rounded-xl border border-neutral-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-neutral-800">Your Order</h2>
+            <span className="text-sm text-neutral-600">{totals.itemCount} item{totals.itemCount > 1 ? 's' : ''}</span>
+          </div>
+
+          <div className="space-y-4">
             {cartItems.map((item) => (
-              <div key={item.id} className="p-4">
-                <div className="flex space-x-3">
-                  {/* Item Image */}
-                  <div className="w-16 h-16 rounded-image overflow-hidden flex-shrink-0">
-                    {item.image ? (
-                      <img 
-                        src={item.image} 
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-neutral-100 flex items-center justify-center">
-                        <span className="text-neutral-400 text-xs">No image</span>
-                      </div>
-                    )}
-                    
-                    {/* Veg indicator */}
-                    <div className={item.isVegetarian ? 'food-veg-indicator' : 'food-non-veg-indicator'}>
-                      <div className={item.isVegetarian ? 'food-veg-dot' : 'food-non-veg-dot'} />
+              <div key={item.id} className="flex items-center space-x-4 p-4 bg-neutral-50 rounded-lg">
+                <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
+                  {item.image ? (
+                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <User className="w-6 h-6" />
                     </div>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-neutral-800 line-clamp-1">{item.name}</h3>
-                        <div className="flex items-center space-x-2 mt-1">
-                          {item.spiceLevel && (
-                            <span className="text-xs text-neutral-500">
-                              🌶️ {item.spiceLevel}
-                            </span>
-                          )}
-                          <span className="text-sm font-semibold text-primary-600">
-                            ₹{item.price}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {showEditCart && (
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors ml-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-neutral-600">
-                        Subtotal: ₹{item.price * item.quantity}
+                  )}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-neutral-900 truncate">{item.name}</h3>
+                  <div className="flex items-center space-x-2 mt-1">
+                    {item.isVegetarian && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Veg
                       </span>
-                      
-                      {showEditCart ? (
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            className="btn-quantity-remove"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <span className="w-8 text-center font-semibold text-neutral-800">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="btn-quantity-add"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-sm font-medium text-neutral-700">
-                          Qty: {item.quantity}
-                        </span>
-                      )}
-                    </div>
+                    )}
+                    <span className="text-sm font-semibold text-neutral-900">₹{item.price}</span>
                   </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    className="p-1 rounded-full hover:bg-neutral-200 transition-colors"
+                  >
+                    <Minus className="w-4 h-4 text-neutral-600" />
+                  </button>
+                  <span className="w-8 text-center font-medium text-neutral-900">{item.quantity}</span>
+                  <button
+                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                    className="p-1 rounded-full hover:bg-neutral-200 transition-colors"
+                  >
+                    <Plus className="w-4 h-4 text-neutral-600" />
+                  </button>
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="p-1 rounded-full hover:bg-red-100 transition-colors ml-2"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                  </button>
                 </div>
               </div>
             ))}
           </div>
+        </section>
 
-          {/* Order Summary */}
-          <div className="bg-neutral-50 p-4 space-y-3">
-            <div className="flex items-center justify-between text-sm">
+        {/* Special Instructions */}
+        <section className="bg-white rounded-xl border border-neutral-100 p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Edit3 className="w-5 h-5 text-gray-600" />
+            <h2 className="text-lg font-semibold text-neutral-800">Special Instructions</h2>
+          </div>
+          
+          <textarea
+            value={specialInstructions}
+            onChange={(e) => setSpecialInstructions(e.target.value)}
+            placeholder="Any special instructions for your order (optional)"
+            className="w-full p-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            rows={3}
+          />
+        </section>
+
+        {/* Order Summary */}
+        <section className="bg-white rounded-xl border border-neutral-100 p-6">
+          <h2 className="text-lg font-semibold text-neutral-800 mb-4">Order Summary</h2>
+          
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
               <span className="text-neutral-600">Subtotal</span>
-              <span className="font-medium text-neutral-800">₹{totals.subtotal}</span>
+              <span className="font-medium text-neutral-900">₹{totals.subtotal}</span>
             </div>
-            
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex justify-between items-center">
               <span className="text-neutral-600">Delivery Fee</span>
-              <span className="font-medium text-primary-600">
-                {totals.deliveryFee === 0 ? 'FREE' : `₹${totals.deliveryFee}`}
-              </span>
+              <span className="font-medium text-green-600">Free</span>
             </div>
-            
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex justify-between items-center">
               <span className="text-neutral-600">Tax (5%)</span>
-              <span className="font-medium text-neutral-800">₹{totals.tax}</span>
+              <span className="font-medium text-neutral-900">₹{totals.tax}</span>
             </div>
-            
             <div className="border-t border-neutral-200 pt-3">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-neutral-800">Total</span>
-                <span className="text-lg font-bold text-primary-600">₹{totals.total}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold text-neutral-900">Total</span>
+                <span className="text-lg font-bold text-blue-600">₹{totals.total}</span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Delivery Details Section */}
-        <section className="bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="flex items-center space-x-2 mb-4">
-            <MapPin className="w-5 h-5 text-primary-600" />
-            <h2 className="font-semibold text-neutral-800">Delivery Details</h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Hostel Block *
-                </label>
-                <select
-                  value={deliveryDetails.hostelBlock}
-                  onChange={(e) => setDeliveryDetails(prev => ({...prev, hostelBlock: e.target.value}))}
-                  className="input-field"
-                  required
-                >
-                  <option value="">Select Block</option>
-                  <option value="A">Block A</option>
-                  <option value="B">Block B</option>
-                  <option value="C">Block C</option>
-                  <option value="D">Block D</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Room Number *
-                </label>
-                <input
-                  type="text"
-                  value={deliveryDetails.roomNumber}
-                  onChange={(e) => setDeliveryDetails(prev => ({...prev, roomNumber: e.target.value}))}
-                  placeholder="e.g., 201"
-                  className="input-field"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                value={deliveryDetails.phoneNumber}
-                onChange={(e) => setDeliveryDetails(prev => ({...prev, phoneNumber: e.target.value}))}
-                placeholder="+84 xxx xxx xxx"
-                className="input-field"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Special Instructions (Optional)
-              </label>
-              <textarea
-                value={deliveryDetails.specialInstructions}
-                onChange={(e) => setDeliveryDetails(prev => ({...prev, specialInstructions: e.target.value}))}
-                placeholder="Any special requests or dietary preferences..."
-                rows={3}
-                className="input-field resize-none"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Delivery Info */}
+        {/* Delivery Information */}
         <section className="bg-blue-50 border border-blue-200 rounded-xl p-4">
           <div className="flex items-start space-x-3">
             <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
             <div>
-              <h3 className="font-medium text-blue-800 mb-1">Delivery Information</h3>
+              <h3 className="font-semibold text-blue-800 mb-2">Delivery Information</h3>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Free delivery to all hostel blocks</li>
-                <li>• Orders will be delivered between 12:00 PM - 2:00 PM</li>
-                <li>• Please be available at your room during delivery time</li>
-                <li>• Contact support if you need to change delivery details</li>
+                <li>• Food will be delivered to your room: {user.roomNumber}</li>
+                <li>• Delivery time: 12:00 PM - 2:00 PM on {format(new Date(selectedDate), 'MMM d, yyyy')}</li>
+                <li>• Payment: Cash on delivery</li>
+                <li>• Please be available during delivery hours</li>
               </ul>
             </div>
           </div>
@@ -504,10 +423,10 @@ export default function CheckoutPage() {
         <button
           onClick={handlePlaceOrder}
           disabled={!isValidForm || loading}
-          className={`w-full flex items-center justify-center space-x-2 py-4 rounded-button font-semibold text-lg transition-all duration-200 ${
+          className={`w-full flex items-center justify-center space-x-2 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${
             !isValidForm || loading
-                          ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
-            : 'bg-primary-gradient text-white hover:shadow-card-hover animate-press'
+              ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
           }`}
         >
           {loading ? (
@@ -523,9 +442,15 @@ export default function CheckoutPage() {
           )}
         </button>
         
-        {!isValidForm && cartItems.length > 0 && !countdown.isPastCutoff && (
+        {!isValidForm && cartItems.length > 0 && countdown.isPastCutoff && (
           <p className="text-center text-sm text-red-600 mt-2">
-            Please fill in all required delivery details
+            Ordering deadline has passed for this date
+          </p>
+        )}
+        
+        {cartItems.length === 0 && (
+          <p className="text-center text-sm text-gray-600 mt-2">
+            Your cart is empty
           </p>
         )}
       </div>

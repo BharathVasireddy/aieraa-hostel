@@ -2,7 +2,7 @@ import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
 
 // Performance: Cache auth results for static routes
-const staticRoutes = ['/icons/', '/images/', '/_next/', '/favicon.ico']
+const staticRoutes = ['/icons/', '/images/', '/_next/', '/favicon.ico', '/manifest.json']
 
 export default withAuth(
   function middleware(req) {
@@ -55,9 +55,11 @@ export default withAuth(
       authorized: ({ token, req }) => {
         // Allow access to public routes and auth pages
         const pathname = req.nextUrl.pathname
+        
         if (pathname === '/' || pathname.startsWith('/auth/')) {
           return true
         }
+        
         // For protected routes, require authentication
         return !!token
       },
@@ -73,7 +75,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - icons (icon files)
+     * - manifest.json (PWA manifest)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|icons|manifest.json).*)',
   ],
 } 

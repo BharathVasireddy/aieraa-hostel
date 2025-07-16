@@ -55,41 +55,53 @@ export default function StudentProfile() {
     const file = event.target.files?.[0]
     if (!file) return
 
-    // Validate file type and size
+    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('Please select a valid image file')
       return
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('Image size must be less than 5MB')
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Please select an image smaller than 5MB')
       return
     }
-
+    
     setUploadingImage(true)
     
-    try {
-      // Create FormData for file upload
+        try {
+      // Create FormData for secure upload
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('folder', 'profiles')
       
-      // Upload to your storage service (implement based on your provider)
-      // For now, create a mock URL
-      const mockImageUrl = URL.createObjectURL(file)
+      // Upload through secure API endpoint
+      const uploadResponse = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json()
+        throw new Error(errorData.error || 'Failed to upload image')
+      }
+
+      const uploadData = await uploadResponse.json()
+      const imageUrl = uploadData.url
       
-      // Update user profile with new image
+      // Update user profile with new image URL
       const response = await fetch(`/api/user/${session?.user?.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          profileImage: mockImageUrl
+          profileImage: imageUrl
         })
       })
 
       if (response.ok) {
-        setUserData(prev => prev ? { ...prev, profileImage: mockImageUrl } : null)
+        setUserData(prev => prev ? { ...prev, profileImage: imageUrl } : null)
         alert('Profile image updated successfully!')
       } else {
         throw new Error('Failed to update profile image')

@@ -6,6 +6,7 @@ import Razorpay from 'razorpay'
 import { getFastUserOrders } from '@/lib/db-optimized'
 import { trackAPIEndpoint } from '@/lib/performance'
 import { OrderStatus } from '@/generated/prisma'
+import { toOrderStatus } from '@/lib/validation'
 
 interface OrderItem {
   menuItemId: string
@@ -35,7 +36,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const limit = parseInt(searchParams.get('limit') || '10')
     const status = searchParams.get('status')
 
-    const statusFilter = status ? [status.toUpperCase() as OrderStatus] : undefined
+    // Validate status parameter
+    const validStatus = toOrderStatus(status)
+    const statusFilter = validStatus ? [validStatus] : undefined
     const offset = (page - 1) * limit
 
     // Use lightning-fast optimized query
@@ -49,7 +52,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const totalOrders = await prisma.order.count({
       where: {
         userId: session.user.id,
-        ...(status ? { status: status.toUpperCase() as OrderStatus } : {})
+        ...(validStatus ? { status: validStatus } : {})
       }
     })
 

@@ -110,7 +110,7 @@ export default function AdminDashboard() {
       // Fetch fresh data
       const [analyticsResponse, ordersResponse] = await Promise.all([
         lightningFetch('/api/admin/analytics', {}, refresh ? 0 : 5), // 5 min cache
-        lightningFetch('/api/admin/orders?limit=10&status=recent', {}, refresh ? 0 : 2) // 2 min cache
+        lightningFetch('/api/admin/orders?limit=10', {}, refresh ? 0 : 2) // 2 min cache for recent orders
       ])
 
       if (analyticsResponse.success && ordersResponse.success) {
