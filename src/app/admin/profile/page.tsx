@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Activity, AlertTriangle, Calendar, Camera, Check, Edit, Edit3, Eye, EyeOff, LogOut, Mail, Phone, Save, Settings, Shield, User, X } from 'lucide-react'
+import { Activity, AlertTriangle, Calendar, Camera, Check, Edit3, Eye, EyeOff, LogOut, Mail, Phone, Save, Settings, Shield, User, X } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 

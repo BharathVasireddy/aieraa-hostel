@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Building, Menu, RefreshCw, Save } from 'lucide-react'
+import { ArrowLeft, Building, RefreshCw, Save } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -83,18 +83,19 @@ export default function NewMenuItemPage() {
     })
     
     if (universities.length > 0 && formData.universityId === '') {
-      if (currentUserData?.role === 'ADMIN') {
-        console.log('🎯 Setting university for ADMIN:', universities[0].name)
+      const firstUniversity = universities[0]
+      if (currentUserData?.role === 'ADMIN' && firstUniversity) {
+        console.log('🎯 Setting university for ADMIN:', firstUniversity.name)
         // Set first university as default for super admin
-        setFormData(prev => ({ ...prev, universityId: universities[0].id }))
+        setFormData(prev => ({ ...prev, universityId: firstUniversity.id }))
       } else if (currentUserData?.role === 'MANAGER' && currentUserData.university) {
         console.log('🎯 Setting university for MANAGER:', currentUserData.university.name)
         // Set manager's university
         setFormData(prev => ({ ...prev, universityId: currentUserData.university.id }))
-      } else if (!currentUserData && universities.length > 0) {
-        console.log('🎯 Setting fallback university:', universities[0].name)
+      } else if (!currentUserData && firstUniversity) {
+        console.log('🎯 Setting fallback university:', firstUniversity.name)
         // Fallback: if user data not loaded yet, set first university for any authenticated user
-        setFormData(prev => ({ ...prev, universityId: universities[0].id }))
+        setFormData(prev => ({ ...prev, universityId: firstUniversity.id }))
       }
     }
   }, [universities, currentUserData, formData.universityId])
@@ -151,8 +152,11 @@ export default function NewMenuItemPage() {
 
       // Ensure at least one variant is set as default
       const hasDefault = formData.variants.some(v => v.isDefault)
-      if (!hasDefault) {
-        formData.variants[0].isDefault = true
+      if (!hasDefault && formData.variants.length > 0) {
+        const firstVariant = formData.variants[0]
+        if (firstVariant) {
+          firstVariant.isDefault = true
+        }
       }
 
       const submitData = {
@@ -234,8 +238,12 @@ export default function NewMenuItemPage() {
     const updatedVariants = formData.variants.filter((_, i) => i !== index)
     
     // If we removed the default variant, make the first one default
-    if (formData.variants[index].isDefault && updatedVariants.length > 0) {
-      updatedVariants[0].isDefault = true
+    const removedVariant = formData.variants[index]
+    if (removedVariant?.isDefault && updatedVariants.length > 0) {
+      const firstVariant = updatedVariants[0]
+      if (firstVariant) {
+        firstVariant.isDefault = true
+      }
     }
     
     setFormData({
@@ -254,7 +262,10 @@ export default function NewMenuItemPage() {
       })
     }
     
-    updatedVariants[index] = { ...updatedVariants[index], [field]: value }
+    const currentVariant = updatedVariants[index]
+    if (currentVariant) {
+      updatedVariants[index] = { ...currentVariant, [field]: value }
+    }
     setFormData({
       ...formData,
       variants: updatedVariants

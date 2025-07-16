@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { ArrowLeft, Check, CheckCircle, Clock, Download, IndianRupee, MapPin, Package, Phone, QrCode, Scan, User, X, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, IndianRupee, MapPin, Package, Phone, QrCode, Scan, User, XCircle } from 'lucide-react'
 import QRCodeGenerator from '@/components/QRCodeGenerator'
 import QRScanner from '@/components/QRScanner'
 import { lightningFetch } from '@/lib/cache'
@@ -35,7 +35,7 @@ interface OrderDetails {
 
 export default function OrderDetailsPage() {
   const params = useParams()
-    const { data: session } = useSession()
+    useSession()
   const router = useRouter()
   const [order, setOrder] = useState<OrderDetails | null>(null)
   const [loading, setLoading] = useState(true)
@@ -44,7 +44,7 @@ export default function OrderDetailsPage() {
   const [showQRScanner, setShowQRScanner] = useState(false)
   const [verifying, setVerifying] = useState(false)
 
-  const orderId = params.id as string
+  const orderId = params['id'] as string
 
   const fetchOrderDetails = async () => {
     try {

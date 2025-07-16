@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Building, Menu, RefreshCw, Save } from 'lucide-react'
+import { ArrowLeft, Building, RefreshCw, Save } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -39,7 +39,7 @@ interface MenuItemFormData {
 export default function EditMenuItemPage() {
   const { data: session } = useSession()
     const params = useParams()
-  const itemId = params.id as string
+  const itemId = params['id'] as string
   const router = useRouter()
   
   const [universities, setUniversities] = useState<University[]>([])
@@ -150,8 +150,11 @@ export default function EditMenuItemPage() {
 
       // Ensure at least one variant is set as default
       const hasDefault = formData.variants.some(v => v.isDefault)
-      if (!hasDefault) {
-        formData.variants[0].isDefault = true
+      if (!hasDefault && formData.variants.length > 0) {
+        const firstVariant = formData.variants[0]
+        if (firstVariant) {
+          firstVariant.isDefault = true
+        }
       }
 
       const submitData = {
@@ -231,8 +234,12 @@ export default function EditMenuItemPage() {
     const updatedVariants = formData.variants.filter((_, i) => i !== index)
     
     // If we removed the default variant, make the first one default
-    if (formData.variants[index].isDefault && updatedVariants.length > 0) {
-      updatedVariants[0].isDefault = true
+    const removedVariant = formData.variants[index]
+    if (removedVariant?.isDefault && updatedVariants.length > 0) {
+      const firstVariant = updatedVariants[0]
+      if (firstVariant) {
+        firstVariant.isDefault = true
+      }
     }
     
     setFormData({
@@ -251,7 +258,10 @@ export default function EditMenuItemPage() {
       })
     }
     
-    updatedVariants[index] = { ...updatedVariants[index], [field]: value }
+    const currentVariant = updatedVariants[index]
+    if (currentVariant) {
+      updatedVariants[index] = { ...currentVariant, [field]: value }
+    }
     setFormData({
       ...formData,
       variants: updatedVariants

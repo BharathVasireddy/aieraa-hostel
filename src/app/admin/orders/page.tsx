@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, Building, Calendar, Check, CheckCircle, ChefHat, ChevronDown, Clock, Eye, Filter, IndianRupee, Package, RefreshCw, Search, User, X, XCircle } from 'lucide-react'
+import { ArrowRight, Building, Calendar, Check, CheckCircle, ChefHat, ChevronDown, Clock, Eye, IndianRupee, Package, RefreshCw, Search, User, X, XCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { useSession } from 'next-auth/react'
@@ -71,7 +71,7 @@ export default function AdminOrders() {
   const [universities, setUniversities] = useState<University[]>([])
   const [showUniversityDropdown, setShowUniversityDropdown] = useState(false)
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('list') // Default to list view
-  const { notifications, addNotification, removeNotification } = useNotifications()
+  useNotifications()
 
   useEffect(() => {
     if (session?.user) {
@@ -115,7 +115,7 @@ export default function AdminOrders() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (_event: MouseEvent) => {
       if (showUniversityDropdown) {
         setShowUniversityDropdown(false)
       }
@@ -123,7 +123,12 @@ export default function AdminOrders() {
     
     if (showUniversityDropdown) {
       document.addEventListener('click', handleClickOutside)
-      return () => document.removeEventListener('click', handleClickOutside)
+    }
+    
+    return () => {
+      if (showUniversityDropdown) {
+        document.removeEventListener('click', handleClickOutside)
+      }
     }
   }, [showUniversityDropdown])
 

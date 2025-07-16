@@ -1,6 +1,6 @@
 'use client'
 
-import { Building, Edit, Menu, Plus, RefreshCw, Search, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
+import { Building, Edit, Plus, RefreshCw, Search, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'

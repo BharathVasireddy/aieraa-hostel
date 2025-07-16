@@ -1,6 +1,6 @@
 'use client'
 
-import { BarChart3, Clock, DollarSign, Download, PieChart, RefreshCw, ShoppingCart, Target, TrendingDown, TrendingUp, User, Users } from 'lucide-react'
+import { BarChart3, Clock, DollarSign, Download, PieChart, RefreshCw, ShoppingCart, Target, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import MobileHeader from '@/components/MobileHeader'
 import { lightningFetch, lightningCache } from '@/lib/cache'
@@ -354,7 +354,7 @@ export default function AdminAnalytics() {
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-4">
-              {analytics.categoryBreakdown.map((category, index) => {
+              {analytics.categoryBreakdown.map((category) => {
                 const categoryEmojis: { [key: string]: string } = {
                   'BREAKFAST': '☀️',
                   'LUNCH': '🌞',
