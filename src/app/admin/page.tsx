@@ -70,7 +70,6 @@ export default function AdminDashboard() {
       if (!refresh) {
         const cachedData = lightningCache.getInstant<any>(cacheKey)
         if (cachedData) {
-          console.log('⚡ INSTANT dashboard from cache')
           setStats(cachedData.stats)
           setRecentOrders(cachedData.recentOrders)
           setPopularItems(cachedData.popularItems)
@@ -164,7 +163,7 @@ export default function AdminDashboard() {
         lightningCache.setInstant(cacheKey, cacheData)
       }
     } catch (error) {
-    console.error(error)
+      // Handle error silently
     } finally {
       setLoading(false)
       setRefreshing(false)

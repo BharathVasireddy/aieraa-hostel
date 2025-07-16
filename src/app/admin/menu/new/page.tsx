@@ -1,650 +1,550 @@
 'use client'
 
-import { ArrowLeft, Building, RefreshCw, Save } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import MobileHeader from '@/components/MobileHeader'
-
-
-interface University {
-  id: string
-  name: string
-  code: string
-  address?: string
-  contactInfo?: string
-  isActive: boolean
-}
+import { useUser } from '@/components/UserProvider'
+import { ArrowLeft, Plus, Trash2, Save, Upload, X } from 'lucide-react'
+import { ButtonPress } from '@/components/PageTransition'
+import { lightningFetch } from '@/lib/cache'
 
 interface MenuItemVariant {
-  id?: string
+  id: string
   name: string
-  price: string
+  price: number
+  description: string
   isDefault: boolean
-  isActive: boolean
 }
 
 interface MenuItemFormData {
   name: string
   description: string
-  basePrice: string
-  categories: string[]
+  category: string
   isVegetarian: boolean
   isVegan: boolean
-  image: string
+  isAvailable: boolean
+  imageUrl: string
   universityId: string
   variants: MenuItemVariant[]
 }
 
-export default function NewMenuItemPage() {
-  const { data: session } = useSession()
-  const router = useRouter()
-    const [universities, setUniversities] = useState<University[]>([])
-  const [currentUserData, setCurrentUserData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+interface University {
+  id: string
+  name: string
+  code: string
+}
 
+const categories = [
+  'Breakfast',
+  'Lunch',
+  'Dinner',
+  'Snacks',
+  'Beverages',
+  'Desserts'
+]
+
+export default function NewMenuItemPage() {
+  const router = useRouter()
+  const { data: session } = useSession()
+  const { user: currentUserData } = useUser()
+  
   const [formData, setFormData] = useState<MenuItemFormData>({
     name: '',
     description: '',
-    basePrice: '',
-    categories: ['BREAKFAST'],
+    category: categories[0],
     isVegetarian: false,
     isVegan: false,
-    image: '',
+    isAvailable: true,
+    imageUrl: '',
     universityId: '',
     variants: [
-      { name: 'Regular', price: '', isDefault: true, isActive: true }
+      {
+        id: '1',
+        name: 'Regular',
+        price: 0,
+        description: 'Regular portion',
+        isDefault: true
+      }
     ]
   })
-
-  const categoryOptions = [
-    { value: 'BREAKFAST', label: '🌅 Breakfast', emoji: '🌅' },
-    { value: 'LUNCH', label: '🍽️ Lunch', emoji: '🍽️' },
-    { value: 'DINNER', label: '🌙 Dinner', emoji: '🌙' },
-    { value: 'SNACKS', label: '🥨 Snacks', emoji: '🥨' },
-    { value: 'BEVERAGES', label: '☕ Beverages', emoji: '☕' }
-  ]
+  
+  const [universities, setUniversities] = useState<University[]>([])
+  const [loading, setLoading] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    if (session?.user) {
-      fetchCurrentUser()
-      fetchUniversities()
-    }
-  }, [session])
-
-  // Set default university when both data are available
-  useEffect(() => {
-    console.log('🔍 University selection effect:', {
-      universitiesCount: universities.length,
-      currentUniversityId: formData.universityId,
-      userRole: currentUserData?.role,
-      userLoaded: !!currentUserData
-    })
-    
-    if (universities.length > 0 && formData.universityId === '') {
-      const firstUniversity = universities[0]
-      if (currentUserData?.role === 'ADMIN' && firstUniversity) {
-        console.log('🎯 Setting university for ADMIN:', firstUniversity.name)
-        // Set first university as default for super admin
-        setFormData(prev => ({ ...prev, universityId: firstUniversity.id }))
-      } else if (currentUserData?.role === 'MANAGER' && currentUserData.university) {
-        console.log('🎯 Setting university for MANAGER:', currentUserData.university.name)
-        // Set manager's university
-        setFormData(prev => ({ ...prev, universityId: currentUserData.university.id }))
-      } else if (!currentUserData && firstUniversity) {
-        console.log('🎯 Setting fallback university:', firstUniversity.name)
-        // Fallback: if user data not loaded yet, set first university for any authenticated user
-        setFormData(prev => ({ ...prev, universityId: firstUniversity.id }))
+    if (currentUserData) {
+      if (currentUserData.role === 'ADMIN') {
+        fetchUniversities()
+      } else if (currentUserData.role === 'MANAGER' && currentUserData.university) {
+        setFormData(prev => ({
+          ...prev,
+          universityId: currentUserData.university.id
+        }))
       }
     }
-  }, [universities, currentUserData, formData.universityId])
-
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await fetch('/api/admin/profile')
-      if (response.ok) {
-        const data = await response.json()
-        setCurrentUserData(data.profile)
-        
-        // Set default university for managers
-        if (data.profile.role === 'MANAGER' && data.profile.university) {
-          setFormData(prev => ({ ...prev, universityId: data.profile.university.id }))
-        }
-      }
-    } catch (error) {
-    console.error(error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [currentUserData])
 
   const fetchUniversities = async () => {
     try {
-      const response = await fetch('/api/universities')
-      if (response.ok) {
-        const data = await response.json()
-        setUniversities(data)
+      const data = await lightningFetch('/api/admin/universities')
+      setUniversities(data.universities || [])
+      
+      // Auto-select first university for admin
+      if (data.universities && data.universities.length > 0) {
+        const firstUniversity = data.universities[0]
+        setFormData(prev => ({
+          ...prev,
+          universityId: firstUniversity.id
+        }))
       }
     } catch (error) {
-    console.error(error)
+      setError('Failed to fetch universities')
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
 
-    console.log('📋 Form submission data:', {
-      name: formData.name,
-      universityId: formData.universityId,
-      universitiesAvailable: universities.length,
-      currentUserRole: currentUserData?.role
-    })
+    setUploadingImage(true)
+    setError('')
+
+    const formData = new FormData()
+    formData.append('file', file)
 
     try {
-      // Validate variants
-      if (formData.variants.length === 0) {
-        alert('Please add at least one variant')
-        setSaving(false)
-        return
-      }
-
-      // Ensure at least one variant is set as default
-      const hasDefault = formData.variants.some(v => v.isDefault)
-      if (!hasDefault && formData.variants.length > 0) {
-        const firstVariant = formData.variants[0]
-        if (firstVariant) {
-          firstVariant.isDefault = true
-        }
-      }
-
-      const submitData = {
-        name: formData.name,
-        description: formData.description,
-        basePrice: parseFloat(formData.basePrice),
-        categories: formData.categories,
-        isVegetarian: formData.isVegetarian,
-        isVegan: formData.isVegan,
-        image: formData.image,
-        universityId: formData.universityId,
-        variants: formData.variants.map(variant => ({
-          name: variant.name,
-          price: parseFloat(variant.price),
-          isDefault: variant.isDefault,
-          isActive: variant.isActive
-        }))
-      }
-
-      console.log('🚀 Submitting data:', submitData)
-
-      const response = await fetch('/api/admin/menu', {
+      const response = await fetch('/api/upload/image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(submitData)
+        body: formData
       })
 
       if (response.ok) {
-        router.push('/admin/menu')
+        const data = await response.json()
+        setFormData(prev => ({ ...prev, imageUrl: data.imageUrl }))
+        setSuccess('Image uploaded successfully')
       } else {
-        const error = await response.json()
-        console.error('Save failed:', error)
-        alert(error.error || 'Failed to create menu item')
+        throw new Error('Upload failed')
       }
     } catch (error) {
-    console.error(error)
-      alert('Failed to create menu item')
+      setError('Failed to upload image')
     } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCancel = () => {
-    router.push('/admin/menu')
-  }
-
-  const handleCategoryToggle = (categoryValue: string) => {
-    const updatedCategories = formData.categories.includes(categoryValue)
-      ? formData.categories.filter(cat => cat !== categoryValue)
-      : [...formData.categories, categoryValue]
-    
-    // Ensure at least one category is selected
-    if (updatedCategories.length > 0) {
-      setFormData({ ...formData, categories: updatedCategories })
+      setUploadingImage(false)
     }
   }
 
   const addVariant = () => {
     const newVariant: MenuItemVariant = {
+      id: Date.now().toString(),
       name: '',
-      price: '',
-      isDefault: false,
-      isActive: true
+      price: 0,
+      description: '',
+      isDefault: false
     }
-    setFormData({
-      ...formData,
-      variants: [...formData.variants, newVariant]
-    })
+    
+    setFormData(prev => ({
+      ...prev,
+      variants: [...prev.variants, newVariant]
+    }))
   }
 
-  const removeVariant = (index: number) => {
-    if (formData.variants.length <= 1) {
-      alert('At least one variant is required')
-      return
-    }
-    
-    const updatedVariants = formData.variants.filter((_, i) => i !== index)
-    
-    // If we removed the default variant, make the first one default
-    const removedVariant = formData.variants[index]
-    if (removedVariant?.isDefault && updatedVariants.length > 0) {
-      const firstVariant = updatedVariants[0]
-      if (firstVariant) {
-        firstVariant.isDefault = true
+  const removeVariant = (variantId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.filter(v => v.id !== variantId)
+    }))
+  }
+
+  const updateVariant = (variantId: string, updates: Partial<MenuItemVariant>) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map(v =>
+        v.id === variantId ? { ...v, ...updates } : v
+      )
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      // Validate form data
+      const validCategories = ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Beverages', 'Desserts']
+      if (!validCategories.includes(formData.category)) {
+        throw new Error('Invalid category selected')
       }
-    }
-    
-    setFormData({
-      ...formData,
-      variants: updatedVariants
-    })
-  }
 
-  const updateVariant = (index: number, field: keyof MenuItemVariant, value: any) => {
-    const updatedVariants = [...formData.variants]
-    
-    // If setting this variant as default, unset others
-    if (field === 'isDefault' && value === true) {
-      updatedVariants.forEach((variant, i) => {
-        if (i !== index) variant.isDefault = false
+      if (formData.variants.length === 0) {
+        throw new Error('At least one variant is required')
+      }
+
+      // Ensure we have exactly one default variant
+      const defaultVariants = formData.variants.filter(v => v.isDefault)
+      if (defaultVariants.length !== 1) {
+        throw new Error('Exactly one variant must be marked as default')
+      }
+
+      // Validate that all variants have names and prices
+      const invalidVariants = formData.variants.filter(v => !v.name.trim() || v.price <= 0)
+      if (invalidVariants.length > 0) {
+        throw new Error('All variants must have a name and price greater than 0')
+      }
+
+      const submitData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        isVegetarian: formData.isVegetarian,
+        isVegan: formData.isVegan,
+        isAvailable: formData.isAvailable,
+        imageUrl: formData.imageUrl,
+        universityId: formData.universityId,
+        variants: formData.variants.map(v => ({
+          name: v.name.trim(),
+          price: v.price,
+          description: v.description.trim(),
+          isDefault: v.isDefault
+        }))
+      }
+
+      const response = await fetch('/api/admin/menu', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submitData)
       })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSuccess('Menu item created successfully!')
+        setTimeout(() => {
+          router.push('/admin/menu')
+        }, 1500)
+      } else {
+        setError(data.error || 'Failed to create menu item')
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred')
+    } finally {
+      setLoading(false)
     }
-    
-    const currentVariant = updatedVariants[index]
-    if (currentVariant) {
-      updatedVariants[index] = { ...currentVariant, [field]: value }
-    }
-    setFormData({
-      ...formData,
-      variants: updatedVariants
-    })
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 pb-20">
-        <MobileHeader 
-          title="Add New Menu Item" 
-          showNotifications={false}
-        />
-        <div className="px-4 py-8 max-w-2xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="bg-gray-200 h-12 rounded-lg"></div>
-            <div className="bg-gray-200 h-24 rounded-lg"></div>
-            <div className="bg-gray-200 h-12 rounded-lg"></div>
-          </div>
-        </div>
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    if (type === 'success') {
+      setSuccess(message)
+      setError('')
+    } else {
+      setError(message)
+      setSuccess('')
+    }
+    
+    setTimeout(() => {
+      setSuccess('')
+      setError('')
+    }, 5000)
+  }
+
+  if (!session) {
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-gray-600">Please log in to access this page.</p>
       </div>
-    )
+    </div>
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <MobileHeader 
-        title="Add New Menu Item" 
-        showNotifications={false}
-        rightElement={
-          <button
-            onClick={handleCancel}
-            className="p-2 text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-        }
-      />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto p-4">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-4 mb-4">
+            <ButtonPress 
+              onClick={() => router.push('/admin/menu')}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </ButtonPress>
+            <h1 className="text-2xl font-bold text-gray-900">Add New Menu Item</h1>
+          </div>
+        </div>
 
-      <div className="px-4 py-6 max-w-2xl mx-auto space-y-6">
-        {/* User Role Info */}
-        {currentUserData && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-100">
-            <div className="flex items-center space-x-3">
-              {currentUserData.role === 'ADMIN' ? (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                  👑 Super Admin
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                  🎯 University Manager
-                </span>
-              )}
-              {currentUserData.university && (
-                <span className="text-sm text-gray-600">
-                  {currentUserData.university.name}
-                </span>
-              )}
-            </div>
+        {/* Success/Error Messages */}
+        {success && (
+          <div className="mb-6 p-4 bg-green-100 border border-green-300 rounded-lg">
+            <p className="text-green-700">{success}</p>
+          </div>
+        )}
+        
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 border border-red-300 rounded-lg">
+            <p className="text-red-700">{error}</p>
           </div>
         )}
 
         {/* Form */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* University Selection - Only for ADMIN */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Item Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter item name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category *
+                </label>
+                <select
+                  required
+                  value={formData.category}
+                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {categories.map(category => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* University Selection (Admin only) */}
               {currentUserData?.role === 'ADMIN' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Building className="w-4 h-4 inline mr-2" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     University *
                   </label>
                   <select
                     required
                     value={formData.universityId}
-                    onChange={(e) => setFormData({...formData, universityId: e.target.value})}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    onChange={(e) => setFormData(prev => ({ ...prev, universityId: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select University</option>
-                    {universities.map(uni => (
-                      <option key={uni.id} value={uni.id}>{uni.name}</option>
+                    {universities.map(university => (
+                      <option key={university.id} value={university.id}>
+                        {university.name}
+                      </option>
                     ))}
                   </select>
                 </div>
               )}
+            </div>
 
-              {/* Basic Information */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Item Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="e.g., Masala Dosa, Chicken Biryani"
-                  />
-                </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter item description"
+              />
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    rows={3}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Brief description of the item"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Base Price (₹) *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={formData.basePrice}
-                      onChange={(e) => setFormData({...formData, basePrice: e.target.value})}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="0.00"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">This will be used if no variants are specified</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Categories *</label>
-                    <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-3">
-                      {categoryOptions.map(option => (
-                        <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.categories.includes(option.value)}
-                            onChange={() => handleCategoryToggle(option.value)}
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                          />
-                          <span className="text-sm font-medium text-gray-700">{option.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">Select all applicable meal categories</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dietary Options */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Dietary Information</label>
-                <div className="space-y-3">
-                  <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.isVegetarian}
-                      onChange={(e) => setFormData({...formData, isVegetarian: e.target.checked})}
-                      className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
-                    />
-                    <div className="ml-3 flex items-center">
-                      <div className="w-4 h-4 bg-green-100 border-2 border-green-500 rounded-sm flex items-center justify-center mr-2">
-                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">Vegetarian</span>
-                    </div>
-                  </label>
-                  
-                  <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.isVegan}
-                      onChange={(e) => setFormData({...formData, isVegan: e.target.checked})}
-                      className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
-                    />
-                    <div className="ml-3 flex items-center">
-                      <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full mr-2">Vegan</span>
-                      <span className="text-sm font-medium text-gray-700">Vegan</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Image URL */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Menu Item Image (Optional)</label>
-                
-                {/* Image Upload Section */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-4 mb-3">
-                    <label className="flex-1">
-                      <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
-                        <div className="text-center">
-                          <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                          </svg>
-                          <span className="mt-2 block text-sm text-gray-600">Upload Image</span>
-                        </div>
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0]
-                          if (!file) return
-                          
-                          // Validate file
-                          if (!file.type.startsWith('image/')) {
-                            alert('Please select an image file')
-                            return
-                          }
-                          if (file.size > 5 * 1024 * 1024) {
-                            alert('Please select an image smaller than 5MB')
-                            return
-                          }
-                          
-                          try {
-                            const uploadFormData = new FormData()
-                            uploadFormData.append('file', file)
-                            uploadFormData.append('folder', 'menu-items')
-                            
-                            const response = await fetch('/api/upload/image', {
-                              method: 'POST', 
-                              body: uploadFormData
-                            })
-                            
-                            if (response.ok) {
-                              const data = await response.json()
-                              setFormData({...formData, image: data.url})
-                            } else {
-                              const errorData = await response.json()
-                              throw new Error(errorData.error || 'Upload failed')
-                            }
-                          } catch (error) {
-    console.error(error)
-                            alert('Failed to upload image')
-                          }
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                </div>
-                
-                {/* URL Input as Alternative */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Or enter image URL:</label>
-                  <input
-                    type="url"
-                    value={formData.image}
-                    onChange={(e) => setFormData({...formData, image: e.target.value})}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="https://example.com/image.jpg"
-                  />
-                </div>
-                
-                {formData.image && (
-                  <div className="mt-3">
-                    <img 
-                      src={formData.image} 
-                      alt="Preview" 
-                      className="w-full h-48 object-cover rounded-lg border border-gray-200"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
+            {/* Image Upload */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Item Image
+              </label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                </label>
+                {formData.imageUrl && (
+                  <div className="flex items-center gap-2">
+                    <img src={formData.imageUrl} alt="Preview" className="w-16 h-16 object-cover rounded" />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
+                      className="p-1 text-red-500 hover:bg-red-50 rounded"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Product Variants */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium text-gray-700">Product Variants</label>
-                  <button
-                    type="button"
-                    onClick={addVariant}
-                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    + Add Variant
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {formData.variants.map((variant, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Variant Name *</label>
-                          <input
-                            type="text"
-                            required
-                            value={variant.name}
-                            onChange={(e) => updateVariant(index, 'name', e.target.value)}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            placeholder="e.g., 250gms, Regular, Large"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Price (₹) *</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            required
-                            value={variant.price}
-                            onChange={(e) => updateVariant(index, 'price', e.target.value)}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            placeholder="0.00"
-                          />
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                          <label className="flex items-center space-x-1">
-                            <input
-                              type="checkbox"
-                              checked={variant.isDefault}
-                              onChange={(e) => updateVariant(index, 'isDefault', e.target.checked)}
-                              className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <span className="text-xs text-gray-600">Default</span>
-                          </label>
-                          
-                          <label className="flex items-center space-x-1">
-                            <input
-                              type="checkbox"
-                              checked={variant.isActive}
-                              onChange={(e) => updateVariant(index, 'isActive', e.target.checked)}
-                              className="w-3 h-3 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
-                            />
-                            <span className="text-xs text-gray-600">Active</span>
-                          </label>
-
-                          {formData.variants.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeVariant(index)}
-                              className="text-red-600 hover:text-red-800 text-xs"
-                            >
-                              ✕ Remove
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Add different sizes, weights, or types for this item. Students will see these as options when ordering.
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors font-medium"
-                >
-                  {saving ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Create Menu Item
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+            {/* Checkboxes */}
+            <div className="mt-4 space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.isVegetarian}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isVegetarian: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Vegetarian</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.isVegan}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isVegan: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Vegan</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.isAvailable}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isAvailable: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Available</span>
+              </label>
+            </div>
           </div>
-        </div>
+
+          {/* Variants */}
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Variants</h2>
+              <button
+                type="button"
+                onClick={addVariant}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Variant
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {formData.variants.map((variant, index) => (
+                <div key={variant.id} className="p-4 border border-gray-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-medium">Variant {index + 1}</h3>
+                    {formData.variants.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeVariant(variant.id)}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={variant.name}
+                        onChange={(e) => updateVariant(variant.id, { name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Variant name"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Price (₹) *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="0.01"
+                        value={variant.price}
+                        onChange={(e) => updateVariant(variant.id, { price: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <input
+                      type="text"
+                      value={variant.description}
+                      onChange={(e) => updateVariant(variant.id, { description: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Variant description"
+                    />
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={variant.isDefault}
+                        onChange={(e) => {
+                          // When setting a variant as default, unset all others
+                          if (e.target.checked) {
+                            setFormData(prev => ({
+                              ...prev,
+                              variants: prev.variants.map(v => ({
+                                ...v,
+                                isDefault: v.id === variant.id
+                              }))
+                            }))
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">Default variant</span>
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={loading || uploadingImage}
+              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              {loading ? 'Creating...' : 'Create Menu Item'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

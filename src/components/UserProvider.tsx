@@ -3,8 +3,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { User, University, UniversitySettings } from '@/generated/prisma'
-import { lightningFetch, lightningCache } from '@/lib/cache'
-import { SessionRecovery } from '@/lib/session-recovery'
 
 // Custom type that includes university relationship
 interface UserWithUniversity extends User {
@@ -30,14 +28,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isMounted, setIsMounted] = useState(false)
-  const [retryCount, setRetryCount] = useState(0)
-  const [hasTriedFetch, setHasTriedFetch] = useState(false)
 
   // Set mounted state to prevent SSR hydration issues
   useEffect(() => {
     setIsMounted(true)
-    // Enable auto-recovery for session errors
-    SessionRecovery.enableAutoRecovery()
   }, [])
 
   const fetchUserData = useCallback(async () => {
@@ -48,178 +42,93 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // Check if session has required role information
-    if (!session.user.role) {
-      console.warn('⚠️  Session missing user role in fetchUserData, skipping fetch')
-      return
-    }
-
-    // Skip session validation for now to test authentication flow
-    // const isValidSession = await SessionRecovery.validateSession()
-    // if (!isValidSession) {
-    //   console.log('❌ Session validation failed in UserProvider')
-    //   setError('Session expired. Please login again.')
-    //   await SessionRecovery.forceLogout()
-    //   return
-    // }
-
     try {
       setLoading(true)
       setError(null)
       
-      // Check instant cache first
-      const cacheKey = `user_${session.user.id}`
-      const cachedUser = lightningCache.getInstant<UserWithUniversity>(cacheKey)
-      if (cachedUser) {
-        console.log('⚡ INSTANT user data from cache:', {
-          id: cachedUser.id,
-          name: cachedUser.name,
-          studentId: cachedUser.studentId,
-          roomNumber: cachedUser.roomNumber,
-          university: cachedUser.university,
-          role: cachedUser.role,
-          status: cachedUser.status
-        })
-        setUser(cachedUser)
-        setLoading(false)
-        setHasTriedFetch(true)
-        return
+      const response = await fetch(`/api/user/${session.user.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      })
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError('Session expired. Please login again.')
+          await signOut({ callbackUrl: '/auth/signin' })
+          return
+        } else if (response.status === 403) {
+          setError('Access denied. Please contact support.')
+          return
+        } else if (response.status === 404) {
+          setError('User account not found. Please login again.')
+          await signOut({ callbackUrl: '/auth/signin' })
+          return
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
       }
       
-      // Use lightning fetch with 30 minute cache for user data
-      const data = await lightningFetch(`/api/user/${session.user.id}`, {}, 30)
-      
-      console.log('🔍 User data fetched from API:', JSON.stringify(data, null, 2))
+      const data = await response.json()
       
       if (data.user) {
-        console.log('✅ User data structure:', {
-          id: data.user.id,
-          name: data.user.name,
-          studentId: data.user.studentId,
-          roomNumber: data.user.roomNumber,
-          university: data.user.university,
-          role: data.user.role,
-          status: data.user.status
-        })
         setUser(data.user)
-        // Store in instant cache for immediate future access
-        lightningCache.setInstant(cacheKey, data.user)
         setError(null)
-        setRetryCount(0)
       } else {
         throw new Error('User data not found in response')
       }
     } catch (err: any) {
-      console.error('Error fetching user data:', err)
-      
-      // Temporarily disable session recovery to test authentication flow
-      // if (err.message?.includes('JWT') || 
-      //     err.message?.includes('session') || 
-      //     err.message?.includes('token') ||
-      //     err.message?.includes('Unable to determine user role')) {
-      //   console.log('🔄 JWT/Session error detected, attempting recovery...')
-      //   
-      //   const recovered = await SessionRecovery.handleSessionError(err)
-      //   if (recovered) {
-      //     console.log('✅ Session recovered, retrying user fetch')
-      //     // Retry the fetch after successful recovery
-      //     setTimeout(() => fetchUserData(), 500)
-      //     return
-      //   } else {
-      //     console.log('❌ Session recovery failed, user will be logged out')
-      //     setError('Session expired. Please login again.')
-      //     return
-      //   }
-      // }
-      
-      // Handle specific error cases with more resilient logic
-      if (err.message?.includes('404')) {
-        console.warn('User not found in database')
-        setError('User account not found. Please login again.')
-        // Don't automatically sign out on first 404, give user a chance to retry
-        if (retryCount > 2) {
-          await SessionRecovery.forceLogout()
-        }
-      } else if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
-        console.warn('Unauthorized access detected')
-        setError('Session expired. Please login again.')
-        // Only force logout after multiple attempts to avoid page reload issues
-        if (retryCount > 1) {
-          await SessionRecovery.forceLogout()
-        }
-      } else {
-        setError('Failed to load your account data. Please try again.')
-        setRetryCount(prev => prev + 1)
-      }
+      setError('Unable to load user data. Please try refreshing the page.')
     } finally {
       setLoading(false)
-      setHasTriedFetch(true)
-    }
-  }, [session?.user?.id, retryCount])
-
-  useEffect(() => {
-    if (!isMounted || status === 'loading') return
-    
-    if (status === 'authenticated' && session?.user?.id) {
-      // Check session validity first - be more patient with missing role
-      if (!session.user.role) {
-        console.warn('⚠️  Session missing user role, waiting for session to be fully loaded...')
-        // Don't return immediately, give it more time
-        const timer = setTimeout(() => {
-          if (session?.user?.role) {
-            console.log('✅ Session role loaded after delay')
-            // Session is now ready, continue with normal flow
-          } else {
-            console.warn('⚠️  Session still missing role after timeout')
-          }
-        }, 2000)
-        return () => clearTimeout(timer)
-      }
-      
-      // Check if we have instant cached data first
-      const cacheKey = `user_${session.user.id}`
-      const cachedUser = lightningCache.getInstant<UserWithUniversity>(cacheKey)
-      
-      if (cachedUser && (!user || user.id !== session.user.id)) {
-        console.log('⚡ Loading user from instant cache')
-        setUser(cachedUser)
-        setLoading(false)
-        setHasTriedFetch(true)
-      } else if ((!user || user.id !== session.user.id) && !hasTriedFetch) {
-        fetchUserData()
-      } else if (hasTriedFetch) {
-        setLoading(false)
-      }
-    } else if (status === 'unauthenticated') {
-      setUser(null)
-      setLoading(false)
-      setError(null)
-      setHasTriedFetch(false)
-      setRetryCount(0)
-      // Clear cache when user logs out
-      lightningCache.clear()
-    }
-  }, [session, status, isMounted, user, fetchUserData, hasTriedFetch])
-
-  // Reset retry count when session changes
-  useEffect(() => {
-    if (session?.user?.id) {
-      setRetryCount(0)
-      setHasTriedFetch(false)
     }
   }, [session?.user?.id])
 
-  const clearCacheAndRefetch = useCallback(async () => {
-    console.log('🗑️ Clearing cache and refetching user data...')
-    lightningCache.clear()
-    if (session?.user?.id) {
-      const cacheKey = `user_${session.user.id}`
-      lightningCache.deleteInstant(cacheKey)
+  // Main effect to handle session changes
+  useEffect(() => {
+    if (!isMounted) return
+
+    if (status === 'loading') {
+      setLoading(true)
+      return
     }
+
+    if (status === 'unauthenticated') {
+      setUser(null)
+      setLoading(false)
+      setError(null)
+      return
+    }
+
+    if (status === 'authenticated' && session?.user?.id) {
+      // Check if session has required data
+      if (!session.user.role) {
+        setError('Loading user session...')
+        setLoading(true)
+        
+        // Wait a bit for session to be fully loaded
+        const timer = setTimeout(() => {
+          if (session?.user?.role) {
+            fetchUserData()
+          } else {
+            setError('Session incomplete. Please try logging in again.')
+            setLoading(false)
+          }
+        }, 2000)
+        
+        return () => clearTimeout(timer)
+      }
+      
+      fetchUserData()
+    }
+  }, [session, status, isMounted, fetchUserData])
+
+  const clearCacheAndRefetch = useCallback(async () => {
     setUser(null)
-    setHasTriedFetch(false)
+    setError(null)
     await fetchUserData()
-  }, [session?.user?.id, fetchUserData])
+  }, [fetchUserData])
 
   const value = {
     user,

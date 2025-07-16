@@ -1,283 +1,247 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
+'use client'
 
-interface RealTimeUpdate {
-  type: 'connected' | 'heartbeat' | 'initial_data' | 'status_change' | 'new_order' | 'payment_update' | 'item_toggle'
-  timestamp: number
-  [key: string]: any
+import { useEffect, useRef, useState } from 'react'
+
+interface OrderUpdate {
+  orderId: string
+  status: string
+  message: string
+  timestamp: string
+}
+
+interface ConnectionStats {
+  connected: boolean
+  lastPing: number
+  reconnectAttempts: number
+  totalReconnects: number
 }
 
 interface UseRealTimeUpdatesProps {
-  onOrderUpdate?: (update: RealTimeUpdate) => void
-  onMenuUpdate?: (update: RealTimeUpdate) => void
+  userId?: string
+  onOrderUpdate?: (update: OrderUpdate) => void
   onConnectionChange?: (connected: boolean) => void
-  enabled?: boolean
+  enableReconnect?: boolean
+  maxReconnectAttempts?: number
+  reconnectInterval?: number
 }
 
 export function useRealTimeUpdates({
+  userId,
   onOrderUpdate,
-  onMenuUpdate,
   onConnectionChange,
-  enabled = true
+  enableReconnect = true,
+  maxReconnectAttempts = 5,
+  reconnectInterval = 3000
 }: UseRealTimeUpdatesProps = {}) {
-  const { data: session } = useSession()
-  const [isConnected, setIsConnected] = useState(false)
-  const [lastUpdate, setLastUpdate] = useState<RealTimeUpdate | null>(null)
-  const [connectionStats, setConnectionStats] = useState({
+  const [updates, setUpdates] = useState<OrderUpdate[]>([])
+  const [connectionStats, setConnectionStats] = useState<ConnectionStats>({
+    connected: false,
+    lastPing: 0,
     reconnectAttempts: 0,
-    lastConnected: null as Date | null,
-    totalUpdatesReceived: 0
+    totalReconnects: 0
   })
   
-  const eventSourceRef = useRef<EventSource | null>(null)
+  const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const maxReconnectAttempts = 5
-  const reconnectDelay = 2000 // Start with 2 seconds
+  const isConnectingRef = useRef(false)
+  const shouldReconnectRef = useRef(true)
 
-  const connect = useCallback(() => {
-    if (!session?.user?.id || !enabled) return
-
-    // Close existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close()
-    }
-
+  // Create WebSocket connection
+  const connect = () => {
+    if (isConnectingRef.current || !shouldReconnectRef.current) return
+    
+    isConnectingRef.current = true
+    
     try {
-      const eventSource = new EventSource('/api/realtime/orders')
-      eventSourceRef.current = eventSource
-
-      eventSource.onopen = () => {
-        console.log('🔗 Real-time connection established')
-        setIsConnected(true)
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const wsUrl = `${protocol}//${window.location.host}/api/realtime/orders`
+      
+      wsRef.current = new WebSocket(wsUrl)
+      
+      wsRef.current.onopen = () => {
+        isConnectingRef.current = false
         setConnectionStats(prev => ({
           ...prev,
-          reconnectAttempts: 0,
-          lastConnected: new Date()
+          connected: true,
+          lastPing: Date.now(),
+          reconnectAttempts: 0
         }))
+        
         onConnectionChange?.(true)
-      }
-
-      eventSource.onmessage = (_event) => {
-        try {
-          const update: RealTimeUpdate = JSON.parse(_event.data)
-          
-          setLastUpdate(update)
-          setConnectionStats(prev => ({
-            ...prev,
-            totalUpdatesReceived: prev.totalUpdatesReceived + 1
+        
+        // Send initial auth message
+        if (userId && wsRef.current) {
+          wsRef.current.send(JSON.stringify({
+            type: 'auth',
+            userId: userId
           }))
-
-          // Route updates to appropriate handlers
-          switch (update.type) {
-            case 'connected':
-              console.log('✅ Real-time updates connected:', update.message)
-              break
-              
-            case 'heartbeat':
-              // Silent heartbeat to keep connection alive
-              break
-              
-            case 'initial_data':
-              console.log('📊 Initial data received:', update)
-              onOrderUpdate?.(update)
-              break
-              
-            case 'status_change':
-            case 'new_order':
-            case 'payment_update':
-              console.log('📦 Order update:', update.type, update.orderId)
-              onOrderUpdate?.(update)
-              break
-              
-            case 'item_toggle':
-              console.log('🍽️ Menu update:', update.type, update.menuItemId)
-              onMenuUpdate?.(update)
-              break
-              
-            default:
-              console.log('📨 Unknown update type:', update.type)
+        }
+      }
+      
+      wsRef.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          
+          if (data.type === 'ping') {
+            setConnectionStats(prev => ({
+              ...prev,
+              lastPing: Date.now()
+            }))
+            // Send pong response
+            wsRef.current?.send(JSON.stringify({ type: 'pong' }))
+          } else if (data.type === 'order_update') {
+            const update: OrderUpdate = {
+              orderId: data.orderId,
+              status: data.status,
+              message: data.message,
+              timestamp: data.timestamp
+            }
+            
+            setUpdates(prev => [update, ...prev.slice(0, 49)]) // Keep last 50 updates
+            onOrderUpdate?.(update)
+          } else if (data.type === 'connected') {
+            // Handle initial connection data
+            if (data.recentUpdates) {
+              setUpdates(data.recentUpdates.slice(0, 50))
+            }
           }
         } catch (error) {
-    console.error(error)
+          // Parse error - ignore malformed messages
         }
       }
-
-      eventSource.onerror = (error) => {
-        console.warn('🔄 Real-time connection error, attempting reconnect...')
-        setIsConnected(false)
+      
+      wsRef.current.onclose = () => {
+        isConnectingRef.current = false
+        setConnectionStats(prev => ({
+          ...prev,
+          connected: false
+        }))
+        
         onConnectionChange?.(false)
         
-        eventSource.close()
-        
-        // Exponential backoff for reconnection
-        if (connectionStats.reconnectAttempts < maxReconnectAttempts) {
-          const delay = reconnectDelay * Math.pow(2, connectionStats.reconnectAttempts)
-          
-          setConnectionStats(prev => ({
-            ...prev,
-            reconnectAttempts: prev.reconnectAttempts + 1
-          }))
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            console.log(`🔄 Reconnecting... (attempt ${connectionStats.reconnectAttempts + 1})`)
-            connect()
-          }, delay)
-        } else {
-          console.error('❌ Max reconnection attempts reached')
+        if (enableReconnect && shouldReconnectRef.current) {
+          scheduleReconnect()
         }
       }
-
+      
+      wsRef.current.onerror = () => {
+        isConnectingRef.current = false
+        if (enableReconnect && shouldReconnectRef.current) {
+          scheduleReconnect()
+        }
+      }
+      
     } catch (error) {
-    console.error(error)
-      setIsConnected(false)
-      onConnectionChange?.(false)
+      isConnectingRef.current = false
+      if (enableReconnect && shouldReconnectRef.current) {
+        scheduleReconnect()
+      }
     }
-  }, [session?.user?.id, enabled, onOrderUpdate, onMenuUpdate, onConnectionChange, connectionStats.reconnectAttempts])
+  }
 
-  const disconnect = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close()
-      eventSourceRef.current = null
-    }
+  // Schedule reconnection attempt
+  const scheduleReconnect = () => {
+    if (!shouldReconnectRef.current) return
+    
+    setConnectionStats(prev => {
+      const newAttempts = prev.reconnectAttempts + 1
+      
+      if (newAttempts >= maxReconnectAttempts) {
+        shouldReconnectRef.current = false
+        return prev
+      }
+      
+      // Exponential backoff
+      const delay = Math.min(reconnectInterval * Math.pow(2, newAttempts - 1), 30000)
+      
+      reconnectTimeoutRef.current = setTimeout(() => {
+        connect()
+      }, delay)
+      
+      return {
+        ...prev,
+        reconnectAttempts: newAttempts,
+        totalReconnects: prev.totalReconnects + 1
+      }
+    })
+  }
+
+  // Cleanup function
+  const cleanup = () => {
+    shouldReconnectRef.current = false
     
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
       reconnectTimeoutRef.current = null
     }
     
-    setIsConnected(false)
-    onConnectionChange?.(false)
-  }, [onConnectionChange])
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
+  }
 
-  const forceReconnect = useCallback(() => {
-    setConnectionStats(prev => ({ ...prev, reconnectAttempts: 0 }))
-    disconnect()
-    setTimeout(connect, 1000)
-  }, [connect, disconnect])
-
-  // Auto-connect when session is available and enabled
+  // Initialize connection
   useEffect(() => {
-    if (session?.user?.id && enabled) {
+    if (typeof window !== 'undefined') {
       connect()
-    } else {
-      disconnect()
     }
+    
+    return cleanup
+  }, [userId])
 
-    return disconnect
-  }, [session?.user?.id, enabled, connect, disconnect])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnect()
-    }
-  }, [disconnect])
-
-  // Auto-reconnect on page visibility change (when user comes back to tab)
+  // Handle page visibility changes
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && session?.user?.id && enabled && !isConnected) {
-        console.log('🔄 Page became visible, reconnecting...')
-        forceReconnect()
+      if (document.visibilityState === 'visible' && !connectionStats.connected) {
+        shouldReconnectRef.current = true
+        setConnectionStats(prev => ({
+          ...prev,
+          reconnectAttempts: 0
+        }))
+        connect()
       }
     }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [session?.user?.id, enabled, isConnected, forceReconnect])
-
-  return {
-    isConnected,
-    lastUpdate,
-    connectionStats,
-    forceReconnect,
-    disconnect
-  }
-}
-
-// Specialized hook for order updates
-export function useRealTimeOrders() {
-  const [orders, setOrders] = useState<any[]>([])
-  const [pendingUpdates, setPendingUpdates] = useState<RealTimeUpdate[]>([])
-
-  const handleOrderUpdate = useCallback((update: RealTimeUpdate) => {
-    switch (update.type) {
-      case 'initial_data':
-        if (update.activeOrders) {
-          setOrders(update.activeOrders)
-        } else if (update.pendingOrders) {
-          setOrders(update.pendingOrders)
-        }
-        break
-        
-      case 'status_change':
-        setOrders(prev => prev.map(order => 
-          order.id === update.orderId 
-            ? { ...order, ...update.orderData }
-            : order
-        ))
-        setPendingUpdates(prev => [...prev, update])
-        break
-        
-      case 'new_order':
-        setOrders(prev => [update.orderData, ...prev])
-        setPendingUpdates(prev => [...prev, update])
-        break
-        
-      case 'payment_update':
-        setOrders(prev => prev.map(order => 
-          order.id === update.orderId 
-            ? { ...order, paymentStatus: update.orderData.paymentStatus }
-            : order
-        ))
-        break
-    }
-  }, [])
-
-  const realTime = useRealTimeUpdates({
-    onOrderUpdate: handleOrderUpdate
-  })
-
-  const clearPendingUpdates = useCallback(() => {
-    setPendingUpdates([])
-  }, [])
-
-  return {
-    ...realTime,
-    orders,
-    pendingUpdates,
-    clearPendingUpdates,
-    hasNewUpdates: pendingUpdates.length > 0
-  }
-}
-
-// Specialized hook for menu updates
-export function useRealTimeMenu() {
-  const [menuUpdates, setMenuUpdates] = useState<RealTimeUpdate[]>([])
-
-  const handleMenuUpdate = useCallback((update: RealTimeUpdate) => {
-    setMenuUpdates(prev => [update, ...prev.slice(0, 10)]) // Keep last 10 updates
     
-    // You can trigger UI updates here for specific menu changes
-    switch (update.type) {
-      case 'item_toggle':
-        console.log(`Menu item ${update.menuItemId} toggled:`, update.updateData)
-        break
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [])
+  }, [connectionStats.connected])
 
-  const realTime = useRealTimeUpdates({
-    onMenuUpdate: handleMenuUpdate
-  })
+  // Manual reconnect function
+  const reconnect = () => {
+    cleanup()
+    shouldReconnectRef.current = true
+    setConnectionStats(prev => ({
+      ...prev,
+      reconnectAttempts: 0
+    }))
+    connect()
+  }
 
-  const clearMenuUpdates = useCallback(() => {
-    setMenuUpdates([])
-  }, [])
+  // Send message function
+  const sendMessage = (message: any) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(message))
+      return true
+    }
+    return false
+  }
+
+  // Clear updates
+  const clearUpdates = () => {
+    setUpdates([])
+  }
 
   return {
-    ...realTime,
-    menuUpdates,
-    clearMenuUpdates,
-    hasMenuUpdates: menuUpdates.length > 0
+    updates,
+    connectionStats,
+    reconnect,
+    sendMessage,
+    clearUpdates,
+    isConnected: connectionStats.connected,
+    lastUpdate: updates[0] || null
   }
 } 

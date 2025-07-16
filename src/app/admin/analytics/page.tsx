@@ -66,7 +66,6 @@ export default function AdminAnalytics() {
       const cacheKey = `analytics_${selectedPeriod}`
       const cachedAnalytics = lightningCache.getInstant<AnalyticsData>(cacheKey)
       if (cachedAnalytics) {
-        console.log('⚡ INSTANT analytics from cache')
         setAnalytics(cachedAnalytics)
         setLoading(false)
         return
@@ -79,7 +78,7 @@ export default function AdminAnalytics() {
       // Store in instant cache for immediate future access
       lightningCache.setInstant(cacheKey, data)
     } catch (error) {
-    console.error(error)
+      // Handle error silently
     } finally {
       setLoading(false)
     }
@@ -104,7 +103,7 @@ export default function AdminAnalytics() {
         lightningCache.setInstant(cacheKey, data)
       }
     } catch (error) {
-    console.error(error)
+      // Handle error silently
     }
     setRefreshing(false)
   }, [selectedPeriod])

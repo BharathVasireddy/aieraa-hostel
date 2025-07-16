@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-07-16T19:19:07.639Z",
+  "summary": {
+    "total": 6,
+    "passed": 5,
+    "failed": 1,
+    "successRate": "83%"
+  },
+  "tests": [
+    {
+      "name": "Middleware - Auth Page Redirect Protection",
+      "status": "PASSED",
+      "error": null
+    },
+    {
+      "name": "Signin Page - Authentication Check & Fast Redirect",
+      "status": "PASSED",
+      "error": null
+    },
+    {
+      "name": "Signup Page - Authentication Check",
+      "status": "PASSED",
+      "error": null
+    },
+    {
+      "name": "Auth Config - JWT Strategy & Security",
+      "status": "PASSED",
+      "error": null
+    },
+    {
+      "name": "File Structure - All Auth Files Present",
+      "status": "PASSED",
+      "error": null
+    },
+    {
+      "name": "Environment - Required Variables Present",
+      "status": "FAILED",
+      "error": "Test returned false"
+    }
+  ]
+}

@@ -1,213 +1,184 @@
-// Lightning-fast cache system for instant app performance
-interface CacheItem<T> {
+// Lightning-fast caching system for optimal performance
+import { unstable_cache as nextCache } from 'next/cache'
+
+// Types
+export interface LightningCacheOptions {
+  duration?: number // minutes
+  force?: boolean
+  tags?: string[]
+}
+
+export interface InstantCacheItem<T> {
   data: T
   timestamp: number
   ttl: number
 }
 
-class LightningCache {
-  private cache = new Map<string, CacheItem<any>>()
-  private memoryCache = new Map<string, any>() // Instant memory cache
-  private requestCache = new Map<string, Promise<any>>() // Prevent duplicate requests
+// In-memory instant cache for immediate access
+class InstantCache {
+  private cache = new Map<string, InstantCacheItem<any>>()
+  private readonly DEFAULT_TTL = 5 * 60 * 1000 // 5 minutes
 
-  // Instant memory cache for frequently accessed data
-  setInstant<T>(key: string, data: T): void {
-    this.memoryCache.set(key, data)
-  }
-
-  getInstant<T>(key: string): T | null {
-    return this.memoryCache.get(key) || null
-  }
-
-  deleteInstant(key: string): void {
-    this.memoryCache.delete(key)
-  }
-
-  // Regular cache with TTL
-  set<T>(key: string, data: T, ttlMinutes: number = 30): void {
-    // Store in both instant and regular cache
-    this.memoryCache.set(key, data)
+  set<T>(key: string, data: T, ttlMinutes: number = 5): void {
+    const ttl = ttlMinutes * 60 * 1000
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl: ttlMinutes * 60 * 1000
+      ttl
     })
   }
 
   get<T>(key: string): T | null {
-    // Try instant cache first
-    const instant = this.memoryCache.get(key)
-    if (instant) return instant
-
-    // Fall back to regular cache
     const item = this.cache.get(key)
     if (!item) return null
 
-    const isExpired = (Date.now() - item.timestamp) > item.ttl
-    if (isExpired) {
+    const now = Date.now()
+    if (now - item.timestamp > item.ttl) {
       this.cache.delete(key)
-      this.memoryCache.delete(key)
       return null
     }
 
-    // Store in instant cache for next time
-    this.memoryCache.set(key, item.data)
     return item.data
   }
 
   delete(key: string): void {
     this.cache.delete(key)
-    this.memoryCache.delete(key)
-    this.requestCache.delete(key)
   }
 
   clear(): void {
     this.cache.clear()
-    this.memoryCache.clear()
-    this.requestCache.clear()
   }
 
-  // Deduplicated fetch - prevents multiple identical requests
-  async deduplicatedFetch(url: string, options?: RequestInit): Promise<any> {
-    const cacheKey = `${url}_${JSON.stringify(options || {})}`
-    
-    // Check if request is already in flight
-    if (this.requestCache.has(cacheKey)) {
-      console.log(`🔄 DEDUPED: ${url}`)
-      return this.requestCache.get(cacheKey)
+  // Instant cache for immediate access (no TTL check)
+  setInstant<T>(key: string, data: T): void {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl: this.DEFAULT_TTL
+    })
+  }
+
+  getInstant<T>(key: string): T | null {
+    const item = this.cache.get(key)
+    return item ? item.data : null
+  }
+
+  deleteInstant(key: string): void {
+    this.cache.delete(key)
+  }
+}
+
+// Global instant cache instance
+export const lightningCache = new InstantCache()
+
+// Request deduplication
+const pendingRequests = new Map<string, Promise<any>>()
+
+// Lightning fetch with comprehensive caching
+export async function lightningFetch(
+  url: string,
+  options: LightningCacheOptions = {},
+  cacheDuration: number = 5 // minutes
+): Promise<any> {
+  const { force = false, tags = [] } = options
+  const cacheKey = `lightning_${url}_${JSON.stringify(options)}`
+
+  // Check if request is already pending (deduplication)
+  if (pendingRequests.has(cacheKey)) {
+    return await pendingRequests.get(cacheKey)!
+  }
+
+  // Check instant cache first
+  if (!force) {
+    const cached = lightningCache.get(cacheKey)
+    if (cached) {
+      return cached
     }
+  }
 
-    // Make new request
-    const requestPromise = fetch(url, options)
-      .then(async response => {
-        // Handle different response types gracefully
+  // Create the request promise
+  const requestPromise = (async () => {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        ...options,
+      })
+
+      // Handle specific error cases
+      if (!response.ok) {
         if (response.status >= 500) {
-          console.error(`🚨 Server Error (${response.status}): ${url}`)
-          this.requestCache.delete(cacheKey)
-          // Don't throw for server errors - return error object instead
-          return { 
-            error: true, 
-            status: response.status, 
-            message: `Server error: ${response.status}` 
-          }
+          throw new Error(`Server error: ${response.status}`)
+        } else if (response.status === 404) {
+          throw new Error('Resource not found')
+        } else if (response.status === 403) {
+          throw new Error('Access forbidden')
+        } else {
+          throw new Error(`HTTP error: ${response.status}`)
         }
-        
-        if (response.status === 404) {
-          console.warn(`⚠️ Not Found (404): ${url}`)
-          this.requestCache.delete(cacheKey)
-          return { error: true, status: 404, message: 'Resource not found' }
-        }
-        
-        if (response.status === 403) {
-          console.warn(`🚫 Forbidden (403): ${url}`)
-          this.requestCache.delete(cacheKey)
-          return { error: true, status: 403, message: 'Access forbidden' }
-        }
-        
-        if (!response.ok) {
-          console.error(`❌ HTTP Error (${response.status}): ${url}`)
-          this.requestCache.delete(cacheKey)
-          // Try to get error message from response
-          try {
-            const errorData = await response.json()
-            return { 
-              error: true, 
-              status: response.status, 
-              message: errorData.error || `HTTP ${response.status}` 
-            }
-          } catch {
-            return { 
-              error: true, 
-              status: response.status, 
-              message: `HTTP ${response.status}` 
-            }
-          }
-        }
-        
-        return response.json()
-      })
-      .then(data => {
-        this.requestCache.delete(cacheKey)
-        return data
-      })
-      .catch(error => {
-        this.requestCache.delete(cacheKey)
-        console.error(`🔥 Network Error: ${url}`, error)
-        // Return error object instead of throwing
-        return { 
-          error: true, 
-          status: 0, 
-          message: error.message || 'Network error' 
-        }
-      })
+      }
 
-    // Cache the promise
-    this.requestCache.set(cacheKey, requestPromise)
-    return requestPromise
-  }
+      const contentType = response.headers.get('content-type')
+      let data
+      
+      if (contentType?.includes('application/json')) {
+        data = await response.json()
+      } else {
+        data = await response.text()
+      }
+
+      // Cache the successful response
+      lightningCache.set(cacheKey, data, cacheDuration)
+
+      return data
+    } catch (error) {
+      throw error
+    } finally {
+      // Clean up pending request
+      pendingRequests.delete(cacheKey)
+    }
+  })()
+
+  // Store the promise to prevent duplicate requests
+  pendingRequests.set(cacheKey, requestPromise)
+
+  return requestPromise
 }
 
-export const lightningCache = new LightningCache()
-
-// Lightning-fast fetch with instant cache fallback
-export async function lightningFetch(url: string, options?: RequestInit, cacheMinutes: number = 30): Promise<any> {
-  const cacheKey = `${url}_${JSON.stringify(options || {})}`
-  
-  // INSTANT: Check memory cache first
-  const instantData = lightningCache.getInstant(cacheKey)
-  if (instantData) {
-    console.log(`⚡ INSTANT cache hit: ${url}`)
-    return instantData
-  }
-
-  // FAST: Check regular cache
-  const cachedData = lightningCache.get(cacheKey)
-  if (cachedData) {
-    console.log(`🚀 Fast cache hit: ${url}`)
-    return cachedData
-  }
-
-  // NETWORK: Fetch from API with deduplication
-  console.log(`🌐 Network fetch: ${url}`)
-  const data = await lightningCache.deduplicatedFetch(url, options)
-  
-  // Store in lightning cache
-  lightningCache.set(cacheKey, data, cacheMinutes)
-  
-  return data
-}
-
-// Pre-populate cache with static data
-export function preloadStaticData() {
-  // Cache categories
-  const categories = [
-    { key: 'all', label: 'All Items', emoji: '🍽️' },
-    { key: 'breakfast', label: 'Breakfast', emoji: '🌅' },
-    { key: 'lunch', label: 'Lunch', emoji: '🌞' },
-    { key: 'dinner', label: 'Dinner', emoji: '🌙' },
-    { key: 'beverages', label: 'Beverages', emoji: '☕' },
-    { key: 'snacks', label: 'Snacks', emoji: '🍿' }
-  ]
-  lightningCache.setInstant('categories', categories)
-  
-  // Cache common data
-  lightningCache.setInstant('app_config', {
-    taxRate: 0.1,
-    deliveryFee: 0,
-    minOrderAmount: 50
+// Next.js cache wrapper for server-side caching
+export const nextLightningCache = (
+  fn: Function,
+  keys: string[],
+  options: { revalidate?: number; tags?: string[] } = {}
+) => {
+  return nextCache(fn, keys, {
+    revalidate: options.revalidate || 300, // 5 minutes default
+    tags: options.tags || []
   })
 }
 
-// Initialize static cache
-preloadStaticData()
-
-// Legacy cache exports for compatibility
-export const cache = {
-  set: lightningCache.set.bind(lightningCache),
-  get: lightningCache.get.bind(lightningCache),
-  delete: lightningCache.delete.bind(lightningCache),
-  clear: lightningCache.clear.bind(lightningCache)
+// Preload critical data
+export const preloadCriticalData = async (urls: string[]) => {
+  const promises = urls.map(url => lightningFetch(url, {}, 30)) // 30 min cache
+  await Promise.allSettled(promises)
 }
 
-export const clientCache = lightningCache
-export const cachedFetch = lightningFetch 
+// Cache invalidation
+export const invalidateCache = (pattern: string) => {
+  // Clear matching instant cache entries
+  for (const [key] of lightningCache['cache']) {
+    if (key.includes(pattern)) {
+      lightningCache.delete(key)
+    }
+  }
+}
+
+// Performance optimized cache warming
+export const warmCache = async (endpoints: string[]) => {
+  const promises = endpoints.map(endpoint => 
+    lightningFetch(endpoint, {}, 60) // 1 hour cache
+  )
+  await Promise.allSettled(promises)
+} 

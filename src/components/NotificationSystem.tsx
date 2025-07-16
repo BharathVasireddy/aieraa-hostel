@@ -127,9 +127,9 @@ export function useRealTimeNotifications(userId: string | undefined) {
           
           setLastCheck(new Date())
         }
-      } catch (error) {
-    console.error(error)
-      }
+          } catch (error) {
+      // Handle error silently
+    }
     }
 
     // Poll every 30 seconds

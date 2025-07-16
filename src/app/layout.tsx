@@ -101,9 +101,7 @@ export default function RootLayout({
                   if ('performance' in window) {
                     setTimeout(function() {
                       const perf = performance.getEntriesByType('navigation')[0];
-                      if (perf && perf.loadEventEnd > 0) {
-                        console.log('Page load time:', perf.loadEventEnd - perf.fetchStart, 'ms');
-                      }
+                      // Performance tracking without debug output
                     }, 0);
                   }
                 });
@@ -112,7 +110,7 @@ export default function RootLayout({
                 if ('serviceWorker' in navigator) {
                   window.addEventListener('load', function() {
                     navigator.serviceWorker.register('/sw.js').catch(function(error) {
-                      console.log('SW registration failed');
+                      // Service worker registration failed silently
                     });
                   });
                 }

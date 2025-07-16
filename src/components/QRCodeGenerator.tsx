@@ -92,7 +92,7 @@ export default function QRCodeGenerator({
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error('Failed to copy QR data:', err)
+      // Handle copy error silently
     }
   }
 

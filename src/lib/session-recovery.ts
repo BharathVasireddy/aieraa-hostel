@@ -1,172 +1,221 @@
-import { signOut, getSession } from 'next-auth/react'
+import { getSession, signOut } from 'next-auth/react'
 
-export class SessionRecovery {
-  private static readonly STORAGE_KEY = 'auth-error-count'
-  private static readonly MAX_RETRIES = 3
-  private static readonly RETRY_DELAY = 1000 // 1 second
+interface SessionRecoveryState {
+  isRecovering: boolean
+  attempts: number
+  lastAttempt: number
+  sessionValid: boolean
+}
 
-  /**
-   * Clear all authentication-related storage
-   */
-  static clearAuthStorage() {
-    if (typeof window !== 'undefined') {
-      // Clear NextAuth cookies
-      const cookies = document.cookie.split(';')
-      cookies.forEach(cookie => {
-        const eqPos = cookie.indexOf('=')
-        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
-        if (name.includes('next-auth') || name.includes('__Secure-next-auth')) {
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`
-        }
-      })
-      
-      // Clear local storage
-      localStorage.removeItem(this.STORAGE_KEY)
-      
-      // Clear session storage
-      sessionStorage.clear()
-    }
+class SessionRecovery {
+  private state: SessionRecoveryState = {
+    isRecovering: false,
+    attempts: 0,
+    lastAttempt: 0,
+    sessionValid: false
   }
-
-  /**
-   * Get the current error count from storage
-   */
-  static getErrorCount(): number {
-    if (typeof window === 'undefined') return 0
-    return parseInt(localStorage.getItem(this.STORAGE_KEY) || '0', 10)
+  
+  private readonly MAX_RETRIES = 3
+  private readonly RETRY_DELAY = 1000
+  private readonly SESSION_CHECK_INTERVAL = 30000 // 30 seconds
+  private readonly RECOVERY_TIMEOUT = 10000 // 10 seconds
+  
+  private sessionCheckInterval: NodeJS.Timeout | null = null
+  private recoveryPromise: Promise<boolean> | null = null
+  
+  constructor() {
+    this.startSessionMonitoring()
   }
-
-  /**
-   * Increment error count in storage
-   */
-  static incrementErrorCount(): number {
-    if (typeof window === 'undefined') return 0
-    const count = this.getErrorCount() + 1
-    localStorage.setItem(this.STORAGE_KEY, count.toString())
-    return count
-  }
-
-  /**
-   * Reset error count in storage
-   */
-  static resetErrorCount() {
+  
+  private startSessionMonitoring() {
     if (typeof window === 'undefined') return
-    localStorage.removeItem(this.STORAGE_KEY)
-  }
-
-  /**
-   * Handle JWT/session errors with automatic recovery
-   */
-  static async handleSessionError(error: Error, pathname?: string): Promise<boolean> {
-    console.error('🔴 Session error detected:', error.message)
     
-    const errorCount = this.incrementErrorCount()
+    // Check session validity every 30 seconds
+    this.sessionCheckInterval = setInterval(() => {
+      this.validateSession()
+    }, this.SESSION_CHECK_INTERVAL)
     
-    if (errorCount >= this.MAX_RETRIES) {
-      console.error('🔴 Max retries reached, forcing logout')
-      await this.forceLogout()
-      return false
-    }
-
-    console.log(`🔄 Attempting session recovery (${errorCount}/${this.MAX_RETRIES})`)
+    // Check on page visibility change
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.validateSession()
+      }
+    })
     
-    try {
-      // Try to get fresh session
-      const session = await getSession()
-      
-      if (session && session.user && session.user.role) {
-        console.log('✅ Session recovered successfully')
-        this.resetErrorCount()
-        return true
-      } else {
-        console.log('❌ Session recovery failed - no valid session')
-        await this.forceLogout()
-        return false
-      }
-    } catch (recoveryError) {
-      console.error('❌ Session recovery failed:', recoveryError)
-      
-      if (errorCount >= this.MAX_RETRIES) {
-        await this.forceLogout()
-        return false
-      }
-      
-      // Wait before next retry
-      await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY))
-      return this.handleSessionError(error, pathname)
-    }
-  }
-
-  /**
-   * Force logout and clear all authentication data
-   */
-  static async forceLogout() {
-    console.log('🔄 Forcing logout due to session errors')
-    
-    try {
-      // Clear storage first
-      this.clearAuthStorage()
-      
-      // Then sign out
-      await signOut({ 
-        callbackUrl: '/auth/signin?error=session-expired',
-        redirect: true 
-      })
-    } catch (error) {
-    console.error(error)
-      // Fallback: redirect manually
-      if (typeof window !== 'undefined') {
-        window.location.href = '/auth/signin?error=session-expired'
-      }
-    }
-  }
-
-  /**
-   * Check if current session is valid
-   */
-  static async validateSession(): Promise<boolean> {
-    try {
-      const session = await getSession()
-      
-      if (!session || !session.user || !session.user.role) {
-        console.log('❌ Session validation failed - no valid session')
-        return false
-      }
-      
-      // Check if session has expired
-      const now = new Date()
-      const expires = new Date(session.expires)
-      
-      if (now >= expires) {
-        console.log('❌ Session validation failed - session expired')
-        return false
-      }
-      
-      console.log('✅ Session validation successful')
-      this.resetErrorCount()
-      return true
-    } catch (error) {
-    console.error(error)
-      return false
-    }
-  }
-
-  /**
-   * Auto-recovery hook for React components
-   */
-  static enableAutoRecovery() {
-    if (typeof window === 'undefined') return
-
-    // Listen for storage events (session errors from other tabs)
-    window.addEventListener('storage', (_event) => {
-      if (_event.key === this.STORAGE_KEY) {
-        const errorCount = parseInt(_event.newValue || '0', 10)
-        if (errorCount >= this.MAX_RETRIES) {
-          console.log('🔄 Auto-recovery triggered by storage event')
-          this.forceLogout()
-        }
+    // Check on storage events (for cross-tab communication)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'session-recovery' && e.newValue === 'trigger') {
+        this.validateSession()
       }
     })
   }
-} 
+  
+  async recoverSession(): Promise<boolean> {
+    if (this.state.isRecovering) {
+      return this.recoveryPromise || false
+    }
+    
+    this.state.isRecovering = true
+    this.state.attempts = 0
+    
+    this.recoveryPromise = this.performRecovery()
+    
+    try {
+      const result = await this.recoveryPromise
+      return result
+    } finally {
+      this.state.isRecovering = false
+      this.recoveryPromise = null
+    }
+  }
+  
+  private async performRecovery(): Promise<boolean> {
+    const startTime = Date.now()
+    
+    while (this.state.attempts < this.MAX_RETRIES) {
+      // Check if we've exceeded the timeout
+      if (Date.now() - startTime > this.RECOVERY_TIMEOUT) {
+        return false
+      }
+      
+      this.state.attempts++
+      this.state.lastAttempt = Date.now()
+      
+      try {
+        const session = await getSession()
+        
+        if (session?.user?.id) {
+          this.state.sessionValid = true
+          return true
+        }
+        
+        // If no session, wait before retrying
+        if (this.state.attempts < this.MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY))
+        }
+      } catch (error) {
+        // Recovery failed, try again
+        if (this.state.attempts < this.MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY))
+        }
+      }
+    }
+    
+    return false
+  }
+  
+  async forceLogout(): Promise<void> {
+    this.state.sessionValid = false
+    
+    try {
+      await signOut({ redirect: false })
+      
+      // Clear local storage
+      localStorage.removeItem('session-recovery')
+      
+      // Redirect to login
+      window.location.href = '/auth/signin'
+    } catch (error) {
+      // Force redirect even if signOut fails
+      window.location.href = '/auth/signin'
+    }
+  }
+  
+  private async validateSession(): Promise<void> {
+    try {
+      const session = await getSession()
+      
+      if (!session?.user?.id) {
+        this.state.sessionValid = false
+        return
+      }
+      
+      // Check if session is expired
+      if (session.expires) {
+        const expiryTime = new Date(session.expires).getTime()
+        const currentTime = Date.now()
+        
+        if (currentTime >= expiryTime) {
+          this.state.sessionValid = false
+          return
+        }
+      }
+      
+      this.state.sessionValid = true
+    } catch (error) {
+      this.state.sessionValid = false
+    }
+  }
+  
+  // Trigger recovery from other tabs
+  triggerCrossTabRecovery() {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('session-recovery', 'trigger')
+      localStorage.removeItem('session-recovery')
+    }
+  }
+  
+  // Get current session state
+  getSessionState(): SessionRecoveryState {
+    return { ...this.state }
+  }
+  
+  // Check if session is valid
+  isSessionValid(): boolean {
+    return this.state.sessionValid
+  }
+  
+  // Cleanup
+  destroy() {
+    if (this.sessionCheckInterval) {
+      clearInterval(this.sessionCheckInterval)
+      this.sessionCheckInterval = null
+    }
+  }
+}
+
+// Create singleton instance
+let sessionRecovery: SessionRecovery | null = null
+
+export function getSessionRecovery(): SessionRecovery {
+  if (!sessionRecovery) {
+    sessionRecovery = new SessionRecovery()
+  }
+  return sessionRecovery
+}
+
+// Auto-recovery hook for React components
+export function useSessionRecovery() {
+  const recovery = getSessionRecovery()
+  
+  return {
+    recoverSession: () => recovery.recoverSession(),
+    getSessionState: () => recovery.getSessionState(),
+    isSessionValid: () => recovery.isSessionValid(),
+    forceLogout: () => recovery.forceLogout(),
+    triggerCrossTabRecovery: () => recovery.triggerCrossTabRecovery()
+  }
+}
+
+// Utility function to handle API errors with session recovery
+export async function handleAPIError(error: any, recovery?: SessionRecovery) {
+  if (error.status === 401 || error.status === 403) {
+    const sessionRecovery = recovery || getSessionRecovery()
+    
+    // Try to recover session
+    const recovered = await sessionRecovery.recoverSession()
+    
+    if (!recovered) {
+      // If recovery fails, force logout
+      await sessionRecovery.forceLogout()
+      return false
+    }
+    
+    return true
+  }
+  
+  return false
+}
+
+// Export the singleton instance
+export { SessionRecovery } 

@@ -39,7 +39,6 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.error('❌ Missing credentials')
           return null
         }
 
@@ -69,14 +68,11 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (!user) {
-            console.error('❌ User not found:', credentials.email)
             return null
           }
 
           // Check status before expensive bcrypt operation
           if (user.status !== UserStatus.APPROVED) {
-            console.error('❌ User not approved:', user.status)
-            
             // Provide specific error messages based on user status
             switch (user.status) {
               case UserStatus.PENDING:
@@ -96,7 +92,6 @@ export const authOptions: NextAuthOptions = {
           )
 
           if (!isPasswordValid) {
-            console.error('❌ Invalid password for user:', credentials.email)
             return null
           }
 
@@ -105,7 +100,6 @@ export const authOptions: NextAuthOptions = {
             where: { id: user.id },
             data: { lastLoginAt: new Date() }
           }).catch(error => {
-            console.error('Failed to update lastLoginAt:', error)
             // Don't fail auth for this non-critical update
           })
 
@@ -119,22 +113,11 @@ export const authOptions: NextAuthOptions = {
             university: user.university?.name || 'Unknown'
           }
 
-          console.log('✅ User authenticated successfully:', {
-            id: authUser.id,
-            email: authUser.email,
-            role: authUser.role
-          })
-
           return authUser
         } catch (error: any) {
-          console.error('🔴 Authorization error:', error)
-          console.error('🔴 Error message:', error.message)
-          console.error('🔴 Error type:', typeof error)
-          
           // For authentication errors, we want to return null so NextAuth handles it as invalid credentials
           // For status errors, we want to pass the specific error message
           if (error.message && error.message.startsWith('ACCOUNT_')) {
-            console.log('🔄 Throwing custom error:', error.message)
             throw error // Re-throw the custom error so NextAuth can handle it
           }
           
@@ -146,18 +129,11 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
       // This callback runs after authorize and can be used to handle custom logic
-      console.log('🔄 signIn callback called with user:', user)
       return true
     },
     async jwt({ token, user, trigger }) {
       try {
         if (user) {
-          console.log('🔧 JWT callback - Setting user data:', {
-            id: user.id,
-            email: user.email,
-            role: user.role
-          })
-          
           // Set all user data in token
           token.id = user.id
           token.role = user.role
@@ -170,11 +146,6 @@ export const authOptions: NextAuthOptions = {
 
         // Validate token structure
         if (!token.id || !token.role) {
-          console.error('❌ Invalid token structure:', {
-            hasId: !!token.id,
-            hasRole: !!token.role,
-            hasEmail: !!token.email
-          })
           // Return a minimal token instead of null
           return {
             ...token,
@@ -187,10 +158,8 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Token validated successfully for middleware use
-
         return token
       } catch (error) {
-    console.error(error)
         // Return a minimal token instead of null
         return {
           ...token,
@@ -208,11 +177,6 @@ export const authOptions: NextAuthOptions = {
         // Processing token for session creation
         
         if (!token || !token.id || !token.role) {
-          console.error('❌ Session callback - Invalid or missing token:', {
-            hasToken: !!token,
-            hasId: !!token?.id,
-            hasRole: !!token?.role
-          })
           throw new Error('Invalid session token')
         }
 
@@ -229,10 +193,8 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Session created successfully
-
         return session
       } catch (error) {
-    console.error(error)
         // Return a minimal session with default user structure
         return {
           ...session,
@@ -257,14 +219,12 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async signOut({ token }) {
-      console.log('📤 User signed out:', token?.email)
+      // Clear any server-side session data
+      console.log('User signed out:', token?.id)
     },
     async session({ session, token }) {
-      console.log('📋 Session accessed:', {
-        userId: session?.user?.id,
-        role: session?.user?.role
-      })
+      // Session accessed - no action needed
     }
   },
-  debug: process.env.NODE_ENV === 'development'
+  debug: false // Disable debug in production
 } 

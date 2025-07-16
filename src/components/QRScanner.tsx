@@ -41,7 +41,7 @@ export default function QRScanner({ onScanSuccess, onScanError, className = '' }
           setSelectedDevice(videoDevices[0].deviceId)
         }
       } catch (error) {
-    console.error(error)
+        // Handle error silently
       }
     }
     getDevices()
@@ -62,7 +62,6 @@ export default function QRScanner({ onScanSuccess, onScanError, className = '' }
         videoRef.current.srcObject = stream
       }
     } catch (error) {
-    console.error(error)
       setHasPermission(false)
       onScanError('Camera permission denied. Please allow camera access.')
     }

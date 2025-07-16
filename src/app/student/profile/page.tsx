@@ -39,15 +39,7 @@ export default function StudentProfile() {
 
   useEffect(() => {
     if (userFromProvider) {
-      console.log('📋 User data from provider:', {
-        id: userFromProvider.id,
-        name: userFromProvider.name,
-        studentId: userFromProvider.studentId,
-        roomNumber: userFromProvider.roomNumber,
-        university: userFromProvider.university,
-        role: userFromProvider.role,
-        status: userFromProvider.status
-      })
+      // User data loaded from provider
     }
   }, [userFromProvider])
 
@@ -61,7 +53,7 @@ export default function StudentProfile() {
         setUserData(data.user || data)
       }
     } catch (error) {
-    console.error(error)
+      // Error fetching user data
     } finally {
       setLoading(false)
     }
@@ -99,7 +91,6 @@ export default function StudentProfile() {
 
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json()
-        console.error('Upload error:', errorData)
         throw new Error(errorData.details || errorData.error || 'Failed to upload image')
       }
 
@@ -107,7 +98,6 @@ export default function StudentProfile() {
       const imageUrl = uploadData.url
       
       // Update user profile with new image URL
-      console.log('📤 Updating profile image for user:', session?.user?.id)
       const response = await fetch(`/api/user/${session?.user?.id}`, {
         method: 'PATCH',
         headers: {
@@ -118,24 +108,15 @@ export default function StudentProfile() {
         })
       })
 
-      console.log('📊 Profile update response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      })
-
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ Profile updated successfully:', data)
         setUserData(prev => prev ? { ...prev, profileImage: imageUrl } : null)
         alert('Profile image updated successfully!')
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('❌ Profile update failed:', errorData)
         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
       }
     } catch (error) {
-    console.error(error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
       alert(`Upload failed: ${errorMessage}`)
     } finally {
@@ -165,13 +146,18 @@ export default function StudentProfile() {
 
   const handleLogout = async () => {
     try {
+      // Clear local storage and cache
+      localStorage.clear()
+      sessionStorage.clear()
+      
+      // Sign out with proper redirect
       await signOut({ 
-        redirect: false,
-        callbackUrl: '/auth/signin'
+        redirect: true,
+        callbackUrl: '/'
       })
-      router.push('/auth/signin')
     } catch (error) {
-    console.error(error)
+      // Force redirect to home page even if signOut fails
+      window.location.href = '/'
     }
   }
 
@@ -320,16 +306,7 @@ export default function StudentProfile() {
           </div>
         </div>
 
-        {/* Debug Section - Temporary */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-yellow-800 mb-2">Debug (Temporary)</h3>
-          <button
-            onClick={clearCacheAndRefetch}
-            className="w-full bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors text-sm"
-          >
-            Clear Cache & Refresh Data
-          </button>
-        </div>
+
 
         {/* Logout */}
         <div className="bg-white rounded-xl shadow-sm">

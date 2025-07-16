@@ -1,62 +1,83 @@
 import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
 
-// Performance: Cache auth results for static routes
-const staticRoutes = ['/icons/', '/images/', '/_next/', '/favicon.ico', '/manifest.json']
-
 export default withAuth(
   function middleware(req) {
-    // Skip auth for static resources immediately
     const pathname = req.nextUrl.pathname
-    if (staticRoutes.some(route => pathname.startsWith(route))) {
-      return NextResponse.next()
-    }
-
     const token = req.nextauth.token
     const isAuthenticated = !!token
     
-    // Performance: Early return for public routes
-    if (pathname === '/' || pathname.startsWith('/auth/')) {
+    // For home page, always allow access
+    if (pathname === '/') {
       return NextResponse.next()
     }
-
-    // Redirect unauthenticated users to login with callback
+    
+    // For auth pages, redirect authenticated users to their dashboard
+    if (pathname.startsWith('/auth/')) {
+      if (isAuthenticated) {
+        const userRole = token.role as string
+        let redirectUrl = '/'
+        
+        switch (userRole) {
+          case 'ADMIN':
+          case 'MANAGER':
+            redirectUrl = '/admin'
+            break
+          case 'STUDENT':
+            redirectUrl = '/student'
+            break
+          default:
+            redirectUrl = '/'
+        }
+        
+        const response = NextResponse.redirect(new URL(redirectUrl, req.url))
+        // Prevent caching of auth redirects
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+        response.headers.set('Pragma', 'no-cache')
+        response.headers.set('Expires', '0')
+        return response
+      }
+      
+      // Add no-cache headers for auth pages
+      const response = NextResponse.next()
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+      response.headers.set('Pragma', 'no-cache')
+      response.headers.set('Expires', '0')
+      return response
+    }
+    
+    // For protected routes, check authentication
     if (!isAuthenticated) {
       const signInUrl = new URL('/auth/signin', req.url)
       signInUrl.searchParams.set('callbackUrl', pathname)
       return NextResponse.redirect(signInUrl)
     }
-
+    
+    // Role-based access control
     const userRole = token.role as string
     
-    // Role-based access control with proper redirects
-    if (pathname.startsWith('/admin')) {
-      if (userRole !== 'ADMIN' && userRole !== 'MANAGER') {
-        // Redirect non-admin users to their appropriate dashboard
-        if (userRole === 'STUDENT') {
-          return NextResponse.redirect(new URL('/student', req.url))
-        }
-        return NextResponse.redirect(new URL('/auth/signin', req.url))
-      }
-    } else if (pathname.startsWith('/student')) {
-      if (userRole !== 'STUDENT') {
-        // Redirect non-student users to their appropriate dashboard
-        if (userRole === 'ADMIN' || userRole === 'MANAGER') {
-          return NextResponse.redirect(new URL('/admin', req.url))
-        }
-        return NextResponse.redirect(new URL('/auth/signin', req.url))
-      }
+    if (pathname.startsWith('/admin') && userRole !== 'ADMIN' && userRole !== 'MANAGER') {
+      return NextResponse.redirect(new URL('/student', req.url))
     }
-
+    
+    if (pathname.startsWith('/student') && userRole !== 'STUDENT') {
+      return NextResponse.redirect(new URL('/admin', req.url))
+    }
+    
     return NextResponse.next()
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Allow access to public routes and auth pages
         const pathname = req.nextUrl.pathname
         
-        if (pathname === '/' || pathname.startsWith('/auth/')) {
+        // Always allow public routes
+        if (pathname === '/') {
+          return true
+        }
+        
+        // For auth pages, always allow (middleware handles authenticated users)
+        if (pathname.startsWith('/auth/')) {
           return true
         }
         
@@ -69,15 +90,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - icons (icon files)
-     * - manifest.json (PWA manifest)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico|icons|manifest.json).*)',
   ],
 } 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { ArrowLeft, Eye, EyeOff, MapPin, User, UserPlus } from 'lucide-react'
 import { ButtonPress } from '@/components/PageTransition'
@@ -28,6 +29,7 @@ const validatePhone = (phone: string): boolean => {
 
 export default function SignUp() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -46,7 +48,25 @@ export default function SignUp() {
   const [success, setSuccess] = useState('')
   const [universities, setUniversities] = useState<University[]>([])
   const [phoneError, setPhoneError] = useState('')
-    // Fetch active universities for student registration
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.role) {
+      switch (session.user.role) {
+        case 'ADMIN':
+        case 'MANAGER':
+          router.replace('/admin')
+          break
+        case 'STUDENT':
+          router.replace('/student')
+          break
+        default:
+          router.replace('/')
+      }
+    }
+  }, [session, status, router])
+  
+  // Fetch active universities for student registration
   useEffect(() => {
     const fetchUniversities = async () => {
       try {
@@ -145,6 +165,24 @@ export default function SignUp() {
         [name]: value
       }))
     }
+  }
+
+  // Show loading while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  // Don't render form if already authenticated
+  if (status === 'authenticated') {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   return (

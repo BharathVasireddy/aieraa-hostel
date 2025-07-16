@@ -100,7 +100,6 @@ export default function AdminProfile() {
         throw new Error('Failed to fetch profile')
       }
     } catch (error) {
-    console.error(error)
       showNotification('error', 'Failed to load profile data')
     } finally {
       setLoading(false)
@@ -169,7 +168,6 @@ export default function AdminProfile() {
       }
       
     } catch (error) {
-    console.error(error)
       showNotification('error', 'Failed to upload image')
     } finally {
       setUploadingImage(false)
@@ -201,7 +199,6 @@ export default function AdminProfile() {
         showNotification('error', data.error || 'Failed to update profile')
       }
     } catch (error) {
-    console.error(error)
       showNotification('error', 'Failed to update profile')
     } finally {
       setProfileUpdateLoading(false)
@@ -243,7 +240,6 @@ export default function AdminProfile() {
         showNotification('error', data.error || 'Failed to change password')
       }
     } catch (error) {
-    console.error(error)
       showNotification('error', 'Failed to change password')
     } finally {
       setPasswordChangeLoading(false)

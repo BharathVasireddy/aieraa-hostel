@@ -3,36 +3,17 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Clock, Shield, Smartphone, Star } from 'lucide-react'
+import { Clock, Shield, Smartphone, Star, ArrowRight } from 'lucide-react'
 
 export default function LandingPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
-    const [isMounted, setIsMounted] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   // Prevent SSR hydration issues
   useEffect(() => {
     setIsMounted(true)
   }, [])
-
-  useEffect(() => {
-    // Only run redirect logic after component is mounted (client-side)
-    if (!isMounted) return
-    
-    // Only redirect if we're actually on the home page (not on reload of other pages)
-    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-      return
-    }
-    
-    // Redirect authenticated users to their respective dashboards
-    if (status === 'authenticated' && session?.user?.role) {
-      if (session.user.role === 'ADMIN' || session.user.role === 'MANAGER') {
-        router.push('/admin')
-      } else if (session.user.role === 'STUDENT') {
-        router.push('/student')
-      }
-    }
-  }, [session, status, router, isMounted])
 
   // Show loading while checking authentication or during SSR
   if (!isMounted || status === 'loading') {
@@ -46,43 +27,89 @@ export default function LandingPage() {
     )
   }
 
-  // Show landing page for unauthenticated users
+  // Get dashboard URL based on user role
+  const getDashboardUrl = () => {
+    if (!session?.user?.role) return '/auth/signin'
+    
+    if (session.user.role === 'ADMIN' || session.user.role === 'MANAGER') {
+      return '/admin'
+    }
+    return '/student'
+  }
+
+  // Show welcome message for authenticated users
+  const renderAuthenticatedHeader = () => (
+    <header className="bg-white shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center py-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <img 
+                src="https://aieraa.com/wp-content/uploads/2020/08/Aieraa-Overseas-Logo.png" 
+                alt="Aieraa Logo" 
+                className="w-full h-full object-contain p-1"
+              />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Aieraa Hostel</h1>
+              <p className="text-sm text-gray-600">Welcome back, {session?.user?.name}!</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => router.push(getDashboardUrl())}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center space-x-2"
+            >
+              <span>Go to Dashboard</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+  )
+
+  // Show normal header for unauthenticated users
+  const renderPublicHeader = () => (
+    <header className="bg-white shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center py-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <img 
+                src="https://aieraa.com/wp-content/uploads/2020/08/Aieraa-Overseas-Logo.png" 
+                alt="Aieraa Logo" 
+                className="w-full h-full object-contain p-1"
+              />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Aieraa Hostel</h1>
+              <p className="text-sm text-gray-600">Food Ordering App</p>
+            </div>
+          </div>
+          <div className="flex space-x-3">
+            <button 
+              onClick={() => router.push('/auth/signin')}
+              className="px-4 py-2 text-green-600 hover:text-green-700 font-medium"
+            >
+              Sign In
+            </button>
+            <button 
+              onClick={() => router.push('/auth/signup')}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+            >
+              Sign Up
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+  )
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <img 
-                  src="https://aieraa.com/wp-content/uploads/2020/08/Aieraa-Overseas-Logo.png" 
-                  alt="Aieraa Logo" 
-                  className="w-full h-full object-contain p-1"
-                />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Aieraa Hostel</h1>
-                <p className="text-sm text-gray-600">Food Ordering App</p>
-              </div>
-            </div>
-            <div className="flex space-x-3">
-              <button 
-                onClick={() => router.push('/auth/signin')}
-                className="px-4 py-2 text-green-600 hover:text-green-700 font-medium"
-              >
-                Sign In
-              </button>
-              <button 
-                onClick={() => router.push('/auth/signup')}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-              >
-                Sign Up
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {status === 'authenticated' ? renderAuthenticatedHeader() : renderPublicHeader()}
 
       {/* Hero Section */}
       <section className="py-20 px-4">
@@ -96,18 +123,30 @@ export default function LandingPage() {
             Order today for tomorrow&apos;s meals.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button 
-              onClick={() => router.push('/auth/signup')}
-              className="px-8 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold text-lg transition-colors"
-            >
-              Get Started
-            </button>
-            <button 
-              onClick={() => router.push('/auth/signin')}
-              className="px-8 py-4 border-2 border-green-600 text-green-600 rounded-xl hover:bg-green-50 font-semibold text-lg transition-colors"
-            >
-              Sign In
-            </button>
+            {status === 'authenticated' ? (
+              <button 
+                onClick={() => router.push(getDashboardUrl())}
+                className="px-8 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold text-lg transition-colors flex items-center justify-center space-x-2"
+              >
+                <span>Go to Dashboard</span>
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            ) : (
+              <>
+                <button 
+                  onClick={() => router.push('/auth/signup')}
+                  className="px-8 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold text-lg transition-colors"
+                >
+                  Get Started
+                </button>
+                <button 
+                  onClick={() => router.push('/auth/signin')}
+                  className="px-8 py-4 border-2 border-green-600 text-green-600 rounded-xl hover:bg-green-50 font-semibold text-lg transition-colors"
+                >
+                  Sign In
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -211,12 +250,22 @@ export default function LandingPage() {
           <p className="text-xl text-green-100 mb-8">
             Join thousands of students who are already saving time with Aieraa Hostel App.
           </p>
-          <button 
-            onClick={() => router.push('/auth/signup')}
-            className="px-8 py-4 bg-white text-green-600 rounded-xl hover:bg-gray-50 font-semibold text-lg transition-colors"
-          >
-            Sign Up Now
-          </button>
+          {status === 'authenticated' ? (
+            <button 
+              onClick={() => router.push(getDashboardUrl())}
+              className="px-8 py-4 bg-white text-green-600 rounded-xl hover:bg-gray-50 font-semibold text-lg transition-colors flex items-center justify-center space-x-2 mx-auto"
+            >
+              <span>Go to Dashboard</span>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          ) : (
+            <button 
+              onClick={() => router.push('/auth/signup')}
+              className="px-8 py-4 bg-white text-green-600 rounded-xl hover:bg-gray-50 font-semibold text-lg transition-colors"
+            >
+              Sign Up Now
+            </button>
+          )}
         </div>
       </section>
 
