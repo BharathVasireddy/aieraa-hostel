@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react'
 
 import MobileHeader from '@/components/MobileHeader'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
-import { lightningFetch, lightningCache } from '@/lib/cache'
+import { cachedFetch, cache } from '@/lib/cache'
 import { showToast } from '@/components/ui/Toast'
 
 interface OrderItem {
@@ -128,17 +128,17 @@ export default function AdminOrders() {
     try {
       // Check instant cache first
       const cacheKey = 'admin_profile'
-      const cachedProfile = lightningCache.getInstant<{profile: any}>(cacheKey)
+      const cachedProfile = cache.get<{profile: any}>(cacheKey)
       if (cachedProfile) {
         console.log('⚡ INSTANT admin profile from cache')
         setCurrentUserData(cachedProfile.profile)
         return
       }
 
-      const data = await lightningFetch('/api/admin/profile', {}, 30) // 30 min cache
+      const data = await cachedFetch('/api/admin/profile', {}, 30) // 30 min cache
       setCurrentUserData(data.profile)
       // Store in instant cache
-      lightningCache.setInstant(cacheKey, data)
+      cache.set(cacheKey, data)
     } catch (error) {
        console.error(error)
     }
@@ -150,16 +150,16 @@ export default function AdminOrders() {
       if (currentUserData?.role !== 'ADMIN') return
 
       const cacheKey = 'admin_universities_filter'
-      const cachedUniversities = lightningCache.getInstant<University[]>(cacheKey)
+      const cachedUniversities = cache.get<University[]>(cacheKey)
       if (cachedUniversities) {
         setUniversities(cachedUniversities)
         return
       }
 
-      const data = await lightningFetch('/api/admin/universities', {}, 15) // 15 min cache
+      const data = await cachedFetch('/api/admin/universities', {}, 15) // 15 min cache
       if (data.success) {
         setUniversities(data.universities)
-        lightningCache.setInstant(cacheKey, data.universities)
+        cache.set(cacheKey, data.universities)
       }
     } catch (error) {
        console.error(error)
@@ -172,7 +172,7 @@ export default function AdminOrders() {
       
       // Check instant cache first
       const cacheKey = 'admin_orders'
-      const cachedOrders = lightningCache.getInstant<Order[]>(cacheKey)
+      const cachedOrders = cache.get<Order[]>(cacheKey)
       if (cachedOrders) {
         console.log('⚡ INSTANT orders from cache')
         setOrders(cachedOrders)
@@ -180,10 +180,10 @@ export default function AdminOrders() {
         return
       }
 
-      const ordersData = await lightningFetch('/api/admin/orders', {}, 5) // 5 min cache for orders
+      const ordersData = await cachedFetch('/api/admin/orders', {}, 5) // 5 min cache for orders
       setOrders(ordersData)
       // Store in instant cache
-      lightningCache.setInstant(cacheKey, ordersData)
+      cache.set(cacheKey, ordersData)
     } catch (error) {
        console.error(error)
       showToast({
@@ -199,9 +199,9 @@ export default function AdminOrders() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
     // Clear cache and force fresh data
-    lightningCache.delete('admin_orders')
-    lightningCache.delete('admin_profile')
-    lightningCache.delete('admin_universities_filter')
+    cache.delete('admin_orders')
+    cache.delete('admin_profile')
+    cache.delete('admin_universities_filter')
     await fetchOrders()
     await fetchCurrentUser()
     await fetchUniversities()
@@ -239,7 +239,7 @@ export default function AdminOrders() {
         ))
         
         // Clear cache to force fresh data on next load
-        lightningCache.delete('admin_orders')
+        cache.delete('admin_orders')
         
         const statusMessages = {
           'APPROVED': 'Order approved - ready for kitchen preparation',

@@ -11,7 +11,7 @@ import QRCodeComponent from 'react-qr-code'
 import MobileHeader from '@/components/MobileHeader'
 import BottomNavigation from '@/components/BottomNavigation'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
-import { lightningFetch, lightningCache } from '@/lib/cache'
+import { cachedFetch, cache } from '@/lib/cache'
 
 interface OrderDetail {
   id: string
@@ -70,7 +70,7 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
       
       // Check instant cache first
       const cacheKey = `student_order_${orderId}`
-      const cachedOrder = lightningCache.getInstant<OrderDetail>(cacheKey)
+      const cachedOrder = cache.get<OrderDetail>(cacheKey)
       if (cachedOrder) {
         console.log('⚡ INSTANT order detail from cache')
         setOrder(cachedOrder)
@@ -79,12 +79,12 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
         return
       }
 
-      const orderData = await lightningFetch(`/api/orders/${orderId}`, {}, 5) // 5 min cache
+      const orderData = await cachedFetch(`/api/orders/${orderId}`, {}, 5) // 5 min cache
       setOrder(orderData)
       generateQRCode(orderData)
       
       // Store in instant cache
-      lightningCache.setInstant(cacheKey, orderData)
+      cache.set(cacheKey, orderData)
     } catch (error) {
     console.error(error)
       addNotification({

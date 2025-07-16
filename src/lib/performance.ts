@@ -1,5 +1,5 @@
 // Performance monitoring and optimization utilities
-import { lightningCache } from './cache'
+import { cache } from './cache'
 
 // Performance metrics tracking
 class PerformanceMonitor {
@@ -73,7 +73,7 @@ export async function preloadCriticalData(): Promise<void> {
   try {
     // Preload menu data for faster navigation
     const menuData = await lightningFastFetch('/api/menu')
-    lightningCache.setInstant('menu_data', menuData)
+    cache.set('menu_data', menuData)
   } catch (error) {
     // Silently handle preload errors
   }
@@ -175,7 +175,7 @@ export function optimizeMemoryUsage(): void {
   if (typeof window !== 'undefined') {
     // Clear expired cache entries every 5 minutes
     setInterval(() => {
-      lightningCache.clear()
+      cache.clear()
     }, 5 * 60 * 1000)
   }
 }
@@ -209,6 +209,22 @@ export function getPerformanceSummary(): Record<string, any> {
     failedRequests: Object.keys(metrics).filter(key => key.includes('_error')).length,
     cacheHitRate: calculateCacheHitRate(),
     timestamp: new Date().toISOString()
+  }
+  
+  return summary
+}
+
+// Add the missing getPerformanceDashboard function
+export function getPerformanceDashboard(): Record<string, any> {
+  const metrics = performanceMonitor.getMetrics()
+  const summary = {
+    totalRequests: Object.keys(metrics).length,
+    averageResponseTime: Object.values(metrics).reduce((sum, m) => sum + m.avg, 0) / Object.keys(metrics).length || 0,
+    slowRequests: Object.entries(metrics).filter(([_, m]) => m.avg > 1000).length,
+    failedRequests: Object.keys(metrics).filter(key => key.includes('_error')).length,
+    cacheHitRate: calculateCacheHitRate(),
+    timestamp: new Date().toISOString(),
+    detailedMetrics: metrics
   }
   
   return summary

@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { lightningCache } from '@/lib/cache'
-
-// Cache popular dishes for 5 minutes to avoid heavy queries
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-let cachedData: any = null
-let cacheTimestamp = 0
+import { cache } from '@/lib/cache'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,22 +12,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const now = Date.now()
     const cacheKey = `popular_dishes_${session.user.universityId}`
     
-    // Check instant cache first for immediate response
-    const instantCached = lightningCache.getInstant(cacheKey)
-    if (instantCached) {
-      return NextResponse.json({
-        success: true,
-        dishes: instantCached,
-        cached: true
-      })
-    }
-    
-    // Return memory cache if still valid
-    if (cachedData && cacheTimestamp && (now - cacheTimestamp) < CACHE_DURATION) {
-      lightningCache.setInstant(cacheKey, cachedData) // Store in instant cache too
+    // Check cache first
+    const cachedData = cache.get(cacheKey)
+    if (cachedData) {
       return NextResponse.json({
         success: true,
         dishes: cachedData,
@@ -40,66 +24,38 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Lightning-fast query - prioritize featured items first, then low-priced items
-    // Split query to use indexes efficiently
-    const [featuredItems, affordableItems] = await Promise.all([
-      // Get featured items (uses isFeatured index)
-      prisma.menuItem.findMany({
-        where: {
-          universityId: session.user.universityId,
-          isActive: true,
-          isFeatured: true
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          basePrice: true,
-          offerPrice: true,
-          image: true,
-          isVegetarian: true,
-          isVegan: true,
-          isFeatured: true,
-          categories: true,
-          calories: true,
-          protein: true,
-          carbs: true,
-          fat: true
-        },
-        orderBy: { basePrice: 'asc' },
-        take: 5
-      }),
-      // Get affordable items if we need more (uses price index)
-      prisma.menuItem.findMany({
-        where: {
-          universityId: session.user.universityId,
-          isActive: true,
-          isFeatured: false,
-          basePrice: { lte: 150 }
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          basePrice: true,
-          offerPrice: true,
-          image: true,
-          isVegetarian: true,
-          isVegan: true,
-          isFeatured: true,
-          categories: true,
-          calories: true,
-          protein: true,
-          carbs: true,
-          fat: true
-        },
-        orderBy: { basePrice: 'asc' },
-        take: 3
-      })
-    ])
-
-    // Combine results
-    const popularDishes = [...featuredItems, ...affordableItems].slice(0, 8)
+    // Optimized single query - get popular dishes based on featured status and price
+    const popularDishes = await prisma.menuItem.findMany({
+      where: {
+        universityId: session.user.universityId,
+        isActive: true,
+        OR: [
+          { isFeatured: true },
+          { basePrice: { lte: 150 } }
+        ]
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        basePrice: true,
+        offerPrice: true,
+        image: true,
+        isVegetarian: true,
+        isVegan: true,
+        isFeatured: true,
+        categories: true,
+        calories: true,
+        protein: true,
+        carbs: true,
+        fat: true
+      },
+      orderBy: [
+        { isFeatured: 'desc' },
+        { basePrice: 'asc' }
+      ],
+      take: 8
+    })
 
     // Transform the data for frontend consumption
     const transformedDishes = popularDishes.map(dish => ({
@@ -121,10 +77,8 @@ export async function GET(request: NextRequest) {
       fat: dish.fat
     }))
 
-    // Update caches
-    cachedData = transformedDishes
-    cacheTimestamp = now
-    lightningCache.setInstant(cacheKey, transformedDishes) // Store in instant cache
+    // Cache for 5 minutes
+    cache.set(cacheKey, transformedDishes, 5)
 
     return NextResponse.json({
       success: true,
@@ -133,7 +87,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error(error)
+    console.error('Error fetching popular dishes:', error)
     return NextResponse.json(
       { error: 'Failed to fetch popular dishes' },
       { status: 500 }

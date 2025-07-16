@@ -3,7 +3,7 @@
 import { BarChart3, Clock, DollarSign, Download, PieChart, RefreshCw, ShoppingCart, Target, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import MobileHeader from '@/components/MobileHeader'
-import { lightningFetch, lightningCache } from '@/lib/cache'
+import { cachedFetch, cache } from '@/lib/cache'
 
 interface AnalyticsData {
   period: string
@@ -64,7 +64,7 @@ export default function AdminAnalytics() {
       
       // Check instant cache first
       const cacheKey = `analytics_${selectedPeriod}`
-      const cachedAnalytics = lightningCache.getInstant<AnalyticsData>(cacheKey)
+      const cachedAnalytics = cache.get<AnalyticsData>(cacheKey)
       if (cachedAnalytics) {
         setAnalytics(cachedAnalytics)
         setLoading(false)
@@ -72,11 +72,11 @@ export default function AdminAnalytics() {
       }
       
       // Use lightning fetch with 10 minute cache for analytics
-      const data = await lightningFetch(`/api/admin/analytics?period=${selectedPeriod}`, {}, 10)
+      const data = await cachedFetch(`/api/admin/analytics?period=${selectedPeriod}`, {}, 10)
       setAnalytics(data)
       
       // Store in instant cache for immediate future access
-      lightningCache.setInstant(cacheKey, data)
+      cache.set(cacheKey, data)
     } catch (error) {
       // Handle error silently
     } finally {
@@ -92,7 +92,7 @@ export default function AdminAnalytics() {
     setRefreshing(true)
     // Clear cache and force fresh data
     const cacheKey = `analytics_${selectedPeriod}`
-    lightningCache.delete(cacheKey)
+    cache.delete(cacheKey)
     
     try {
       const response = await fetch(`/api/admin/analytics?period=${selectedPeriod}`)
@@ -100,7 +100,7 @@ export default function AdminAnalytics() {
         const data = await response.json()
         setAnalytics(data)
         // Store fresh data in instant cache
-        lightningCache.setInstant(cacheKey, data)
+        cache.set(cacheKey, data)
       }
     } catch (error) {
       // Handle error silently

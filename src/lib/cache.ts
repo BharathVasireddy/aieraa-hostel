@@ -1,39 +1,27 @@
-// Lightning-fast caching system for optimal performance
+// Simplified high-performance caching system
 import { unstable_cache as nextCache } from 'next/cache'
 
 // Types
-export interface LightningCacheOptions {
+export interface CacheOptions {
   duration?: number // minutes
   force?: boolean
   tags?: string[]
 }
 
-export interface InstantCacheItem<T> {
-  data: T
-  timestamp: number
-  ttl: number
-}
-
-// In-memory instant cache for immediate access
-class InstantCache {
-  private cache = new Map<string, InstantCacheItem<any>>()
-  private readonly DEFAULT_TTL = 5 * 60 * 1000 // 5 minutes
+// Simple in-memory cache for immediate access (client-side only)
+class SimpleCache {
+  private cache = new Map<string, { data: any; expires: number }>()
 
   set<T>(key: string, data: T, ttlMinutes: number = 5): void {
-    const ttl = ttlMinutes * 60 * 1000
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl
-    })
+    const expires = Date.now() + (ttlMinutes * 60 * 1000)
+    this.cache.set(key, { data, expires })
   }
 
   get<T>(key: string): T | null {
     const item = this.cache.get(key)
     if (!item) return null
 
-    const now = Date.now()
-    if (now - item.timestamp > item.ttl) {
+    if (Date.now() > item.expires) {
       this.cache.delete(key)
       return null
     }
@@ -49,48 +37,35 @@ class InstantCache {
     this.cache.clear()
   }
 
-  // Instant cache for immediate access (no TTL check)
-  setInstant<T>(key: string, data: T): void {
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl: this.DEFAULT_TTL
-    })
-  }
-
-  getInstant<T>(key: string): T | null {
-    const item = this.cache.get(key)
-    return item ? item.data : null
-  }
-
-  deleteInstant(key: string): void {
-    this.cache.delete(key)
+  // Get cache size for debugging
+  size(): number {
+    return this.cache.size
   }
 }
 
-// Global instant cache instance
-export const lightningCache = new InstantCache()
+// Global cache instance
+export const cache = new SimpleCache()
 
-// Request deduplication
+// Request deduplication to prevent duplicate API calls
 const pendingRequests = new Map<string, Promise<any>>()
 
-// Lightning fetch with comprehensive caching
-export async function lightningFetch(
+// Simplified fetch with basic caching
+export async function cachedFetch(
   url: string,
-  options: LightningCacheOptions = {},
+  options: CacheOptions = {},
   cacheDuration: number = 5 // minutes
 ): Promise<any> {
-  const { force = false, tags = [] } = options
-  const cacheKey = `lightning_${url}_${JSON.stringify(options)}`
+  const { force = false } = options
+  const cacheKey = `fetch_${url}`
 
   // Check if request is already pending (deduplication)
   if (pendingRequests.has(cacheKey)) {
     return await pendingRequests.get(cacheKey)!
   }
 
-  // Check instant cache first
+  // Check cache first (unless forced)
   if (!force) {
-    const cached = lightningCache.get(cacheKey)
+    const cached = cache.get(cacheKey)
     if (cached) {
       return cached
     }
@@ -103,21 +78,12 @@ export async function lightningFetch(
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
+        next: { revalidate: cacheDuration * 60 }, // Next.js cache
         ...options,
       })
 
-      // Handle specific error cases
       if (!response.ok) {
-        if (response.status >= 500) {
-          throw new Error(`Server error: ${response.status}`)
-        } else if (response.status === 404) {
-          throw new Error('Resource not found')
-        } else if (response.status === 403) {
-          throw new Error('Access forbidden')
-        } else {
-          throw new Error(`HTTP error: ${response.status}`)
-        }
+        throw new Error(`HTTP error: ${response.status}`)
       }
 
       const contentType = response.headers.get('content-type')
@@ -130,7 +96,7 @@ export async function lightningFetch(
       }
 
       // Cache the successful response
-      lightningCache.set(cacheKey, data, cacheDuration)
+      cache.set(cacheKey, data, cacheDuration)
 
       return data
     } catch (error) {
@@ -148,7 +114,7 @@ export async function lightningFetch(
 }
 
 // Next.js cache wrapper for server-side caching
-export const nextLightningCache = (
+export const serverCache = (
   fn: Function,
   keys: string[],
   options: { revalidate?: number; tags?: string[] } = {}
@@ -159,26 +125,17 @@ export const nextLightningCache = (
   })
 }
 
-// Preload critical data
-export const preloadCriticalData = async (urls: string[]) => {
-  const promises = urls.map(url => lightningFetch(url, {}, 30)) // 30 min cache
-  await Promise.allSettled(promises)
-}
-
-// Cache invalidation
+// Simple cache invalidation
 export const invalidateCache = (pattern: string) => {
-  // Clear matching instant cache entries
-  for (const [key] of lightningCache['cache']) {
+  for (const [key] of cache['cache']) {
     if (key.includes(pattern)) {
-      lightningCache.delete(key)
+      cache.delete(key)
     }
   }
 }
 
-// Performance optimized cache warming
-export const warmCache = async (endpoints: string[]) => {
-  const promises = endpoints.map(endpoint => 
-    lightningFetch(endpoint, {}, 60) // 1 hour cache
-  )
-  await Promise.allSettled(promises)
+// Clear all cache
+export const clearAllCache = () => {
+  cache.clear()
+  pendingRequests.clear()
 } 

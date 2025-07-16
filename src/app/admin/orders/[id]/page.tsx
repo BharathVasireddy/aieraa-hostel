@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { ArrowLeft, CheckCircle, Clock, IndianRupee, MapPin, Package, Phone, QrCode, Scan, User, XCircle } from 'lucide-react'
 import QRCodeGenerator from '@/components/QRCodeGenerator'
 import QRScanner from '@/components/QRScanner'
-import { lightningFetch } from '@/lib/cache'
+import { cachedFetch } from '@/lib/cache'
 
 interface OrderDetails {
   id: string
@@ -49,7 +49,7 @@ export default function OrderDetailsPage() {
   const fetchOrderDetails = async () => {
     try {
       setLoading(true)
-      const response = await lightningFetch(`/api/admin/orders/${orderId}`)
+      const response = await cachedFetch(`/api/admin/orders/${orderId}`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch order details')
@@ -71,7 +71,7 @@ export default function OrderDetailsPage() {
 
   const updateOrderStatus = async (newStatus: string) => {
     try {
-      const response = await lightningFetch(`/api/admin/orders/${orderId}`, {
+      const response = await cachedFetch(`/api/admin/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -89,7 +89,7 @@ export default function OrderDetailsPage() {
     try {
       setVerifying(true)
       
-      const response = await lightningFetch(`/api/admin/orders/${orderId}/verify`, {
+      const response = await cachedFetch(`/api/admin/orders/${orderId}/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

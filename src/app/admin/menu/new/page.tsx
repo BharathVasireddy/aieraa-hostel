@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useUser } from '@/components/UserProvider'
 import { ArrowLeft, Plus, Trash2, Save, Upload, X } from 'lucide-react'
 import { ButtonPress } from '@/components/PageTransition'
-import { lightningFetch } from '@/lib/cache'
+import { cachedFetch } from '@/lib/cache'
 
 interface MenuItemVariant {
   id: string
@@ -89,7 +89,7 @@ export default function NewMenuItemPage() {
 
   const fetchUniversities = async () => {
     try {
-      const data = await lightningFetch('/api/admin/universities')
+      const data = await cachedFetch('/api/admin/universities')
       setUniversities(data.universities || [])
       
       // Auto-select first university for admin

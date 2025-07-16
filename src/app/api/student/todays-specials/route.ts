@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { lightningCache } from '@/lib/cache'
-
-// Cache today's specials for 10 minutes
-const CACHE_DURATION = 10 * 60 * 1000 // 10 minutes
-let cachedData: any = null
-let cacheTimestamp = 0
+import { cache } from '@/lib/cache'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,22 +12,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const now = Date.now()
     const cacheKey = `todays_specials_${session.user.universityId}`
     
-    // Check instant cache first for immediate response
-    const instantCached = lightningCache.getInstant(cacheKey)
-    if (instantCached) {
-      return NextResponse.json({
-        success: true,
-        specials: instantCached,
-        cached: true
-      })
-    }
-    
-    // Return memory cache if still valid
-    if (cachedData && cacheTimestamp && (now - cacheTimestamp) < CACHE_DURATION) {
-      lightningCache.setInstant(cacheKey, cachedData) // Store in instant cache too
+    // Check cache first
+    const cachedData = cache.get(cacheKey)
+    if (cachedData) {
       return NextResponse.json({
         success: true,
         specials: cachedData,
@@ -40,112 +24,80 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Lightning-fast parallel queries - split complex OR into separate indexed queries
-    const [offerItems, featuredItems, budgetSnacks] = await Promise.all([
-      // Items with offers (indexed on offerPrice)
-      prisma.menuItem.findMany({
-        where: {
-          universityId: session.user.universityId,
-          isActive: true,
-          offerPrice: { not: null }
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          basePrice: true,
-          offerPrice: true,
-          image: true,
-          isVegetarian: true,
-          isVegan: true,
-          categories: true,
-          isFeatured: true
-        },
-        orderBy: { offerPrice: 'asc' },
-        take: 3
-      }),
-      // Featured items (indexed on isFeatured)
-      prisma.menuItem.findMany({
-        where: {
-          universityId: session.user.universityId,
-          isActive: true,
-          isFeatured: true,
-          offerPrice: null // Exclude items already in offers
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          basePrice: true,
-          offerPrice: true,
-          image: true,
-          isVegetarian: true,
-          isVegan: true,
-          categories: true,
-          isFeatured: true
-        },
-        orderBy: { basePrice: 'asc' },
-        take: 2
-      }),
-      // Budget snacks (avoid JSON array search, use price filter)
-      prisma.menuItem.findMany({
-        where: {
-          universityId: session.user.universityId,
-          isActive: true,
-          basePrice: { lt: 80 }, // Budget items
-          isFeatured: false,
-          offerPrice: null
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          basePrice: true,
-          offerPrice: true,
-          image: true,
-          isVegetarian: true,
-          isVegan: true,
-          categories: true,
-          isFeatured: true
-        },
-        orderBy: { basePrice: 'asc' },
-        take: 2
-      })
-    ])
-
-    // Combine and deduplicate results
-    const allSpecials = [...offerItems, ...featuredItems, ...budgetSnacks]
-    const uniqueSpecials = allSpecials.filter((item, index, self) => 
-      index === self.findIndex(t => t.id === item.id)
-    ).slice(0, 6)
+    // Get today's specials from database
+    const specialItems = await prisma.menuItem.findMany({
+      where: {
+        universityId: session.user.universityId,
+        isActive: true,
+        AND: [
+          { 
+            OR: [
+              { isFeatured: true },
+              { offerPrice: { not: null } },
+              { basePrice: { lte: 200 } }
+            ]
+          }
+        ]
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        basePrice: true,
+        offerPrice: true,
+        image: true,
+        isVegetarian: true,
+        isVegan: true,
+        isFeatured: true,
+        categories: true,
+        calories: true,
+        protein: true,
+        carbs: true,
+        fat: true
+      },
+      orderBy: [
+        { isFeatured: 'desc' },
+        { offerPrice: 'asc' },
+        { basePrice: 'asc' }
+      ],
+      take: 6
+    })
 
     // Transform the data for frontend consumption
-    const transformedSpecials = uniqueSpecials.map(dish => {
-      const hasOffer = dish.offerPrice && dish.offerPrice < dish.basePrice
-      const discount = hasOffer && dish.offerPrice ? Math.round(((dish.basePrice - dish.offerPrice) / dish.basePrice) * 100) : 0
-      
+    const transformedSpecials = specialItems.map(item => {
+      const hasDiscount = item.offerPrice && item.offerPrice < item.basePrice
+      const discountPercentage = hasDiscount 
+        ? Math.round(((item.basePrice - item.offerPrice!) / item.basePrice) * 100)
+        : 0
+
       return {
-        id: dish.id,
-        name: dish.name,
-        description: dish.description,
-        originalPrice: hasOffer ? dish.basePrice : undefined,
-        discountPrice: dish.offerPrice,
-        price: dish.offerPrice || dish.basePrice,
-        image: dish.image,
-        badge: hasOffer ? `${discount}% OFF` : 'Special',
-        isVeg: dish.isVegetarian,
-        category: dish.categories?.[0]?.toLowerCase() || 'special',
-        discount: discount,
-        rating: 4.1 + Math.random() * 0.7,
-        reviewCount: 20 + Math.floor(Math.random() * 80),
-        preparationTime: '12-18 min'
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        originalPrice: hasDiscount ? item.basePrice : undefined,
+        discountPrice: item.offerPrice,
+        price: item.offerPrice || item.basePrice,
+        image: item.image,
+        badge: item.isFeatured 
+          ? 'Featured' 
+          : hasDiscount 
+            ? `${discountPercentage}% OFF`
+            : 'Special',
+        isVeg: item.isVegetarian,
+        category: item.categories?.[0]?.toLowerCase() || 'specials',
+        discount: discountPercentage,
+        rating: 4.0 + Math.random() * 0.8, // Mock rating for UI
+        reviewCount: 10 + Math.floor(Math.random() * 90),
+        preparationTime: '12-18 min',
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat
       }
     })
 
-    // Update caches
-    cachedData = transformedSpecials
-    cacheTimestamp = now
-    lightningCache.setInstant(cacheKey, transformedSpecials) // Store in instant cache
+    // Cache for 10 minutes (specials change less frequently)
+    cache.set(cacheKey, transformedSpecials, 10)
 
     return NextResponse.json({
       success: true,
@@ -154,16 +106,9 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error(error)
-    console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error)
-    console.error('Error message:', error instanceof Error ? error.message : error)
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
-    
+    console.error('Error fetching today\'s specials:', error)
     return NextResponse.json(
-      { 
-        error: 'Failed to fetch today\'s specials',
-        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
-      },
+      { error: 'Failed to fetch today\'s specials' },
       { status: 500 }
     )
   }

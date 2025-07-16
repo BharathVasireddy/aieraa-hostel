@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { useUser } from '@/components/UserProvider'
-import { lightningCache, lightningFetch } from '@/lib/cache'
+import { cache, cachedFetch } from '@/lib/cache'
 
 interface DashboardStats {
   totalUsers: number
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
       // Check instant cache first (unless refreshing)
       const cacheKey = `admin_dashboard_${selectedDateRange}`
       if (!refresh) {
-        const cachedData = lightningCache.getInstant<any>(cacheKey)
+        const cachedData = cache.get<any>(cacheKey)
         if (cachedData) {
           setStats(cachedData.stats)
           setRecentOrders(cachedData.recentOrders)
@@ -80,8 +80,8 @@ export default function AdminDashboard() {
 
       // Fetch fresh data
       const [analyticsResponse, ordersResponse] = await Promise.all([
-        lightningFetch('/api/admin/analytics', {}, refresh ? 0 : 5), // 5 min cache
-        lightningFetch('/api/admin/orders?limit=10', {}, refresh ? 0 : 2) // 2 min cache for recent orders
+        cachedFetch('/api/admin/analytics', {}, refresh ? 0 : 5), // 5 min cache
+        cachedFetch('/api/admin/orders?limit=10', {}, refresh ? 0 : 2) // 2 min cache for recent orders
       ])
 
       if (analyticsResponse.success && ordersResponse.success) {
@@ -160,7 +160,7 @@ export default function AdminDashboard() {
           recentOrders: transformedOrders,
           popularItems: mockPopularItems
         }
-        lightningCache.setInstant(cacheKey, cacheData)
+        cache.set(cacheKey, cacheData)
       }
     } catch (error) {
       // Handle error silently
