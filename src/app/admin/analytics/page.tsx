@@ -3,7 +3,7 @@
 import { TrendingUp, TrendingDown, Users, DollarSign, ShoppingCart, Calendar, Clock, Target, RefreshCw, Download, BarChart3, PieChart } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import MobileHeader from '@/components/MobileHeader'
-import BottomNavigation from '@/components/BottomNavigation'
+
 import { useRouter } from 'next/navigation'
 import { lightningFetch, lightningCache } from '@/lib/cache'
 
@@ -153,7 +153,6 @@ export default function AdminAnalytics() {
             <div className="bg-gray-200 h-32 rounded-lg"></div>
           </div>
         </div>
-        <BottomNavigation />
       </div>
     )
   }
@@ -515,8 +514,6 @@ export default function AdminAnalytics() {
           </div>
         </div>
       </div>
-
-      <BottomNavigation />
     </div>
   )
 } 

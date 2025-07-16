@@ -15,6 +15,7 @@ async function main() {
       create: {
         name: 'Demo University',
         code: 'DEMO',
+        city: 'Demo City',
         address: '123 Demo Street, Demo City',
         contactInfo: 'info@demo.edu',
         isActive: true,
@@ -24,7 +25,7 @@ async function main() {
             maxAdvanceOrderDays: 7,
             minAdvanceOrderHours: 12,
             allowWeekendOrders: true,
-            taxRate: 0.05 // 5% tax
+            baseTaxRate: 0.05 // 5% base tax
           }
         }
       },
@@ -36,6 +37,7 @@ async function main() {
       create: {
         name: 'Can Tho University of Medicine and Pharmacy',
         code: 'CTUMP',
+        city: 'Can Tho',
         address: '179 Nguyen Van Cu Street, Can Tho City, Vietnam',
         contactInfo: 'info@ctump.edu.vn',
         isActive: true,
@@ -45,7 +47,7 @@ async function main() {
             maxAdvanceOrderDays: 7,
             minAdvanceOrderHours: 12,
             allowWeekendOrders: true,
-            taxRate: 0.10 // 10% VAT Vietnam
+            baseTaxRate: 0.10 // 10% VAT Vietnam
           }
         }
       },
@@ -57,6 +59,7 @@ async function main() {
       create: {
         name: 'Pham Ngoc Thach University of Medicine',
         code: 'PCTU',
+        city: 'Ho Chi Minh City',
         address: '86 Nguyen Dinh Chieu Street, Ho Chi Minh City, Vietnam',
         contactInfo: 'info@pnt.edu.vn',
         isActive: true,
@@ -66,7 +69,7 @@ async function main() {
             maxAdvanceOrderDays: 5,
             minAdvanceOrderHours: 8,
             allowWeekendOrders: true,
-            taxRate: 0.10 // 10% VAT Vietnam
+            baseTaxRate: 0.10 // 10% VAT Vietnam
           }
         }
       },
@@ -78,6 +81,7 @@ async function main() {
       create: {
         name: 'Duy Tan University',
         code: 'DNU',
+        city: 'Da Nang',
         address: '254 Nguyen Van Linh Street, Da Nang City, Vietnam',
         contactInfo: 'info@duytan.edu.vn',
         isActive: true,
@@ -87,7 +91,7 @@ async function main() {
             maxAdvanceOrderDays: 6,
             minAdvanceOrderHours: 10,
             allowWeekendOrders: true,
-            taxRate: 0.10 // 10% VAT Vietnam
+            baseTaxRate: 0.10 // 10% VAT Vietnam
           }
         }
       },
@@ -99,6 +103,7 @@ async function main() {
       create: {
         name: 'Baku Medical University',
         code: 'BMU',
+        city: 'Baku',
         address: '23 Gasim Ismayilov Street, Baku, Azerbaijan',
         contactInfo: 'info@bmu.edu.az',
         isActive: true,
@@ -108,7 +113,7 @@ async function main() {
             maxAdvanceOrderDays: 7,
             minAdvanceOrderHours: 12,
             allowWeekendOrders: false,
-            taxRate: 0.18 // 18% VAT Azerbaijan
+            baseTaxRate: 0.18 // 18% VAT Azerbaijan
           }
         }
       },

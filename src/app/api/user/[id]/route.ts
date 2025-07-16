@@ -20,23 +20,29 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    // Optimized query - only fetch essential user data for dashboard
     const user = await prisma.user.findUnique({
       where: { id: params.id },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        role: true,
+        status: true,
+        studentId: true,
+        roomNumber: true,
+        course: true,
+        year: true,
+        profileImage: true,
+        dietaryPreferences: true,
+        createdAt: true,
+        lastLoginAt: true,
         university: {
           select: {
             id: true,
             name: true,
-            code: true,
-            settings: {
-              select: {
-                cutoffHours: true,
-                maxAdvanceOrderDays: true,
-                minAdvanceOrderHours: true,
-                allowWeekendOrders: true,
-                taxRate: true
-              }
-            }
+            code: true
           }
         }
       }
@@ -46,12 +52,10 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Remove sensitive data
-    const { password, ...userWithoutPassword } = user
-
+    // No need to filter password since we're using select
     return NextResponse.json({
       success: true,
-      user: userWithoutPassword
+      user: user
     })
 
   } catch (error) {

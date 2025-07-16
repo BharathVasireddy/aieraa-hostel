@@ -20,7 +20,7 @@ export default withAuth(
       return NextResponse.next()
     }
 
-    // Redirect unauthenticated users
+    // Redirect unauthenticated users to login with callback
     if (!isAuthenticated) {
       const signInUrl = new URL('/auth/signin', req.url)
       signInUrl.searchParams.set('callbackUrl', pathname)
@@ -29,14 +29,22 @@ export default withAuth(
 
     const userRole = token.role as string
     
-    // Role-based access control with performance optimization
+    // Role-based access control with proper redirects
     if (pathname.startsWith('/admin')) {
       if (userRole !== 'ADMIN' && userRole !== 'MANAGER') {
-        return NextResponse.redirect(new URL('/student', req.url))
+        // Redirect non-admin users to their appropriate dashboard
+        if (userRole === 'STUDENT') {
+          return NextResponse.redirect(new URL('/student', req.url))
+        }
+        return NextResponse.redirect(new URL('/auth/signin', req.url))
       }
     } else if (pathname.startsWith('/student')) {
       if (userRole !== 'STUDENT') {
-        return NextResponse.redirect(new URL('/admin', req.url))
+        // Redirect non-student users to their appropriate dashboard
+        if (userRole === 'ADMIN' || userRole === 'MANAGER') {
+          return NextResponse.redirect(new URL('/admin', req.url))
+        }
+        return NextResponse.redirect(new URL('/auth/signin', req.url))
       }
     }
 
@@ -45,8 +53,13 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Performance: Allow all requests, handle auth in middleware function
-        return true
+        // Allow access to public routes and auth pages
+        const pathname = req.nextUrl.pathname
+        if (pathname === '/' || pathname.startsWith('/auth/')) {
+          return true
+        }
+        // For protected routes, require authentication
+        return !!token
       },
     },
   }

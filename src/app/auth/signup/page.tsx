@@ -46,14 +46,16 @@ export default function SignUp() {
   const [phoneError, setPhoneError] = useState('')
   const router = useRouter()
 
-  // Fetch universities
+  // Fetch active universities for student registration
   useEffect(() => {
     const fetchUniversities = async () => {
       try {
-        const response = await fetch('/api/universities')
+        const response = await fetch('/api/public/universities')
         if (response.ok) {
           const data = await response.json()
-          setUniversities(data)
+          if (data.success) {
+            setUniversities(data.universities)
+          }
         }
       } catch (error) {
         console.error('Failed to fetch universities:', error)
@@ -198,14 +200,22 @@ export default function SignUp() {
                 onChange={handleInputChange}
                 required
                 className="input"
+                disabled={universities.length === 0}
               >
-                <option value="">Select your university</option>
+                <option value="">
+                  {universities.length === 0 ? 'No universities available' : 'Select your university'}
+                </option>
                 {universities.map((university) => (
                   <option key={university.id} value={university.id}>
-                    {university.name} ({university.code})
+                    {university.name} ({university.code}) - {university.city}
                   </option>
                 ))}
               </select>
+              {universities.length === 0 && (
+                <p className="text-sm text-red-600 mt-1">
+                  ⚠️ No universities are currently accepting new student registrations. Please contact support.
+                </p>
+              )}
             </div>
 
             {/* Basic Info */}

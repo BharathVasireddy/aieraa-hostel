@@ -75,8 +75,51 @@ class LightningCache {
 
     // Make new request
     const requestPromise = fetch(url, options)
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      .then(async response => {
+        // Handle different response types gracefully
+        if (response.status >= 500) {
+          console.error(`🚨 Server Error (${response.status}): ${url}`)
+          this.requestCache.delete(cacheKey)
+          // Don't throw for server errors - return error object instead
+          return { 
+            error: true, 
+            status: response.status, 
+            message: `Server error: ${response.status}` 
+          }
+        }
+        
+        if (response.status === 404) {
+          console.warn(`⚠️ Not Found (404): ${url}`)
+          this.requestCache.delete(cacheKey)
+          return { error: true, status: 404, message: 'Resource not found' }
+        }
+        
+        if (response.status === 403) {
+          console.warn(`🚫 Forbidden (403): ${url}`)
+          this.requestCache.delete(cacheKey)
+          return { error: true, status: 403, message: 'Access forbidden' }
+        }
+        
+        if (!response.ok) {
+          console.error(`❌ HTTP Error (${response.status}): ${url}`)
+          this.requestCache.delete(cacheKey)
+          // Try to get error message from response
+          try {
+            const errorData = await response.json()
+            return { 
+              error: true, 
+              status: response.status, 
+              message: errorData.error || `HTTP ${response.status}` 
+            }
+          } catch {
+            return { 
+              error: true, 
+              status: response.status, 
+              message: `HTTP ${response.status}` 
+            }
+          }
+        }
+        
         return response.json()
       })
       .then(data => {
@@ -85,9 +128,16 @@ class LightningCache {
       })
       .catch(error => {
         this.requestCache.delete(cacheKey)
-        throw error
+        console.error(`🔥 Network Error: ${url}`, error)
+        // Return error object instead of throwing
+        return { 
+          error: true, 
+          status: 0, 
+          message: error.message || 'Network error' 
+        }
       })
 
+    // Cache the promise
     this.requestCache.set(cacheKey, requestPromise)
     return requestPromise
   }

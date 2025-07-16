@@ -28,6 +28,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isMounted, setIsMounted] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+  const [hasTriedFetch, setHasTriedFetch] = useState(false)
 
   // Set mounted state to prevent SSR hydration issues
   useEffect(() => {
@@ -38,6 +40,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (!session?.user?.id) {
       setUser(null)
       setLoading(false)
+      setError(null)
       return
     }
 
@@ -52,6 +55,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.log('⚡ INSTANT user data from cache')
         setUser(cachedUser)
         setLoading(false)
+        setHasTriedFetch(true)
         return
       }
       
@@ -62,6 +66,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setUser(data.user)
         // Store in instant cache for immediate future access
         lightningCache.setInstant(cacheKey, data.user)
+        setError(null)
+        setRetryCount(0)
       } else {
         throw new Error('User data not found in response')
       }
@@ -70,25 +76,31 @@ export function UserProvider({ children }: { children: ReactNode }) {
       
       // Handle specific error cases
       if (err.message?.includes('404')) {
-        console.warn('User not found in database, forcing logout')
+        console.warn('User not found in database')
         setError('User account not found. Please login again.')
-        await signOut({ 
-          callbackUrl: '/auth/signin',
-          redirect: true 
-        })
+        // Don't automatically sign out on first 404, give user a chance to retry
+        if (retryCount > 1) {
+          await signOut({ 
+            callbackUrl: '/auth/signin',
+            redirect: true 
+          })
+        }
       } else if (err.message?.includes('401')) {
         console.warn('Unauthorized access, forcing logout')
+        setError('Session expired. Please login again.')
         await signOut({ 
           callbackUrl: '/auth/signin',
           redirect: true 
         })
       } else {
-        setError('Failed to fetch user data')
+        setError('Failed to load your account data. Please try again.')
+        setRetryCount(prev => prev + 1)
       }
     } finally {
       setLoading(false)
+      setHasTriedFetch(true)
     }
-  }, [session?.user?.id])
+  }, [session?.user?.id, retryCount])
 
   useEffect(() => {
     if (!isMounted || status === 'loading') return
@@ -102,18 +114,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.log('⚡ Loading user from instant cache')
         setUser(cachedUser)
         setLoading(false)
-      } else if (!user || user.id !== session.user.id) {
+        setHasTriedFetch(true)
+      } else if ((!user || user.id !== session.user.id) && !hasTriedFetch) {
         fetchUserData()
-      } else {
+      } else if (hasTriedFetch) {
         setLoading(false)
       }
     } else if (status === 'unauthenticated') {
       setUser(null)
       setLoading(false)
+      setError(null)
+      setHasTriedFetch(false)
+      setRetryCount(0)
       // Clear cache when user logs out
       lightningCache.clear()
     }
-  }, [session, status, isMounted, user, fetchUserData])
+  }, [session, status, isMounted, user, fetchUserData, hasTriedFetch])
+
+  // Reset retry count when session changes
+  useEffect(() => {
+    if (session?.user?.id) {
+      setRetryCount(0)
+      setHasTriedFetch(false)
+    }
+  }, [session?.user?.id])
 
   const value = {
     user,

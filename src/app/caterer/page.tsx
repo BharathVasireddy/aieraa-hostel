@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { QrCode, Package, CheckCircle, Search, RefreshCw, User, Home } from 'lucide-react'
+import { QrCode, Package, CheckCircle, RefreshCw, User, Home, Clock, Utensils } from 'lucide-react'
 import { format } from 'date-fns'
 import MobileHeader from '@/components/MobileHeader'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
@@ -30,85 +30,67 @@ interface OrderForServing {
 export default function CatererDashboard() {
   const { data: session } = useSession()
   const [orders, setOrders] = useState<OrderForServing[]>([])
-  const [filteredOrders, setFilteredOrders] = useState<OrderForServing[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
   const [showQRScanner, setShowQRScanner] = useState(false)
   const [scannedOrder, setScannedOrder] = useState<OrderForServing | null>(null)
   const [showScannedModal, setShowScannedModal] = useState(false)
   const [isServing, setIsServing] = useState(false)
+  const [todayStats, setTodayStats] = useState({
+    pendingOrders: 0,
+    readyOrders: 0,
+    servedToday: 0,
+    totalToday: 0
+  })
   const { notifications, addNotification, removeNotification } = useNotifications()
 
   useEffect(() => {
     if (session?.user) {
-      fetchOrders()
+      fetchStats()
+      fetchReadyOrders()
       // Auto-refresh every 30 seconds
-      const interval = setInterval(fetchOrders, 30000)
+      const interval = setInterval(() => {
+        fetchStats()
+        fetchReadyOrders()
+      }, 30000)
       return () => clearInterval(interval)
     }
   }, [session])
 
-  useEffect(() => {
-    filterOrders()
-  }, [orders, searchQuery])
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/caterer/stats')
+      if (response.ok) {
+        const stats = await response.json()
+        setTodayStats(stats)
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    }
+  }
 
-  const fetchOrders = async () => {
+  const fetchReadyOrders = async () => {
     try {
       setLoading(true)
       
-      // Check instant cache first
-      const cacheKey = 'caterer_serving_orders'
-      const cachedData = lightningCache.getInstant<{orders: OrderForServing[]}>(cacheKey)
-      if (cachedData) {
-        console.log('⚡ INSTANT serving orders from cache')
-        setOrders(cachedData.orders)
-        setLoading(false)
-        return
+      // Only fetch READY orders for serving
+      const response = await fetch('/api/caterer/orders?status=READY')
+      if (response.ok) {
+        const ordersData = await response.json()
+        setOrders(ordersData)
       }
-
-      // Fetch fresh data - only today's orders that need serving
-      const ordersData = await lightningFetch('/api/caterer/orders', {}, 2)
-
-      setOrders(ordersData)
-      
-      // Store in instant cache
-      lightningCache.setInstant(cacheKey, {
-        orders: ordersData
-      })
     } catch (error) {
-      console.error('Error fetching orders:', error)
+      console.error('Error fetching ready orders:', error)
       addNotification({
         type: 'error',
         title: 'Error',
-        message: 'Failed to fetch orders'
+        message: 'Failed to fetch ready orders'
       })
     } finally {
       setLoading(false)
     }
   }
 
-  const filterOrders = () => {
-    let filtered = [...orders]
 
-    // Filter by search query (order number, customer name, or student ID)
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(order =>
-        order.orderNumber.toLowerCase().includes(query) ||
-        order.customerName.toLowerCase().includes(query) ||
-        order.studentId?.toLowerCase().includes(query)
-      )
-    }
-
-    // Only show today's orders that need serving (READY status)
-    const today = new Date().toDateString()
-    filtered = filtered.filter(order => {
-      const orderDate = new Date(order.createdAt).toDateString()
-      return orderDate === today && order.status === 'READY'
-    })
-
-    setFilteredOrders(filtered)
-  }
 
   const handleQRScan = (qrData: string) => {
     try {
@@ -176,17 +158,15 @@ export default function CatererDashboard() {
         throw new Error('Failed to mark order as served')
       }
 
-      // Clear cache to force fresh data
-      lightningCache.delete('caterer_serving_orders')
-
       addNotification({
         type: 'success',
         title: 'Order Served ✅',
         message: `Order #${scannedOrder?.orderNumber} has been marked as served successfully!`
       })
 
-      // Refresh orders
-      fetchOrders()
+      // Refresh data
+      fetchStats()
+      fetchReadyOrders()
     } catch (error) {
       console.error('Error marking order as served:', error)
       // Revert local state on error
@@ -230,7 +210,10 @@ export default function CatererDashboard() {
         title="Food Counter" 
         rightElement={
           <button
-            onClick={fetchOrders}
+            onClick={() => {
+              fetchStats()
+              fetchReadyOrders()
+            }}
             className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <RefreshCw className="w-5 h-5 text-gray-600" />
@@ -239,132 +222,96 @@ export default function CatererDashboard() {
       />
 
       <div className="px-4 py-6 space-y-6">
+        {/* Today's Stats */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-blue-50 rounded-lg p-4 text-center">
+            <Clock className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-blue-600">{todayStats.readyOrders}</div>
+            <div className="text-sm text-blue-700">Ready to Serve</div>
+          </div>
+          <div className="bg-green-50 rounded-lg p-4 text-center">
+            <CheckCircle className="w-6 h-6 text-green-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-green-600">{todayStats.servedToday}</div>
+            <div className="text-sm text-green-700">Served Today</div>
+          </div>
+        </div>
+
         {/* QR Scanner Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-8 text-white">
           <div className="text-center">
-            <QrCode className="w-16 h-16 mx-auto mb-3" />
-            <h1 className="text-2xl font-bold mb-2">Scan QR Code</h1>
-            <p className="text-blue-100 mb-4">Scan student QR codes to serve orders</p>
+            <QrCode className="w-20 h-20 mx-auto mb-4" />
+            <h1 className="text-3xl font-bold mb-3">Scan QR Code</h1>
+            <p className="text-blue-100 mb-6 text-lg">
+              Ask students to show their QR code to serve their orders
+            </p>
             <button
               onClick={() => setShowQRScanner(true)}
-              className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+              className="bg-white text-blue-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg"
             >
-              Start Scanning
+              🎯 Start Scanning
             </button>
           </div>
         </div>
 
-        {/* Search */}
-        <div className="bg-white rounded-lg p-4 border border-gray-100">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by order number, student name, or ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Today's Orders */}
+        {/* Simple Order Info */}
         <div className="bg-white rounded-lg border border-gray-100">
           <div className="p-4 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900">Today&apos;s Orders to Serve</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Orders Ready for Pickup</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Ready orders for pickup - use QR scanner above
+              {orders.length} orders waiting to be served
             </p>
           </div>
           
-          {filteredOrders.length === 0 ? (
+          {orders.length === 0 ? (
             <div className="text-center py-12">
               <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600">No orders ready for pickup</p>
               <p className="text-sm text-gray-500 mt-1">
-                {searchQuery 
-                  ? 'Try adjusting your search' 
-                  : 'No orders are currently ready for serving'
-                }
+                Use the QR scanner when students arrive
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {filteredOrders.map((order) => (
-                <div key={order.id} className="p-4">
-                  {/* Order Header */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-lg font-semibold text-gray-900">#{order.orderNumber}</p>
-                        <p className="text-sm text-gray-500">
-                          {format(new Date(order.createdAt), 'h:mm a')}
-                        </p>
-                      </div>
+            <div className="p-4">
+              <div className="text-center py-8">
+                <Utensils className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {orders.length} Orders Ready
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Students will show their QR codes for pickup
+                </p>
+                <button
+                  onClick={() => setShowQRScanner(true)}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Scan QR Code
+                </button>
+              </div>
+              
+              {/* Simple order list */}
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {orders.slice(0, 5).map((order) => (
+                  <div key={order.id} className="flex items-center justify-between bg-gray-50 p-3 rounded">
+                    <div>
+                      <span className="font-medium">#{order.orderNumber}</span>
+                      <span className="text-sm text-gray-600 ml-2">{order.customerName}</span>
                     </div>
-                    <div className="bg-green-50 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                      READY
-                    </div>
+                    <span className="text-xs text-gray-500">
+                      {format(new Date(order.createdAt), 'h:mm a')}
+                    </span>
                   </div>
-
-                  {/* Student Info */}
-                  <div className="bg-blue-50 rounded-lg p-3 mb-3">
-                    <div className="flex items-start space-x-3">
-                      <User className="w-5 h-5 text-blue-600 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-semibold text-blue-900">{order.customerName}</p>
-                        {order.studentId && (
-                          <p className="text-sm text-blue-700">Student ID: {order.studentId}</p>
-                        )}
-                        {order.roomNumber && (
-                          <div className="flex items-center space-x-1 mt-1">
-                            <Home className="w-4 h-4 text-blue-600" />
-                            <p className="text-sm text-blue-700">Room: {order.roomNumber}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Items to Serve */}
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Items to serve:</p>
-                    <div className="space-y-2">
-                      {order.items.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">{item.name}</p>
-                            {item.variant && (
-                              <p className="text-sm text-gray-600">{item.variant}</p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <span className="text-lg font-bold text-gray-900">x{item.quantity}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* QR Instructions */}
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                    <div className="flex items-center justify-center space-x-2 text-green-800">
-                      <QrCode className="w-4 h-4" />
-                      <span className="text-sm font-medium">Ask customer to show QR code</span>
-                    </div>
-                    <p className="text-xs text-green-600 mt-1">
-                      Use the scanner above to confirm pickup
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))}
+                {orders.length > 5 && (
+                  <p className="text-center text-sm text-gray-500">
+                    +{orders.length - 5} more orders
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
       </div>
+                
 
       {/* QR Scanner Modal */}
       <QRScanner

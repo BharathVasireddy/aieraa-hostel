@@ -1,28 +1,48 @@
-import type { Metadata, Viewport } from 'next'
-import { Plus_Jakarta_Sans } from 'next/font/google'
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 import './globals.css'
 import SessionWrapper from '@/components/SessionWrapper'
 import { UserProvider } from '@/components/UserProvider'
 import { CartProvider } from '@/components/CartProvider'
+import { NotificationProvider } from '@/components/NotificationSystem'
 import PageTransition from '@/components/PageTransition'
 
-const plusJakartaSans = Plus_Jakarta_Sans({ 
+// Optimize font loading
+const inter = Inter({ 
   subsets: ['latin'],
-  variable: '--font-plus-jakarta-sans'
+  display: 'swap',
+  preload: true,
+  variable: '--font-inter'
 })
 
 export const metadata: Metadata = {
   title: 'Aieraa Hostel - Food Ordering App',
   description: 'Pre-order your hostel meals easily and skip the queue',
-  manifest: '/manifest.json'
-}
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: '#16a34a'
+  manifest: '/manifest.json',
+  themeColor: '#16a34a',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/icons/icon-192x192.png'
+  },
+  // Performance optimizations
+  robots: 'index, follow',
+  keywords: 'hostel, food, ordering, meals, students, vietnam, university',
+  authors: [{ name: 'Aieraa' }],
+  // PWA-like metadata
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Aieraa Hostel'
+  },
+  // Open Graph for social sharing
+  openGraph: {
+    type: 'website',
+    title: 'Aieraa Hostel - Food Ordering App',
+    description: 'Pre-order your hostel meals easily and skip the queue',
+    siteName: 'Aieraa Hostel',
+    images: '/icons/icon-512x512.png'
+  }
 }
 
 export default function RootLayout({
@@ -32,16 +52,67 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${plusJakartaSans.className} ${plusJakartaSans.variable}`}>
-        <SessionWrapper>
-          <UserProvider>
-            <CartProvider>
-              <PageTransition>
-                {children}
-              </PageTransition>
-            </CartProvider>
-          </UserProvider>
-        </SessionWrapper>
+      <head>
+        {/* Preload critical resources */}
+        <link rel="preload" href="/icons/icon-192x192.png" as="image" type="image/png" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        
+        {/* DNS prefetch for external domains */}
+        <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="//fonts.gstatic.com" />
+        
+        {/* Optimize resource hints */}
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        
+        {/* Critical CSS inlining hint */}
+        <meta name="optimize-css" content="true" />
+      </head>
+      <body className={`${inter.variable} font-sans`}>
+        <div className="w-full min-h-full">
+          <SessionWrapper>
+            <UserProvider>
+              <NotificationProvider>
+                <CartProvider>
+                  <PageTransition>
+                    {children}
+                  </PageTransition>
+                </CartProvider>
+              </NotificationProvider>
+            </UserProvider>
+          </SessionWrapper>
+        </div>
+        
+        {/* Performance monitoring script (only in production) */}
+        {process.env.NODE_ENV === 'production' && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                // Basic performance monitoring
+                window.addEventListener('load', function() {
+                  if ('performance' in window) {
+                    setTimeout(function() {
+                      const perf = performance.getEntriesByType('navigation')[0];
+                      if (perf && perf.loadEventEnd > 0) {
+                        console.log('Page load time:', perf.loadEventEnd - perf.fetchStart, 'ms');
+                      }
+                    }, 0);
+                  }
+                });
+                
+                // Service worker registration for offline support
+                if ('serviceWorker' in navigator) {
+                  window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js').catch(function(error) {
+                      console.log('SW registration failed');
+                    });
+                  });
+                }
+              `
+            }}
+          />
+        )}
       </body>
     </html>
   )

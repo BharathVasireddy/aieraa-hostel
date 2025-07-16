@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
         create: {
           name: 'Can Tho University',
           code: 'CTUMP',
+          city: 'Can Tho',
           address: '3/2 Street, Xuan Khanh Ward, Ninh Kieu District, Can Tho City, Vietnam',
           contactInfo: 'info@ctu.edu.vn',
           isActive: true,
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
               maxAdvanceOrderDays: 7,
               minAdvanceOrderHours: 12,
               allowWeekendOrders: true,
-              taxRate: 0.10 // 10% VAT Vietnam
+              baseTaxRate: 0.10 // 10% VAT Vietnam
             }
           }
         },
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
         create: {
           name: 'Phan Chau Trinh University',
           code: 'PCTU',
+          city: 'Da Nang',
           address: '99 Phan Chau Trinh Street, Da Nang City, Vietnam',
           contactInfo: 'info@pct.edu.vn',
           isActive: true,
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest) {
               maxAdvanceOrderDays: 5,
               minAdvanceOrderHours: 8,
               allowWeekendOrders: true,
-              taxRate: 0.10 // 10% VAT Vietnam
+              baseTaxRate: 0.10 // 10% VAT Vietnam
             }
           }
         },
@@ -81,6 +83,7 @@ export async function POST(request: NextRequest) {
         create: {
           name: 'Dai Nam University',
           code: 'DNU',
+          city: 'Thu Dau Mot',
           address: 'National Highway 1A, Hoa Phu Ward, Thu Dau Mot City, Binh Duong Province, Vietnam',
           contactInfo: 'info@dainam.edu.vn',
           isActive: true,
@@ -90,7 +93,7 @@ export async function POST(request: NextRequest) {
               maxAdvanceOrderDays: 6,
               minAdvanceOrderHours: 10,
               allowWeekendOrders: true,
-              taxRate: 0.10 // 10% VAT Vietnam
+              baseTaxRate: 0.10 // 10% VAT Vietnam
             }
           }
         },
@@ -106,6 +109,7 @@ export async function POST(request: NextRequest) {
         create: {
           name: 'Buon Ma Thout Medical University',
           code: 'BMU',
+          city: 'Buon Ma Thuot',
           address: '216 Nguyen Cong Tru Street, Tan Loi Ward, Buon Ma Thuot City, Dak Lak Province, Vietnam',
           contactInfo: 'info@bmtmu.edu.vn',
           isActive: true,
@@ -115,7 +119,7 @@ export async function POST(request: NextRequest) {
               maxAdvanceOrderDays: 7,
               minAdvanceOrderHours: 12,
               allowWeekendOrders: false,
-              taxRate: 0.10 // 10% VAT Vietnam (changed from Azerbaijan to Vietnam)
+              baseTaxRate: 0.10 // 10% VAT Vietnam (changed from Azerbaijan to Vietnam)
             }
           }
         },

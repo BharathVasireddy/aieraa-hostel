@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import MobileHeader from '@/components/MobileHeader'
-import BottomNavigation from '@/components/BottomNavigation'
 
 interface MenuItem {
   id: string
@@ -259,13 +258,12 @@ export default function AdminMenu() {
             ))}
           </div>
         </div>
-        <BottomNavigation />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50">
       <MobileHeader 
         title="Menu Management" 
         showNotifications={true}
@@ -532,7 +530,6 @@ export default function AdminMenu() {
           </div>
         )}
       </div>
-      <BottomNavigation />
     </div>
   )
 }

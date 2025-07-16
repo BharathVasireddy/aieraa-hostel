@@ -215,3 +215,28 @@ For support and questions:
 ---
 
 **🚀 Ready for Production**: Build compiles successfully with zero errors. Deploy to Vercel + Neon for free hosting!
+
+## 📚 Documentation
+
+The project documentation is organized as follows:
+
+### `/docs/reports/` - Project Reports
+- `FINAL_COMPLETION_REPORT.md` - Complete project completion summary
+- `COMPLETE_TODOS_FINAL_REPORT.md` - All completed tasks and features
+- `BUSINESS_RULES_AUDIT.md` - Business logic and rules documentation
+- `ROLE_ALIGNMENT_AUDIT.md` - User roles and permissions audit
+- `UI_AUDIT_COMPREHENSIVE_REPORT.md` - UI/UX improvements and fixes
+
+### `/docs/guides/` - Design & Development Guides  
+- `DESIGN_SYSTEM_GUIDE.md` - Complete design system documentation
+- `UI_UX_TRANSFORMATION_SUMMARY.md` - UI/UX transformation overview
+
+### `/docs/fixes/` - Technical Fixes & Optimizations
+- `LIGHTNING_PERFORMANCE_SUMMARY.md` - Performance optimization overview
+- `LIGHTNING_PERFORMANCE_IMPLEMENTATION.md` - Detailed performance improvements
+- `COMPLETE_PERFORMANCE_RESOLUTION.md` - Performance issues resolution
+- `NEXTAUTH_JWT_FIX.md` - Authentication security fixes
+- `PRISMA_PERFORMANCE_FIX.md` - Database optimization fixes
+- `ADMIN_ORDERS_FIX_SUMMARY.md` - Admin orders functionality fixes
+
+## 📝 Technical Specifications

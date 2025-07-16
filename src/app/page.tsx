@@ -21,7 +21,7 @@ export default function LandingPage() {
     
     // Redirect authenticated users to their respective dashboards
     if (status === 'authenticated' && session?.user) {
-      if (session.user.role === 'ADMIN') {
+      if (session.user.role === 'ADMIN' || session.user.role === 'MANAGER') {
         router.push('/admin')
       } else if (session.user.role === 'STUDENT') {
         router.push('/student')

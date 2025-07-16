@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import MobileHeader from '@/components/MobileHeader'
-import BottomNavigation from '@/components/BottomNavigation'
+
 
 interface University {
   id: string
@@ -275,7 +275,6 @@ export default function NewMenuItemPage() {
             <div className="bg-gray-200 h-12 rounded-lg"></div>
           </div>
         </div>
-        <BottomNavigation />
       </div>
     )
   }
@@ -573,8 +572,6 @@ export default function NewMenuItemPage() {
           </div>
         </div>
       </div>
-
-      <BottomNavigation />
     </div>
   )
 } 

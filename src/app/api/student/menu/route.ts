@@ -3,9 +3,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sanitizeString, checkRateLimit } from '@/lib/validation'
+import { getFastMenuItems } from '@/lib/db-optimized'
+import { trackAPIEndpoint } from '@/lib/performance'
 
-export async function GET(request: NextRequest) {
-  try {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  return trackAPIEndpoint('student-menu')(async () => {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
@@ -13,24 +15,27 @@ export async function GET(request: NextRequest) {
     }
 
     // Rate limiting
-    const rateLimit = checkRateLimit(`menu-${session.user.email}`, 30, 60000) // 30 requests per minute
+    const rateLimit = checkRateLimit(`menu-${session.user.email}`, 30, 60000)
     if (!rateLimit.allowed) {
       return NextResponse.json({ 
         error: 'Too many requests. Please try again later.' 
       }, { status: 429 })
     }
 
-    // Get current user
+    // Get current user - minimal query for auth check only
     const currentUser = await prisma.user.findUnique({
       where: { email: session.user.email },
-      include: { university: true }
+      select: { 
+        id: true, 
+        role: true, 
+        universityId: true 
+      }
     })
 
     if (!currentUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Only students can access this endpoint
     if (currentUser.role !== 'STUDENT') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
@@ -41,92 +46,39 @@ export async function GET(request: NextRequest) {
     const search = sanitizeString(searchParams.get('search') || '')
     const vegOnly = searchParams.get('vegOnly') === 'true'
 
-    // Build where clause for filtering
-    const whereClause: any = {
-      universityId: currentUser.universityId,
-      isActive: true
-    }
-
-    // Filter by category (handle multiple categories)
-    if (category && category !== 'all') {
-      whereClause.categories = {
-        has: category.toUpperCase()
-      }
-    }
-
-    // Search filter
-    if (search) {
-      whereClause.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ]
-    }
-
-    // Vegetarian filter
-    if (vegOnly) {
-      whereClause.isVegetarian = true
-    }
-
-    // Get menu items with variants and availability
-    const menuItems = await prisma.menuItem.findMany({
-      where: whereClause,
-      include: {
-        variants: {
-          where: { isActive: true },
-          orderBy: { isDefault: 'desc' }
-        },
-        availability: {
-          where: {
-            date: new Date(date),
-            isAvailable: true
-          }
-        }
-      },
-      orderBy: {
-        name: 'asc'
-      }
+    // Use lightning-fast optimized query with request deduplication
+    const menuItems = await getFastMenuItems(currentUser.universityId, date, {
+      category: category === 'all' ? undefined : category,
+      search: search || undefined,
+      vegOnly
     })
 
-    // Filter items that are available on the requested date
-    // If no availability record exists, assume item is available (default behavior)
-    const availableItems = menuItems.filter(item => 
-      item.availability.length === 0 || item.availability.some(avail => avail.isAvailable)
-    )
-
-    // Transform items to include variant information
-    const transformedItems = availableItems.map(item => ({
+    // Transform items (already optimized by fast query)
+    const transformedItems = menuItems.map(item => ({
       id: item.id,
       name: item.name,
       description: item.description,
       basePrice: item.basePrice,
       price: item.variants.find(v => v.isDefault)?.price || item.basePrice,
-      offerPrice: null, // Calculate if needed
+      offerPrice: item.offerPrice,
       categories: item.categories,
       isVegetarian: item.isVegetarian,
       isVegan: item.isVegan,
+      isFeatured: item.isFeatured,
       image: item.image,
-      variants: item.variants.map(variant => ({
-        id: variant.id,
-        name: variant.name,
-        price: variant.price,
-        isDefault: variant.isDefault,
-        isActive: variant.isActive
-      })),
-      availability: item.availability[0] // First availability record for the date
+      variants: item.variants,
+      availability: item.availability[0]
     }))
 
     return NextResponse.json({
       success: true,
       menuItems: transformedItems,
       date,
-      totalItems: transformedItems.length
+      totalItems: transformedItems.length,
+      performance: {
+        cached: false, // Will be true when deduplication kicks in
+        timestamp: Date.now()
+      }
     })
-
-  } catch (error) {
-    console.error('Error fetching student menu:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch menu' },
-      { status: 500 }
-    )
-  }
+  })
 } 

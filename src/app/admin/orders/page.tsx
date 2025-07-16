@@ -1,13 +1,14 @@
 'use client'
 
-import { Search, Filter, CheckCircle, XCircle, Clock, Eye, Calendar, User, IndianRupee, RefreshCw, Check, X, ChefHat, Package, ArrowRight, Building } from 'lucide-react'
+import { Search, Filter, CheckCircle, XCircle, Clock, Eye, Calendar, User, IndianRupee, RefreshCw, Check, X, ChefHat, Package, ArrowRight, Building, ChevronDown } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { useSession } from 'next-auth/react'
-import BottomNavigation from '@/components/BottomNavigation'
+
 import MobileHeader from '@/components/MobileHeader'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
 import { lightningFetch, lightningCache } from '@/lib/cache'
+import { showToast } from '@/components/ui/Toast'
 
 interface OrderItem {
   id: string
@@ -48,6 +49,13 @@ interface Order {
   }
 }
 
+interface University {
+  id: string
+  name: string
+  code: string
+  isActive: boolean
+}
+
 type FilterStatus = 'all' | 'PENDING' | 'APPROVED' | 'PREPARING' | 'READY' | 'SERVED' | 'REJECTED' | 'CANCELLED'
 
 export default function AdminOrders() {
@@ -59,18 +67,37 @@ export default function AdminOrders() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [refreshing, setRefreshing] = useState(false)
+  const [selectedUniversity, setSelectedUniversity] = useState<string>('all')
+  const [universities, setUniversities] = useState<University[]>([])
+  const [showUniversityDropdown, setShowUniversityDropdown] = useState(false)
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('list') // Default to list view
   const { notifications, addNotification, removeNotification } = useNotifications()
 
   useEffect(() => {
     if (session?.user) {
       fetchCurrentUser()
       fetchOrders()
+      fetchUniversities()
     }
   }, [session])
 
   useEffect(() => {
     filterOrders()
-  }, [orders, selectedTab, searchQuery])
+  }, [orders, selectedTab, searchQuery, selectedUniversity])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showUniversityDropdown) {
+        setShowUniversityDropdown(false)
+      }
+    }
+    
+    if (showUniversityDropdown) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showUniversityDropdown])
 
   const fetchCurrentUser = async () => {
     try {
@@ -89,6 +116,28 @@ export default function AdminOrders() {
       lightningCache.setInstant(cacheKey, data)
     } catch (error) {
       console.error('Failed to fetch current user:', error)
+    }
+  }
+
+  const fetchUniversities = async () => {
+    try {
+      // Only fetch for Super Admins
+      if (currentUserData?.role !== 'ADMIN') return
+
+      const cacheKey = 'admin_universities_filter'
+      const cachedUniversities = lightningCache.getInstant<University[]>(cacheKey)
+      if (cachedUniversities) {
+        setUniversities(cachedUniversities)
+        return
+      }
+
+      const data = await lightningFetch('/api/admin/universities', {}, 15) // 15 min cache
+      if (data.success) {
+        setUniversities(data.universities)
+        lightningCache.setInstant(cacheKey, data.universities)
+      }
+    } catch (error) {
+      console.error('Failed to fetch universities:', error)
     }
   }
 
@@ -112,7 +161,7 @@ export default function AdminOrders() {
       lightningCache.setInstant(cacheKey, ordersData)
     } catch (error) {
       console.error('Error fetching orders:', error)
-      addNotification({
+      showToast({
         type: 'error',
         title: 'Error',
         message: 'Failed to fetch orders. Please try again.'
@@ -127,13 +176,20 @@ export default function AdminOrders() {
     // Clear cache and force fresh data
     lightningCache.delete('admin_orders')
     lightningCache.delete('admin_profile')
+    lightningCache.delete('admin_universities_filter')
     await fetchOrders()
     await fetchCurrentUser()
+    await fetchUniversities()
     setRefreshing(false)
   }
 
   const filterOrders = () => {
     let filtered = orders
+
+    // Filter by university (Super Admin only)
+    if (currentUserData?.role === 'ADMIN' && selectedUniversity !== 'all') {
+      filtered = filtered.filter(order => order.university?.id === selectedUniversity)
+    }
 
     // Filter by status
     if (selectedTab !== 'all') {
@@ -188,7 +244,7 @@ export default function AdminOrders() {
           'CANCELLED': 'Order cancelled'
         }
 
-        addNotification({
+        showToast({
           type: ['REJECTED', 'CANCELLED'].includes(newStatus) ? 'error' : 'success',
           title: ['REJECTED', 'CANCELLED'].includes(newStatus) ? 'Order Rejected' : 'Status Updated',
           message: statusMessages[newStatus as keyof typeof statusMessages] || 'Order status updated'
@@ -198,7 +254,7 @@ export default function AdminOrders() {
       }
     } catch (error) {
       console.error('Error updating order:', error)
-      addNotification({
+      showToast({
         type: 'error',
         title: 'Error',
         message: 'Failed to update order status'
@@ -250,54 +306,104 @@ export default function AdminOrders() {
       case 'PREPARING': return 'text-purple-600 bg-purple-50 border-purple-200'
       case 'READY': return 'text-green-600 bg-green-50 border-green-200'
       case 'SERVED': return 'text-emerald-600 bg-emerald-50 border-emerald-200'
-      case 'REJECTED': return 'text-red-600 bg-red-50 border-red-200'
+      case 'REJECTED':
       case 'CANCELLED': return 'text-red-600 bg-red-50 border-red-200'
       default: return 'text-gray-600 bg-gray-50 border-gray-200'
     }
   }
 
-  const getOrderCounts = () => {
-    const counts = {
-      all: orders.length,
-      PENDING: orders.filter(o => o.status === 'PENDING').length,
-      APPROVED: orders.filter(o => o.status === 'APPROVED').length,
-      PREPARING: orders.filter(o => o.status === 'PREPARING').length,
-      READY: orders.filter(o => o.status === 'READY').length,
-      SERVED: orders.filter(o => o.status === 'SERVED').length,
-      REJECTED: orders.filter(o => o.status === 'REJECTED').length,
-      CANCELLED: orders.filter(o => o.status === 'CANCELLED').length,
-    }
-    return counts
-  }
-
-  const counts = getOrderCounts()
-
+  // Filter tabs with counts
   const filterTabs = [
-    { key: 'all' as FilterStatus, label: 'All Orders', count: counts.all, color: 'gray' },
-    { key: 'PENDING' as FilterStatus, label: 'Pending', count: counts.PENDING, color: 'orange' },
-    { key: 'APPROVED' as FilterStatus, label: 'Approved', count: counts.APPROVED, color: 'blue' },
-    { key: 'PREPARING' as FilterStatus, label: 'Preparing', count: counts.PREPARING, color: 'purple' },
-    { key: 'READY' as FilterStatus, label: 'Ready', count: counts.READY, color: 'green' },
-    { key: 'SERVED' as FilterStatus, label: 'Served', count: counts.SERVED, color: 'emerald' }
+    { key: 'PENDING' as FilterStatus, label: 'Pending', color: 'orange', count: orders.filter(o => o.status === 'PENDING').length },
+    { key: 'APPROVED' as FilterStatus, label: 'Approved', color: 'blue', count: orders.filter(o => o.status === 'APPROVED').length },
+    { key: 'PREPARING' as FilterStatus, label: 'Preparing', color: 'purple', count: orders.filter(o => o.status === 'PREPARING').length },
+    { key: 'READY' as FilterStatus, label: 'Ready', color: 'green', count: orders.filter(o => o.status === 'READY').length },
+    { key: 'SERVED' as FilterStatus, label: 'Served', color: 'emerald', count: orders.filter(o => o.status === 'SERVED').length },
+    { key: 'all' as FilterStatus, label: 'All Orders', color: 'gray', count: orders.length }
   ]
 
-  return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <NotificationSystem 
-        notifications={notifications} 
-        onRemove={removeNotification} 
-      />
+  // Action buttons component for reuse
+  const ActionButtons = ({ order }: { order: Order }) => (
+    <div className="flex items-center space-x-2">
+      {order.status === 'PENDING' && (
+        <>
+          <button
+            onClick={() => approveOrder(order.id)}
+            className="bg-green-600 text-white text-xs px-2 py-1 rounded hover:bg-green-700 transition-colors flex items-center"
+          >
+            <Check className="w-3 h-3 mr-1" />
+            Approve
+          </button>
+          <button
+            onClick={() => rejectOrder(order.id)}
+            className="bg-red-600 text-white text-xs px-2 py-1 rounded hover:bg-red-700 transition-colors flex items-center"
+          >
+            <X className="w-3 h-3 mr-1" />
+            Reject
+          </button>
+        </>
+      )}
       
-      {/* Use MobileHeader for consistency */}
+      {order.status === 'APPROVED' && (
+        <button
+          onClick={() => startPreparing(order.id)}
+          className="bg-purple-600 text-white text-xs px-2 py-1 rounded hover:bg-purple-700 transition-colors flex items-center"
+        >
+          <ChefHat className="w-3 h-3 mr-1" />
+          Start Preparing
+        </button>
+      )}
+
+      {order.status === 'PREPARING' && (
+        <button
+          onClick={() => markReady(order.id)}
+          className="bg-green-600 text-white text-xs px-2 py-1 rounded hover:bg-green-700 transition-colors flex items-center"
+        >
+          <Package className="w-3 h-3 mr-1" />
+          Mark Ready
+        </button>
+      )}
+
+      {order.status === 'READY' && (
+        <button
+          onClick={() => markServed(order.id)}
+          className="bg-emerald-600 text-white text-xs px-2 py-1 rounded hover:bg-emerald-700 transition-colors flex items-center"
+        >
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Mark Served
+        </button>
+      )}
+
+      <button
+        onClick={() => {
+          window.open(`/admin/orders/${order.id}`, '_blank')
+        }}
+        className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded hover:bg-gray-200 transition-colors flex items-center"
+      >
+        <Eye className="w-3 h-3 mr-1" />
+        View
+      </button>
+
+      {!['SERVED', 'REJECTED', 'CANCELLED'].includes(order.status) && (
+        <button
+          onClick={() => cancelOrder(order.id)}
+          className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded hover:bg-red-200 transition-colors"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      )}
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <NotificationSystem />
+
       <MobileHeader 
         title="Order Management" 
         showNotifications={true}
         rightElement={
-          <div className="flex items-center space-x-3">
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Total Orders</p>
-              <p className="text-lg font-bold text-gray-900">{counts.all}</p>
-            </div>
+          <div className="flex items-center space-x-2">
             <button 
               onClick={handleRefresh}
               disabled={refreshing}
@@ -330,23 +436,111 @@ export default function AdminOrders() {
             )}
           </div>
 
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search orders, students, items, universities..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+          {/* Search and Filters */}
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search orders, students, items, universities..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            {/* University Filter for Super Admin */}
+            {currentUserData?.role === 'ADMIN' && universities.length > 0 && (
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUniversityDropdown(!showUniversityDropdown)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <Building className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm">
+                      {selectedUniversity === 'all' 
+                        ? 'All Universities' 
+                        : universities.find(u => u.id === selectedUniversity)?.name || 'Select University'
+                      }
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                  </button>
+
+                  {showUniversityDropdown && (
+                    <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            setSelectedUniversity('all')
+                            setShowUniversityDropdown(false)
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                            selectedUniversity === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                          }`}
+                        >
+                          All Universities ({orders.length} orders)
+                        </button>
+                        {universities.map((university) => (
+                          <button
+                            key={university.id}
+                            onClick={() => {
+                              setSelectedUniversity(university.id)
+                              setShowUniversityDropdown(false)
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                              selectedUniversity === university.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>{university.name} ({university.code})</span>
+                              <span className="text-xs text-gray-500">
+                                {orders.filter(o => o.university?.id === university.id).length}
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* View Mode Toggle */}
+                <div className="hidden lg:flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">View:</span>
+                  <div className="flex border border-gray-200 rounded-lg">
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`px-3 py-1 text-xs rounded-l-lg ${
+                        viewMode === 'list' 
+                          ? 'bg-blue-600 text-white' 
+                          : 'bg-white text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      List
+                    </button>
+                    <button
+                      onClick={() => setViewMode('cards')}
+                      className={`px-3 py-1 text-xs rounded-r-lg ${
+                        viewMode === 'cards' 
+                          ? 'bg-blue-600 text-white' 
+                          : 'bg-white text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      Cards
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       <div className="px-4 lg:px-6 py-6">
         <div className="max-w-7xl mx-auto">
-          {/* Status Filter Tabs - Responsive */}
+          {/* Status Filter Tabs */}
           <div className="flex space-x-2 overflow-x-auto pb-4 mb-6">
             {filterTabs.map(tab => (
               <button 
@@ -363,17 +557,40 @@ export default function AdminOrders() {
             ))}
           </div>
 
-          {/* Orders Grid - Responsive */}
+          {/* Orders Display */}
           {loading ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="bg-white rounded-lg p-6 border border-gray-100 animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/4 mb-4"></div>
-                  <div className="h-8 bg-gray-200 rounded w-full"></div>
+            <div className="animate-pulse">
+              {/* Loading for list view */}
+              <div className="hidden lg:block">
+                <div className="bg-white rounded-lg border">
+                  <div className="h-12 bg-gray-200 rounded-t-lg"></div>
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="border-t p-4">
+                      <div className="grid grid-cols-8 gap-4">
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              {/* Loading for card view */}
+              <div className="lg:hidden grid grid-cols-1 gap-4">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="bg-white rounded-lg p-6 border">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/4 mb-4"></div>
+                    <div className="h-8 bg-gray-200 rounded w-full"></div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : filteredOrders.length === 0 ? (
             <div className="text-center py-16">
@@ -388,174 +605,300 @@ export default function AdminOrders() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredOrders.map((order) => (
-                <div key={order.id} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                  {/* Order Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
-                      {getStatusIcon(order.status)}
-                      <span>{order.status}</span>
+            <>
+              {/* Desktop List View */}
+              <div className={`hidden lg:block ${viewMode === 'list' ? '' : 'lg:hidden'}`}>
+                <div className="bg-white rounded-lg border overflow-hidden">
+                  {/* Table Header */}
+                  <div className="bg-gray-50 px-6 py-3 border-b">
+                    <div className="grid grid-cols-8 gap-4 text-sm font-medium text-gray-700">
+                      <div>Order #</div>
+                      <div>Student</div>
+                      <div>Items</div>
+                      {currentUserData?.role === 'ADMIN' && <div>University</div>}
+                      <div className={currentUserData?.role === 'ADMIN' ? 'col-start-5' : ''}>Status</div>
+                      <div>Amount</div>
+                      <div>Date</div>
+                      <div>Actions</div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-gray-900">#{order.orderNumber}</div>
-                      <div className="text-sm text-gray-600 flex items-center justify-end">
-                        <IndianRupee className="w-3 h-3 mr-1" />
-                        ₹{order.totalAmount.toFixed(2)}
+                  </div>
+                  
+                  {/* Table Rows */}
+                  <div className="divide-y divide-gray-100">
+                    {filteredOrders.map((order) => (
+                      <div key={order.id} className="px-6 py-4 hover:bg-gray-50">
+                        <div className="grid grid-cols-8 gap-4 items-center text-sm">
+                          {/* Order Number */}
+                          <div className="font-medium text-gray-900">
+                            #{order.orderNumber}
+                          </div>
+                          
+                          {/* Student Info */}
+                          <div>
+                            <div className="font-medium text-gray-900 truncate">{order.user.name}</div>
+                            <div className="text-gray-500 truncate">{order.user.email}</div>
+                            {order.user.studentId && (
+                              <div className="text-xs text-gray-400">ID: {order.user.studentId}</div>
+                            )}
+                          </div>
+                          
+                          {/* Order Items */}
+                          <div>
+                            <div className="text-gray-900">
+                              {order.orderItems.slice(0, 2).map((item, index) => (
+                                <span key={item.id}>
+                                  {item.quantity}x {item.menuItem.name}
+                                  {index < order.orderItems.slice(0, 2).length - 1 && ', '}
+                                </span>
+                              ))}
+                              {order.orderItems.length > 2 && (
+                                <span className="text-gray-500"> +{order.orderItems.length - 2} more</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* University (Super Admin only) */}
+                          {currentUserData?.role === 'ADMIN' && (
+                            <div className="text-gray-600">
+                              {order.university ? (
+                                <span className="inline-flex items-center">
+                                  <Building className="w-3 h-3 mr-1" />
+                                  {order.university.code}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400">N/A</span>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Status */}
+                          <div className={currentUserData?.role === 'ADMIN' ? 'col-start-5' : ''}>
+                            <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
+                              {getStatusIcon(order.status)}
+                              <span>{order.status}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Amount */}
+                          <div className="font-medium text-gray-900">
+                            <div className="flex items-center">
+                              <IndianRupee className="w-3 h-3 mr-1" />
+                              ₹{order.totalAmount.toFixed(2)}
+                            </div>
+                          </div>
+                          
+                          {/* Date */}
+                          <div className="text-gray-600">
+                            <div>{format(new Date(order.orderDate), 'MMM dd')}</div>
+                            <div className="text-xs text-gray-500">
+                              {format(new Date(order.createdAt), 'h:mm a')}
+                            </div>
+                          </div>
+                          
+                          {/* Actions */}
+                          <div>
+                            <ActionButtons order={order} />
+                          </div>
+                        </div>
+                        
+                        {/* Delivery Instructions */}
+                        {order.deliveryInstructions && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <div className="text-sm">
+                              <span className="font-medium text-blue-800">Instructions:</span>
+                              <span className="text-blue-700 ml-2">{order.deliveryInstructions}</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Status Progress for non-completed orders */}
+                        {!['REJECTED', 'CANCELLED', 'SERVED'].includes(order.status) && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <div className="text-xs text-gray-600 mb-2">Order Progress</div>
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-3 h-3 rounded-full ${order.status === 'PENDING' ? 'bg-orange-500' : 'bg-gray-300'}`}></div>
+                              <ArrowRight className="w-3 h-3 text-gray-400" />
+                              <div className={`w-3 h-3 rounded-full ${order.status === 'APPROVED' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                              <ArrowRight className="w-3 h-3 text-gray-400" />
+                              <div className={`w-3 h-3 rounded-full ${order.status === 'PREPARING' ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
+                              <ArrowRight className="w-3 h-3 text-gray-400" />
+                              <div className={`w-3 h-3 rounded-full ${order.status === 'READY' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Card View & Desktop Card View (when selected) */}
+              <div className={`lg:${viewMode === 'cards' ? 'block' : 'hidden'} lg:grid-cols-2 xl:grid-cols-3 gap-6 grid grid-cols-1`}>
+                {filteredOrders.map((order) => (
+                  <div key={order.id} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                    {/* Order Header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
+                        {getStatusIcon(order.status)}
+                        <span>{order.status}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-gray-900">#{order.orderNumber}</div>
+                        <div className="text-sm text-gray-600 flex items-center justify-end">
+                          <IndianRupee className="w-3 h-3 mr-1" />
+                          ₹{order.totalAmount.toFixed(2)}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Student Info */}
-                  <div className="flex items-start space-x-3 mb-4">
-                    <User className="w-5 h-5 text-gray-400 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 truncate">{order.user.name}</div>
-                      <div className="text-sm text-gray-600 truncate">{order.user.email}</div>
-                      {order.user.studentId && (
-                        <div className="text-xs text-gray-500">ID: {order.user.studentId}</div>
-                      )}
+                    {/* Student Info */}
+                    <div className="flex items-start space-x-3 mb-4">
+                      <User className="w-5 h-5 text-gray-400 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 truncate">{order.user.name}</div>
+                        <div className="text-sm text-gray-600 truncate">{order.user.email}</div>
+                        {order.user.studentId && (
+                          <div className="text-xs text-gray-500">ID: {order.user.studentId}</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* University Info for Super Admin */}
-                  {currentUserData?.role === 'ADMIN' && order.university && (
-                    <div className="flex items-center space-x-2 mb-4 p-2 bg-gray-50 rounded-lg">
-                      <Building className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-700">{order.university.name} ({order.university.code})</span>
-                    </div>
-                  )}
-
-                  {/* Order Items */}
-                  <div className="mb-4">
-                    <div className="text-sm text-gray-600">
-                      {order.orderItems.slice(0, 2).map((item, index) => (
-                        <span key={item.id}>
-                          {item.quantity}x {item.menuItem.name}
-                          {index < order.orderItems.slice(0, 2).length - 1 && ', '}
-                        </span>
-                      ))}
-                      {order.orderItems.length > 2 && (
-                        <span> +{order.orderItems.length - 2} more items</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Order Date */}
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                    <div className="flex items-center">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      <span>For {format(new Date(order.orderDate), 'MMM dd, yyyy')}</span>
-                    </div>
-                    <span>Ordered {format(new Date(order.createdAt), 'MMM dd, h:mm a')}</span>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="space-y-3">
-                    {order.status === 'PENDING' && (
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => approveOrder(order.id)}
-                          className="bg-green-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                        >
-                          <Check className="w-4 h-4 mr-1" />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => rejectOrder(order.id)}
-                          className="bg-red-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          Reject
-                        </button>
+                    {/* University Info for Super Admin */}
+                    {currentUserData?.role === 'ADMIN' && order.university && (
+                      <div className="flex items-center space-x-2 mb-4 p-2 bg-gray-50 rounded-lg">
+                        <Building className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-700">{order.university.name} ({order.university.code})</span>
                       </div>
                     )}
-                    
-                    {order.status === 'APPROVED' && (
-                      <button
-                        onClick={() => startPreparing(order.id)}
-                        className="w-full bg-purple-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center"
-                      >
-                        <ChefHat className="w-4 h-4 mr-1" />
-                        Start Preparing
-                      </button>
-                    )}
 
-                    {order.status === 'PREPARING' && (
-                      <button
-                        onClick={() => markReady(order.id)}
-                        className="w-full bg-green-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                      >
-                        <Package className="w-4 h-4 mr-1" />
-                        Mark Ready
-                      </button>
-                    )}
+                    {/* Order Items */}
+                    <div className="mb-4">
+                      <div className="text-sm text-gray-600">
+                        {order.orderItems.slice(0, 2).map((item, index) => (
+                          <span key={item.id}>
+                            {item.quantity}x {item.menuItem.name}
+                            {index < order.orderItems.slice(0, 2).length - 1 && ', '}
+                          </span>
+                        ))}
+                        {order.orderItems.length > 2 && (
+                          <span> +{order.orderItems.length - 2} more items</span>
+                        )}
+                      </div>
+                    </div>
 
-                    {order.status === 'READY' && (
-                      <button
-                        onClick={() => markServed(order.id)}
-                        className="w-full bg-emerald-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Mark Served
-                      </button>
-                    )}
+                    {/* Order Date */}
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                      <div className="flex items-center">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        <span>For {format(new Date(order.orderDate), 'MMM dd, yyyy')}</span>
+                      </div>
+                      <span>Ordered {format(new Date(order.createdAt), 'MMM dd, h:mm a')}</span>
+                    </div>
 
-                    {/* Status Progress Indicator */}
-                    {!['REJECTED', 'CANCELLED', 'SERVED'].includes(order.status) && (
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="text-xs text-gray-600 mb-2">Order Progress</div>
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-3 h-3 rounded-full ${order.status === 'PENDING' ? 'bg-orange-500' : 'bg-gray-300'}`}></div>
-                          <ArrowRight className="w-3 h-3 text-gray-400" />
-                          <div className={`w-3 h-3 rounded-full ${order.status === 'APPROVED' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                          <ArrowRight className="w-3 h-3 text-gray-400" />
-                          <div className={`w-3 h-3 rounded-full ${order.status === 'PREPARING' ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
-                          <ArrowRight className="w-3 h-3 text-gray-400" />
-                          <div className={`w-3 h-3 rounded-full ${order.status === 'READY' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                    {/* Action Buttons */}
+                    <div className="space-y-3">
+                      {order.status === 'PENDING' && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => approveOrder(order.id)}
+                            className="bg-green-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => rejectOrder(order.id)}
+                            className="bg-red-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                      
+                      {order.status === 'APPROVED' && (
+                        <button
+                          onClick={() => startPreparing(order.id)}
+                          className="w-full bg-purple-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center"
+                        >
+                          <ChefHat className="w-4 h-4 mr-1" />
+                          Start Preparing
+                        </button>
+                      )}
+
+                      {order.status === 'PREPARING' && (
+                        <button
+                          onClick={() => markReady(order.id)}
+                          className="w-full bg-green-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+                        >
+                          <Package className="w-4 h-4 mr-1" />
+                          Mark Ready
+                        </button>
+                      )}
+
+                      {order.status === 'READY' && (
+                        <button
+                          onClick={() => markServed(order.id)}
+                          className="w-full bg-emerald-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Mark Served
+                        </button>
+                      )}
+
+                      {/* Status Progress Indicator */}
+                      {!['REJECTED', 'CANCELLED', 'SERVED'].includes(order.status) && (
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="text-xs text-gray-600 mb-2">Order Progress</div>
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-3 h-3 rounded-full ${order.status === 'PENDING' ? 'bg-orange-500' : 'bg-gray-300'}`}></div>
+                            <ArrowRight className="w-3 h-3 text-gray-400" />
+                            <div className={`w-3 h-3 rounded-full ${order.status === 'APPROVED' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                            <ArrowRight className="w-3 h-3 text-gray-400" />
+                            <div className={`w-3 h-3 rounded-full ${order.status === 'PREPARING' ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
+                            <ArrowRight className="w-3 h-3 text-gray-400" />
+                            <div className={`w-3 h-3 rounded-full ${order.status === 'READY' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Buttons Row */}
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => {
+                            window.open(`/admin/orders/${order.id}`, '_blank')
+                          }}
+                          className="flex-1 bg-gray-100 text-gray-700 text-sm py-2 px-3 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View Details
+                        </button>
+                        {!['SERVED', 'REJECTED', 'CANCELLED'].includes(order.status) && (
+                          <button
+                            onClick={() => cancelOrder(order.id)}
+                            className="bg-red-100 text-red-700 text-sm py-2 px-3 rounded-lg hover:bg-red-200 transition-colors flex items-center justify-center"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Delivery Instructions */}
+                    {order.deliveryInstructions && (
+                      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <div className="text-sm text-blue-800">
+                          <span className="font-medium">Instructions:</span> {order.deliveryInstructions}
                         </div>
                       </div>
                     )}
-
-                    {/* Action Buttons Row */}
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          // Navigate to admin order details page instead of student page
-                          window.open(`/admin/orders/${order.id}`, '_blank')
-                        }}
-                        className="flex-1 bg-gray-100 text-gray-700 text-sm py-2 px-3 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View Details
-                      </button>
-                      {!['SERVED', 'REJECTED', 'CANCELLED'].includes(order.status) && (
-                        <button
-                          onClick={() => cancelOrder(order.id)}
-                          className="bg-red-100 text-red-700 text-sm py-2 px-3 rounded-lg hover:bg-red-200 transition-colors flex items-center justify-center"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
                   </div>
-
-                  {/* Delivery Instructions */}
-                  {order.deliveryInstructions && (
-                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                      <div className="text-sm text-blue-800">
-                        <span className="font-medium">Instructions:</span> {order.deliveryInstructions}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>
-
-      <BottomNavigation />
     </div>
   )
 } 

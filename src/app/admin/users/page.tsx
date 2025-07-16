@@ -3,7 +3,6 @@
 import { Search, Filter, CheckCircle, XCircle, Clock, Eye, User, Mail, Phone, RefreshCw, Check, X, AlertTriangle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import BottomNavigation from '@/components/BottomNavigation'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
 import { useSession } from 'next-auth/react'
 
@@ -219,11 +218,8 @@ export default function AdminUsers() {
   ]
 
   return (
-    <div className="min-h-screen bg-white pb-20">
-      <NotificationSystem 
-        notifications={notifications} 
-        onRemove={removeNotification} 
-      />
+    <div className="min-h-screen bg-gray-50">
+      <NotificationSystem />
       
       {/* Header */}
       <div className="flex flex-col space-y-4 mb-6">
@@ -472,8 +468,6 @@ export default function AdminUsers() {
           </div>
         )}
       </div>
-
-      <BottomNavigation />
     </div>
   )
 } 

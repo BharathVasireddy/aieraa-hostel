@@ -18,7 +18,8 @@ datasource db {
 model University {
   id          String   @id @default(cuid())
   name        String   @unique
-  code        String   @unique // e.g., "MIT", "STAN"
+  code        String   @unique // e.g., "MIT", "STAN" - auto-generated
+  city        String             // University city
   address     String?
   contactInfo String?
   isActive    Boolean  @default(true)
@@ -40,13 +41,22 @@ model UniversitySettings {
   universityId String @unique
   
   // Ordering settings
-  cutoffHours         Int     @default(22) // 10 PM cutoff
+  cutoffHours         Int     @default(22) // 10 PM cutoff (0-23 hours)
   maxAdvanceOrderDays Int     @default(7)  // 7 days advance ordering
   minAdvanceOrderHours Int    @default(12) // Minimum 12 hours advance
   
   // Other settings
   allowWeekendOrders Boolean @default(true)
-  taxRate           Float   @default(0.0)
+  
+  // Tax configuration
+  baseTaxRate       Float   @default(0.0)   // Base tax rate (e.g., VAT/GST)
+  serviceTaxRate    Float   @default(0.0)   // Service tax rate
+  additionalTaxes   Json?                   // Additional custom taxes
+  
+  // University specific settings
+  contactEmail      String?                 // University contact email
+  contactPhone      String?                 // University contact phone
+  operatingHours    Json?                   // Daily operating hours
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -194,6 +204,15 @@ model MenuItem {
   availability      MenuItemAvailability[]
   orderItems        OrderItem[]
 
+  // Lightning-fast composite indexes
+  @@index([universityId, isActive, createdAt])
+  @@index([universityId, isActive, isFeatured])
+  @@index([categories, isActive, universityId])
+  @@index([isVegetarian, isActive, universityId])
+  @@index([universityId, isActive, basePrice]) // For price-based queries
+  @@index([universityId, isActive, offerPrice]) // For offer-based queries
+  @@index([universityId, isActive, isFeatured, basePrice]) // Combined for popular dishes
+  
   @@map("menu_items")
 }
 
@@ -232,6 +251,8 @@ model MenuItemAvailability {
   menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
 
   @@unique([menuItemId, date])
+  @@index([date, isAvailable])
+  @@index([menuItemId, isAvailable, date])
   @@map("menu_item_availability")
 }
 
@@ -292,6 +313,13 @@ model Order {
   user       User        @relation(fields: [userId], references: [id])
   university University? @relation(fields: [universityId], references: [id])
   orderItems OrderItem[]
+
+  // Lightning-fast composite indexes for orders
+  @@index([userId, status, createdAt])
+  @@index([universityId, status, orderDate])
+  @@index([status, orderDate, universityId])
+  @@index([userId, orderDate])
+  @@index([orderNumber, universityId])
 
   @@map("orders")
 }

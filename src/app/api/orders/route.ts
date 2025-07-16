@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import Razorpay from 'razorpay'
+import { getFastUserOrders } from '@/lib/db-optimized'
+import { trackAPIEndpoint } from '@/lib/performance'
+import { OrderStatus } from '@/generated/prisma'
 
 interface OrderItem {
   menuItemId: string
@@ -19,8 +22,8 @@ const razorpay = process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET
   : null
 
 // Get orders for a user
-export async function GET(request: NextRequest) {
-  try {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  return trackAPIEndpoint('user-orders')(async (): Promise<NextResponse> => {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -30,35 +33,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
-    const skip = (page - 1) * limit
+    const status = searchParams.get('status')
 
-    const orders = await prisma.order.findMany({
-      where: {
-        userId: session.user.id
-      },
-      include: {
-        orderItems: {
-          include: {
-            menuItem: {
-              select: {
-                id: true,
-                name: true,
-                categories: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      skip,
-      take: limit
+    const statusFilter = status ? [status.toUpperCase() as OrderStatus] : undefined
+    const offset = (page - 1) * limit
+
+    // Use lightning-fast optimized query
+    const orders = await getFastUserOrders(session.user.id, {
+      status: statusFilter,
+      limit,
+      offset
     })
 
+    // Get total count with parallel query
     const totalOrders = await prisma.order.count({
       where: {
-        userId: session.user.id
+        userId: session.user.id,
+        ...(status ? { status: status.toUpperCase() as OrderStatus } : {})
       }
     })
 
@@ -70,16 +61,12 @@ export async function GET(request: NextRequest) {
         limit,
         total: totalOrders,
         hasMore: (page * limit) < totalOrders
+      },
+      performance: {
+        timestamp: Date.now()
       }
     })
-
-  } catch (error) {
-    console.error('Error fetching orders:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch orders' },
-      { status: 500 }
-    )
-  }
+  })
 }
 
 // Create a new order

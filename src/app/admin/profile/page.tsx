@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { User, Shield, Camera, Eye, EyeOff, LogOut, Activity, Settings, Phone, Mail, MapPin, Calendar, Check, X, AlertTriangle, Save, Edit3 } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import BottomNavigation from '@/components/BottomNavigation'
+
 import { format } from 'date-fns'
 import { cachedFetch } from '@/lib/cache'
 
@@ -766,8 +766,6 @@ export default function AdminProfile() {
           </div>
         </div>
       </div>
-
-      <BottomNavigation />
     </div>
   )
 } 

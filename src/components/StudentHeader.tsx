@@ -112,7 +112,7 @@ export default function StudentHeader({
 
                 {/* Date Picker Dropdown */}
                 {showDatePickerDropdown && (
-                  <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                  <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden animate-scale-in">
                     <div className="bg-green-50 px-4 py-3 border-b border-green-200">
                       <h3 className="text-sm font-semibold text-green-900">Select Meal Date</h3>
                       <p className="text-xs text-green-700">Choose when you&apos;d like to collect your hostel meal</p>
@@ -122,7 +122,7 @@ export default function StudentHeader({
                         <button
                           key={dateOption.date}
                           onClick={() => handleDateSelection(dateOption.date)}
-                          className={`w-full text-left px-3 py-3 rounded-xl text-sm transition-all duration-200 hover:bg-gray-50 active:scale-98 ${
+                          className={`w-full text-left px-3 py-3 rounded-xl text-sm transition-all duration-150 hover:bg-gray-50 animate-press ${
                             selectedDate === dateOption.date
                               ? 'bg-green-50 border border-green-200 text-green-900'
                               : 'text-gray-700'
