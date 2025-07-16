@@ -90,8 +90,6 @@ export function useRealTimeUpdates({
               break
               
             case 'item_toggle':
-            case 'price_change':
-            case 'availability_change':
               console.log('🍽️ Menu update:', update.type, update.menuItemId)
               onMenuUpdate?.(update)
               break
@@ -264,12 +262,6 @@ export function useRealTimeMenu() {
     switch (update.type) {
       case 'item_toggle':
         console.log(`Menu item ${update.menuItemId} toggled:`, update.updateData)
-        break
-      case 'price_change':
-        console.log(`Price changed for ${update.menuItemId}:`, update.updateData)
-        break
-      case 'availability_change':
-        console.log(`Availability changed for ${update.menuItemId}:`, update.updateData)
         break
     }
   }, [])

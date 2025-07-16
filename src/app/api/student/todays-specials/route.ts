@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
     // Transform the data for frontend consumption
     const transformedSpecials = uniqueSpecials.map(dish => {
       const hasOffer = dish.offerPrice && dish.offerPrice < dish.basePrice
-      const discount = hasOffer ? Math.round(((dish.basePrice - dish.offerPrice) / dish.basePrice) * 100) : 0
+      const discount = hasOffer && dish.offerPrice ? Math.round(((dish.basePrice - dish.offerPrice) / dish.basePrice) * 100) : 0
       
       return {
         id: dish.id,

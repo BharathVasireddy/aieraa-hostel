@@ -71,7 +71,6 @@ export default function CheckoutPage() {
       setDeliveryDetails(prev => ({
         ...prev,
         phoneNumber: user.phone || '',
-        hostelBlock: user.hostelBlock || '',
         roomNumber: user.roomNumber || ''
       }))
     }

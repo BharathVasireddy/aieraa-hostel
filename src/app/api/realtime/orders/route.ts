@@ -168,7 +168,7 @@ function broadcastOrderUpdate(
 ) {
   const encoder = new TextEncoder()
   
-  for (const [connectionId, connection] of activeConnections.entries()) {
+  for (const [connectionId, connection] of Array.from(activeConnections.entries())) {
     try {
       // Filter updates based on user role and relevance
       let shouldReceiveUpdate = false
@@ -210,7 +210,7 @@ function broadcastMenuUpdate(
 ) {
   const encoder = new TextEncoder()
   
-  for (const [connectionId, connection] of activeConnections.entries()) {
+  for (const [connectionId, connection] of Array.from(activeConnections.entries())) {
     try {
       if (connection.universityId === universityId) {
         const updateMessage = JSON.stringify({
@@ -239,7 +239,7 @@ function getConnectionStats() {
     connectionsByUniversity: {} as Record<string, number>
   }
   
-  for (const connection of activeConnections.values()) {
+  for (const connection of Array.from(activeConnections.values())) {
     if (connection.role === 'STUDENT') {
       stats.studentConnections++
     } else if (connection.role === 'MANAGER' || connection.role === 'ADMIN') {

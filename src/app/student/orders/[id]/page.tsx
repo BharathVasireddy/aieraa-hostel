@@ -231,10 +231,7 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <NotificationSystem 
-        notifications={notifications} 
-        onRemove={removeNotification} 
-      />
+      <NotificationSystem />
       
       <MobileHeader 
         title={`Order #${order.orderNumber}`}

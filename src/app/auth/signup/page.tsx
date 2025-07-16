@@ -10,6 +10,7 @@ interface University {
   id: string
   name: string
   code: string
+  city: string
 }
 
 // Phone validation for Indian and Vietnamese numbers

@@ -201,10 +201,7 @@ export default function CatererDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NotificationSystem 
-        notifications={notifications} 
-        onRemove={removeNotification} 
-      />
+      <NotificationSystem />
       
       <MobileHeader 
         title="Food Counter" 
@@ -314,11 +311,34 @@ export default function CatererDashboard() {
                 
 
       {/* QR Scanner Modal */}
-      <QRScanner
-        isOpen={showQRScanner}
-        onScan={handleQRScan}
-        onClose={() => setShowQRScanner(false)}
-      />
+      {showQRScanner && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Scan Order QR Code</h2>
+              <button 
+                onClick={() => setShowQRScanner(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            </div>
+            <QRScanner
+              onScanSuccess={(orderData) => {
+                handleQRScan(JSON.stringify(orderData))
+                setShowQRScanner(false)
+              }}
+              onScanError={(error) => {
+                addNotification({
+                  type: 'error',
+                  title: 'Scan Error',
+                  message: error
+                })
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Scanned Order Modal */}
       <ScannedOrderModal

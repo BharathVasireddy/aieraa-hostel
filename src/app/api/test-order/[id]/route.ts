@@ -38,6 +38,7 @@ export async function GET(
           create: {
             name: 'Bharath Malpe University',
             code: 'BMU',
+            city: 'Malpe',
             address: 'Malpe, Karnataka',
             isActive: true
           }

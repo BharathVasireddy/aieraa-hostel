@@ -23,7 +23,7 @@ const razorpay = process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET
 
 // Get orders for a user
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  return trackAPIEndpoint('user-orders')(async (): Promise<NextResponse> => {
+  try {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -66,7 +66,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         timestamp: Date.now()
       }
     })
-  })
+  } catch (error) {
+    console.error('Error fetching orders:', error)
+    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })
+  }
 }
 
 // Create a new order
@@ -171,7 +174,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add tax
-    const taxRate = user.university?.settings?.taxRate || 0.1
+    const taxRate = user.university?.settings?.baseTaxRate || 0.1
     const taxAmount = Math.round(totalAmount * taxRate)
     const finalTotal = totalAmount + taxAmount
 

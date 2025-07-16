@@ -44,7 +44,7 @@ export async function deduplicatedRequest<T>(
 // Clear cache utility
 export function clearCache(pattern?: string) {
   if (pattern) {
-    for (const key of cache.keys()) {
+    for (const key of Array.from(cache.keys())) {
       if (key.includes(pattern)) {
         cache.delete(key)
       }
@@ -428,7 +428,7 @@ export async function checkDatabaseHealth() {
 export function startCacheCleanup() {
   setInterval(() => {
     const now = Date.now()
-    for (const [key, cached] of cache.entries()) {
+    for (const [key, cached] of Array.from(cache.entries())) {
       if ((now - cached.timestamp) > cached.ttl) {
         cache.delete(key)
       }

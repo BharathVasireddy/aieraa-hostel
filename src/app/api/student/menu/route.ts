@@ -7,7 +7,7 @@ import { getFastMenuItems } from '@/lib/db-optimized'
 import { trackAPIEndpoint } from '@/lib/performance'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  return trackAPIEndpoint('student-menu')(async () => {
+  try {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
@@ -80,5 +80,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         timestamp: Date.now()
       }
     })
-  })
+  } catch (error) {
+    console.error('Error fetching student menu:', error)
+    return NextResponse.json({ error: 'Failed to fetch menu' }, { status: 500 })
+  }
 } 

@@ -12,13 +12,6 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
       url: process.env.DATABASE_URL
     }
   },
-  // Connection optimization for better performance
-  __internal: {
-    engine: {
-      connectTimeout: 3000, // Reduced to 3 seconds for faster auth
-      requestTimeout: 8000, // Reduced for auth queries
-    }
-  },
   // Optimize for authentication workload
   transactionOptions: {
     maxWait: 2000, // 2 seconds max wait

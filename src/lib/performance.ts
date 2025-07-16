@@ -271,7 +271,7 @@ export function withPerformanceTracking<T extends any[], R>(
   return async (...args: T): Promise<R> => {
     return performanceMonitor.track(endpoint)(async () => {
       return handler(...args)
-    })
+    }) as Promise<R>
   }
 }
 

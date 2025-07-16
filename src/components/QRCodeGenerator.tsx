@@ -111,7 +111,6 @@ export default function QRCodeGenerator({
           value={qrData}
           size={size}
           level="M"
-          includeMargin={true}
           className="block"
         />
       </div>

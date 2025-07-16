@@ -119,10 +119,10 @@ export function useOptimisticUpdates<T>({
       const response = await trackAPIEndpoint(`optimistic-${type}`)(() => apiCall())
       
       // Transform API response if needed
-      const finalData = transform ? transform(response) : optimisticData
+      const finalData = transform ? transform(response as any) : optimisticData
       confirmUpdate(updateId, finalData)
       
-      return response
+      return response as R
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       rollbackUpdate(updateId, errorMessage)

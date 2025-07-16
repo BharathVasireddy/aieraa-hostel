@@ -132,8 +132,7 @@ export default function BottomNavigation() {
         icon: Building,
         label: 'Universities',
         path: '/admin/universities',
-        isActive: pathname.startsWith('/admin/universities'),
-        special: true
+        isActive: pathname.startsWith('/admin/universities')
       }
     ]
     moreItems = extendedManagerNav
@@ -152,28 +151,20 @@ export default function BottomNavigation() {
         <div className={`grid ${gridCols}`}>
           {navItems.map((item) => {
             const Icon = item.icon
-            const isSpecial = item.special && isSuper
             return (
               <button
                 key={item.path}
                 onClick={() => handleNavigation(item.path)}
                 className={`flex flex-col items-center justify-center py-3 px-1 transition-colors duration-200 ${
                   item.isActive
-                    ? isSpecial 
-                      ? 'text-purple-600 bg-purple-50 border-t-2 border-purple-600'
-                      : 'text-green-600 bg-green-50 border-t-2 border-green-600'
-                    : isSpecial
-                      ? 'text-purple-400 hover:text-purple-600 hover:bg-purple-50'
-                      : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                    ? 'text-green-600 bg-green-50 border-t-2 border-green-600'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 <Icon className={`${userType === 'manager' ? 'w-4 h-4' : 'w-5 h-5'} mb-1`} />
                 <span className={`font-medium ${userType === 'manager' ? 'text-[10px]' : 'text-xs'}`}>
                   {item.label}
                 </span>
-                {isSpecial && (
-                  <Crown className="w-2 h-2 text-purple-500 absolute top-1 right-1" />
-                )}
               </button>
             )
           })}
