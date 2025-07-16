@@ -1,7 +1,7 @@
 'use client'
 
 import { ArrowRight, Building, Calendar, Check, CheckCircle, ChefHat, ChevronDown, Clock, Eye, IndianRupee, Package, RefreshCw, Search, User, X, XCircle } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import { useSession } from 'next-auth/react'
 
@@ -73,15 +73,7 @@ export default function AdminOrders() {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('list') // Default to list view
   useNotifications()
 
-  useEffect(() => {
-    if (session?.user) {
-      fetchCurrentUser()
-      fetchOrders()
-      fetchUniversities()
-    }
-  }, [session])
-
-  const filterOrders = () => {
+  const filterOrders = useCallback(() => {
     let filtered = orders
 
     // Filter by university (Super Admin only)
@@ -107,11 +99,11 @@ export default function AdminOrders() {
     }
 
     setFilteredOrders(filtered)
-  }
+  }, [orders, selectedTab, searchQuery, selectedUniversity, currentUserData?.role])
 
   useEffect(() => {
     filterOrders()
-  }, [orders, selectedTab, searchQuery, selectedUniversity, filterOrders])
+  }, [filterOrders])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -132,7 +124,7 @@ export default function AdminOrders() {
     }
   }, [showUniversityDropdown])
 
-  const fetchCurrentUser = async () => {
+    const fetchCurrentUser = useCallback(async () => {
     try {
       // Check instant cache first
       const cacheKey = 'admin_profile'
@@ -148,11 +140,11 @@ export default function AdminOrders() {
       // Store in instant cache
       lightningCache.setInstant(cacheKey, data)
     } catch (error) {
-    console.error(error)
+       console.error(error)
     }
-  }
+  }, [])
 
-  const fetchUniversities = async () => {
+  const fetchUniversities = useCallback(async () => {
     try {
       // Only fetch for Super Admins
       if (currentUserData?.role !== 'ADMIN') return
@@ -170,11 +162,11 @@ export default function AdminOrders() {
         lightningCache.setInstant(cacheKey, data.universities)
       }
     } catch (error) {
-    console.error(error)
+       console.error(error)
     }
-  }
+  }, [currentUserData?.role])
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -193,7 +185,7 @@ export default function AdminOrders() {
       // Store in instant cache
       lightningCache.setInstant(cacheKey, ordersData)
     } catch (error) {
-    console.error(error)
+       console.error(error)
       showToast({
         type: 'error',
         title: 'Error',
@@ -202,9 +194,9 @@ export default function AdminOrders() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true)
     // Clear cache and force fresh data
     lightningCache.delete('admin_orders')
@@ -214,7 +206,16 @@ export default function AdminOrders() {
     await fetchCurrentUser()
     await fetchUniversities()
     setRefreshing(false)
-  }
+  }, [fetchOrders, fetchCurrentUser, fetchUniversities])
+
+  // useEffect to fetch data when session is available
+  useEffect(() => {
+    if (session?.user) {
+      fetchCurrentUser()
+      fetchOrders()
+      fetchUniversities()
+    }
+  }, [session, fetchCurrentUser, fetchOrders, fetchUniversities])
 
   const updateOrderStatus = async (orderId: string, newStatus: string, rejectionReason?: string) => {
     try {
@@ -258,7 +259,7 @@ export default function AdminOrders() {
         throw new Error('Failed to update order')
       }
     } catch (error) {
-    console.error(error)
+      console.error(error)
       showToast({
         type: 'error',
         title: 'Error',
