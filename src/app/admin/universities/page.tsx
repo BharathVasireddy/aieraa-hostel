@@ -395,15 +395,15 @@ export default function SuperAdminUniversities() {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <div className="text-center p-2 bg-blue-50 rounded">
-                  <div className="text-xl font-bold text-blue-600">{university.stats.activeStudents}</div>
+                  <div className="text-xl font-bold text-blue-600">{university.stats?.activeStudents || 0}</div>
                   <div className="text-xs text-blue-700">Students</div>
                 </div>
                 <div className="text-center p-2 bg-green-50 rounded">
-                  <div className="text-xl font-bold text-green-600">{university.stats.totalOrders}</div>
+                  <div className="text-xl font-bold text-green-600">{university.stats?.totalOrders || 0}</div>
                   <div className="text-xs text-green-700">Orders</div>
                 </div>
                 <div className="text-center p-2 bg-orange-50 rounded">
-                  <div className="text-xl font-bold text-orange-600">{university.stats.activeMenuItems}</div>
+                  <div className="text-xl font-bold text-orange-600">{university.stats?.activeMenuItems || 0}</div>
                   <div className="text-xs text-orange-700">Menu Items</div>
                 </div>
               </div>

@@ -6,6 +6,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import MobileHeader from '@/components/MobileHeader'
 import BottomNavigation from '@/components/BottomNavigation'
+import { useUser } from '@/components/UserProvider'
 
 interface UserData {
   id: string
@@ -23,6 +24,7 @@ interface UserData {
 export default function StudentProfile() {
   const { data: session } = useSession()
   const router = useRouter()
+  const { user: userFromProvider, clearCacheAndRefetch } = useUser()
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploadingImage, setUploadingImage] = useState(false)
@@ -34,6 +36,20 @@ export default function StudentProfile() {
       fetchUserData()
     }
   }, [session])
+
+  useEffect(() => {
+    if (userFromProvider) {
+      console.log('📋 User data from provider:', {
+        id: userFromProvider.id,
+        name: userFromProvider.name,
+        studentId: userFromProvider.studentId,
+        roomNumber: userFromProvider.roomNumber,
+        university: userFromProvider.university,
+        role: userFromProvider.role,
+        status: userFromProvider.status
+      })
+    }
+  }, [userFromProvider])
 
   const fetchUserData = async () => {
     try {
@@ -83,13 +99,15 @@ export default function StudentProfile() {
 
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json()
-        throw new Error(errorData.error || 'Failed to upload image')
+        console.error('Upload error:', errorData)
+        throw new Error(errorData.details || errorData.error || 'Failed to upload image')
       }
 
       const uploadData = await uploadResponse.json()
       const imageUrl = uploadData.url
       
       // Update user profile with new image URL
+      console.log('📤 Updating profile image for user:', session?.user?.id)
       const response = await fetch(`/api/user/${session?.user?.id}`, {
         method: 'PATCH',
         headers: {
@@ -100,15 +118,26 @@ export default function StudentProfile() {
         })
       })
 
+      console.log('📊 Profile update response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      })
+
       if (response.ok) {
+        const data = await response.json()
+        console.log('✅ Profile updated successfully:', data)
         setUserData(prev => prev ? { ...prev, profileImage: imageUrl } : null)
         alert('Profile image updated successfully!')
       } else {
-        throw new Error('Failed to update profile image')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('❌ Profile update failed:', errorData)
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
       }
     } catch (error) {
       console.error('Error uploading image:', error)
-      alert('Failed to upload image. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
+      alert(`Upload failed: ${errorMessage}`)
     } finally {
       setUploadingImage(false)
     }
@@ -289,6 +318,17 @@ export default function StudentProfile() {
               <span className="text-sm text-gray-500">v1.0.0</span>
             </div>
           </div>
+        </div>
+
+        {/* Debug Section - Temporary */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-yellow-800 mb-2">Debug (Temporary)</h3>
+          <button
+            onClick={clearCacheAndRefetch}
+            className="w-full bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+          >
+            Clear Cache & Refresh Data
+          </button>
         </div>
 
         {/* Logout */}

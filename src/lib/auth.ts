@@ -1,6 +1,7 @@
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
+import { JWT } from 'next-auth/jwt'
 import { prisma, ensureConnection } from './prisma'
 import { UserRole, UserStatus } from '../generated/prisma'
 
@@ -148,7 +149,15 @@ export const authOptions: NextAuthOptions = {
             hasRole: !!token.role,
             hasEmail: !!token.email
           })
-          return null
+          // Return a minimal token instead of null
+          return {
+            ...token,
+            id: token.id || 'invalid',
+            role: token.role || 'STUDENT',
+            status: token.status || 'INACTIVE',
+            universityId: token.universityId || null,
+            university: token.university || 'Unknown'
+          } as JWT
         }
 
         // Token validated successfully for middleware use
@@ -156,7 +165,15 @@ export const authOptions: NextAuthOptions = {
         return token
       } catch (error) {
         console.error('❌ JWT callback error:', error)
-        return null
+        // Return a minimal token instead of null
+        return {
+          ...token,
+          id: token.id || 'invalid',
+          role: token.role || 'STUDENT',
+          status: token.status || 'INACTIVE',
+          universityId: token.universityId || null,
+          university: token.university || 'Unknown'
+        } as JWT
       }
     },
     
@@ -190,10 +207,19 @@ export const authOptions: NextAuthOptions = {
         return session
       } catch (error) {
         console.error('❌ Session callback error:', error)
-        // Return a minimal session to prevent complete failure
+        // Return a minimal session with default user structure
         return {
           ...session,
-          user: null,
+          user: {
+            id: 'invalid',
+            email: 'invalid@example.com',
+            name: 'Invalid User',
+            role: 'STUDENT' as UserRole,
+            status: 'INACTIVE' as UserStatus,
+            universityId: 'invalid',
+            university: 'Unknown',
+            image: undefined
+          },
           expires: new Date(0).toISOString() // Expire immediately
         }
       }

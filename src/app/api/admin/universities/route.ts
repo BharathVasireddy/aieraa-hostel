@@ -188,16 +188,48 @@ export async function POST(request: NextRequest) {
         }
       },
       include: {
-        settings: true
+        settings: true,
+        _count: {
+          select: {
+            users: {
+              where: { role: 'STUDENT', status: 'APPROVED' }
+            },
+            orders: true,
+            menuItems: { where: { isActive: true } }
+          }
+        },
+        users: {
+          where: {
+            role: { in: ['MANAGER', 'CATERER'] }
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            status: true,
+            createdAt: true
+          }
+        }
       }
     })
 
     console.log(`✅ University created: ${university.name} (${university.code}) by Super Admin: ${currentUser.name}`)
 
+    // Return university with stats structure to match GET endpoint
+    const universityWithStats = {
+      ...university,
+      stats: {
+        activeStudents: university._count.users,
+        totalOrders: university._count.orders,
+        activeMenuItems: university._count.menuItems
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'University created successfully',
-      university
+      university: universityWithStats
     })
 
   } catch (error) {

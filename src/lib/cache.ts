@@ -19,6 +19,10 @@ class LightningCache {
     return this.memoryCache.get(key) || null
   }
 
+  deleteInstant(key: string): void {
+    this.memoryCache.delete(key)
+  }
+
   // Regular cache with TTL
   set<T>(key: string, data: T, ttlMinutes: number = 30): void {
     // Store in both instant and regular cache

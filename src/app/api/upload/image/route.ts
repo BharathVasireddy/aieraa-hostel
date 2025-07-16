@@ -60,17 +60,23 @@ export async function POST(request: NextRequest) {
     const timestamp = Math.round(Date.now() / 1000)
     const publicId = `${folder}/${session.user.id}-${timestamp}`
 
-    // Prepare upload parameters
-    const uploadParams = {
+    // Prepare upload parameters for signature (must match exactly what's sent to Cloudinary)
+    const signatureParams = {
       timestamp: timestamp,
       public_id: publicId,
-      folder: `aieraa-hostel/${folder}`,
-      resource_type: resourceType,
-      api_key: CLOUDINARY_API_KEY
+      folder: `aieraa-hostel/${folder}`
     }
 
     // Generate signature
-    const signature = generateSignature(uploadParams, CLOUDINARY_API_SECRET!)
+    const signature = generateSignature(signatureParams, CLOUDINARY_API_SECRET!)
+
+    // Debug logging
+    console.log('📤 Cloudinary upload parameters:', {
+      timestamp,
+      publicId,
+      folder: `aieraa-hostel/${folder}`,
+      signatureParams
+    })
 
     // Create form data for Cloudinary
     const cloudinaryFormData = new FormData()
@@ -78,12 +84,12 @@ export async function POST(request: NextRequest) {
     cloudinaryFormData.append('timestamp', timestamp.toString())
     cloudinaryFormData.append('public_id', publicId)
     cloudinaryFormData.append('folder', `aieraa-hostel/${folder}`)
-    cloudinaryFormData.append('api_key', CLOUDINARY_API_KEY)
+    cloudinaryFormData.append('api_key', CLOUDINARY_API_KEY!)
     cloudinaryFormData.append('signature', signature)
 
     // Upload to Cloudinary
     const cloudinaryResponse = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME!}/image/upload`,
       {
         method: 'POST',
         body: cloudinaryFormData
@@ -91,9 +97,23 @@ export async function POST(request: NextRequest) {
     )
 
     if (!cloudinaryResponse.ok) {
-      const errorData = await cloudinaryResponse.text()
-      console.error('Cloudinary upload error:', errorData)
-      return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 })
+      const errorText = await cloudinaryResponse.text()
+      console.error('Cloudinary upload error:', errorText)
+      
+      // Try to parse error for better user feedback
+      try {
+        const errorData = JSON.parse(errorText)
+        console.error('Cloudinary error details:', errorData)
+        return NextResponse.json({ 
+          error: 'Failed to upload image', 
+          details: errorData.error?.message || 'Unknown error' 
+        }, { status: 500 })
+      } catch (parseError) {
+        return NextResponse.json({ 
+          error: 'Failed to upload image', 
+          details: errorText 
+        }, { status: 500 })
+      }
     }
 
     const cloudinaryData = await cloudinaryResponse.json()

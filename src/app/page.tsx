@@ -19,8 +19,13 @@ export default function LandingPage() {
     // Only run redirect logic after component is mounted (client-side)
     if (!isMounted) return
     
+    // Only redirect if we're actually on the home page (not on reload of other pages)
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      return
+    }
+    
     // Redirect authenticated users to their respective dashboards
-    if (status === 'authenticated' && session?.user) {
+    if (status === 'authenticated' && session?.user?.role) {
       if (session.user.role === 'ADMIN' || session.user.role === 'MANAGER') {
         router.push('/admin')
       } else if (session.user.role === 'STUDENT') {

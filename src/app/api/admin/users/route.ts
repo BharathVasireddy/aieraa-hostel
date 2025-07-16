@@ -26,13 +26,39 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
+    // Get query parameters
+    const { searchParams } = new URL(request.url)
+    const roleFilter = searchParams.get('role')
+    const statusFilter = searchParams.get('status')
+    const unassignedFilter = searchParams.get('unassigned')
+
     // Build dynamic where clause
     const whereClause: any = {}
 
-    // MANAGER can only see students from their university
-    // ADMIN can see students from all universities
-    if (currentUser.role === 'MANAGER') {
-      whereClause.universityId = currentUser.universityId
+    // Filter by unassigned users (for staff assignment) - this takes precedence
+    if (unassignedFilter === 'true') {
+      whereClause.universityId = null
+    } else {
+      // MANAGER can only see students from their university
+      // ADMIN can see students from all universities or filter by specific criteria
+      if (currentUser.role === 'MANAGER') {
+        whereClause.universityId = currentUser.universityId
+      }
+    }
+
+    // Filter by role (supports comma-separated values)
+    if (roleFilter) {
+      const roles = roleFilter.split(',').map(role => role.trim())
+      if (roles.length === 1) {
+        whereClause.role = roles[0]
+      } else {
+        whereClause.role = { in: roles }
+      }
+    }
+
+    // Filter by status
+    if (statusFilter) {
+      whereClause.status = statusFilter
     }
 
     const users = await prisma.user.findMany({
@@ -67,7 +93,10 @@ export async function GET(request: NextRequest) {
       university: user.university
     }))
 
-    return NextResponse.json(sanitizedUsers)
+    return NextResponse.json({
+      success: true,
+      users: sanitizedUsers
+    })
     
   } catch (error) {
     console.error('Error fetching users:', error)

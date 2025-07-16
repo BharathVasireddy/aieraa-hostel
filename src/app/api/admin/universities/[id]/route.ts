@@ -3,34 +3,48 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// GET /api/admin/universities/[id] - Get specific university details
+// GET /api/admin/universities/[id] - Get individual university details
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get current user
     const currentUser = await prisma.user.findUnique({
       where: { email: session.user.email }
     })
 
-    if (!currentUser || currentUser.role !== 'ADMIN') {
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Only ADMIN (Super Admin) can access university details
+    if (currentUser.role !== 'ADMIN') {
       return NextResponse.json({ 
         error: 'Access denied. Super Admin privileges required.' 
       }, { status: 403 })
     }
 
-    const { id } = await params
-
     const university = await prisma.university.findUnique({
-      where: { id },
+      where: { id: params.id },
       include: {
         settings: true,
+        _count: {
+          select: {
+            users: {
+              where: { role: 'STUDENT', status: 'APPROVED' }
+            },
+            orders: true,
+            menuItems: { where: { isActive: true } }
+          }
+        },
         users: {
           where: {
             role: { in: ['MANAGER', 'CATERER'] }
@@ -39,19 +53,10 @@ export async function GET(
             id: true,
             name: true,
             email: true,
+            phone: true,
             role: true,
             status: true,
-            createdAt: true,
-            lastLoginAt: true
-          }
-        },
-        _count: {
-          select: {
-            users: {
-              where: { role: 'STUDENT', status: 'APPROVED' }
-            },
-            orders: true,
-            menuItems: { where: { isActive: true } }
+            createdAt: true
           }
         }
       }
@@ -61,91 +66,147 @@ export async function GET(
       return NextResponse.json({ error: 'University not found' }, { status: 404 })
     }
 
+    const universityWithStats = {
+      ...university,
+      stats: {
+        activeStudents: university._count.users,
+        totalOrders: university._count.orders,
+        activeMenuItems: university._count.menuItems
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      university: {
-        ...university,
-        stats: {
-          activeStudents: university._count.users,
-          totalOrders: university._count.orders,
-          activeMenuItems: university._count.menuItems
-        }
-      }
+      university: universityWithStats
     })
 
   } catch (error) {
     console.error('Error fetching university:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch university details' },
+      { error: 'Failed to fetch university' },
       { status: 500 }
     )
   }
 }
 
-// PUT /api/admin/universities/[id] - Update university
+// PUT /api/admin/universities/[id] - Update university details
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get current user
     const currentUser = await prisma.user.findUnique({
       where: { email: session.user.email }
     })
 
-    if (!currentUser || currentUser.role !== 'ADMIN') {
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Only ADMIN (Super Admin) can update universities
+    if (currentUser.role !== 'ADMIN') {
       return NextResponse.json({ 
         error: 'Access denied. Super Admin privileges required.' 
       }, { status: 403 })
     }
 
-    const { id } = await params
     const body = await request.json()
-    const { name, city, isActive, settings } = body
+    const { name, code, city, isActive, settings } = body
+
+    // Validate required fields
+    if (!name || !code || !city) {
+      return NextResponse.json(
+        { error: 'University name, code, and city are required' },
+        { status: 400 }
+      )
+    }
+
+    // Validate code format
+    const codeRegex = /^[A-Z0-9]{2,10}$/
+    if (!codeRegex.test(code)) {
+      return NextResponse.json(
+        { error: 'University code must be 2-10 characters, uppercase letters and numbers only' },
+        { status: 400 }
+      )
+    }
 
     // Check if university exists
     const existingUniversity = await prisma.university.findUnique({
-      where: { id },
-      include: { settings: true }
+      where: { id: params.id }
     })
 
     if (!existingUniversity) {
       return NextResponse.json({ error: 'University not found' }, { status: 404 })
     }
 
-    // Check for name conflicts (excluding current university)
-    if (name && name !== existingUniversity.name) {
-      const nameConflict = await prisma.university.findFirst({
-        where: {
-          name,
-          id: { not: id }
-        }
-      })
-
-      if (nameConflict) {
-        return NextResponse.json(
-          { error: 'University with this name already exists' },
-          { status: 400 }
-        )
+    // Check if another university with same name exists (excluding current one)
+    const duplicateName = await prisma.university.findFirst({
+      where: { 
+        name,
+        id: { not: params.id }
       }
+    })
+
+    if (duplicateName) {
+      return NextResponse.json(
+        { error: 'University with this name already exists' },
+        { status: 400 }
+      )
     }
 
-    // Update university
-    const updateData: any = {}
-    if (name) updateData.name = name
-    if (city) updateData.city = city
-    if (typeof isActive === 'boolean') updateData.isActive = isActive
+    // Check if another university with same code exists (excluding current one)
+    const duplicateCode = await prisma.university.findFirst({
+      where: { 
+        code,
+        id: { not: params.id }
+      }
+    })
 
-    const university = await prisma.university.update({
-      where: { id },
-      data: updateData,
+    if (duplicateCode) {
+      return NextResponse.json(
+        { error: 'University code already exists. Please choose a different code.' },
+        { status: 400 }
+      )
+    }
+
+    // Update university and settings
+    const updatedUniversity = await prisma.university.update({
+      where: { id: params.id },
+      data: {
+        name,
+        code,
+        city,
+        isActive,
+        settings: {
+          update: {
+            cutoffHours: settings?.cutoffHours || 22,
+            maxAdvanceOrderDays: settings?.maxAdvanceOrderDays || 7,
+            minAdvanceOrderHours: settings?.minAdvanceOrderHours || 12,
+            allowWeekendOrders: settings?.allowWeekendOrders !== undefined ? settings.allowWeekendOrders : true,
+            baseTaxRate: settings?.baseTaxRate || 0.0,
+            serviceTaxRate: settings?.serviceTaxRate || 0.0
+          }
+        }
+      },
       include: {
         settings: true,
+        _count: {
+          select: {
+            users: {
+              where: { role: 'STUDENT', status: 'APPROVED' }
+            },
+            orders: true,
+            menuItems: { where: { isActive: true } }
+          }
+        },
         users: {
           where: {
             role: { in: ['MANAGER', 'CATERER'] }
@@ -154,37 +215,30 @@ export async function PUT(
             id: true,
             name: true,
             email: true,
+            phone: true,
             role: true,
-            status: true
+            status: true,
+            createdAt: true
           }
         }
       }
     })
 
-    // Update settings if provided
-    if (settings && existingUniversity.settings) {
-      await prisma.universitySettings.update({
-        where: { universityId: id },
-        data: {
-          cutoffHours: settings.cutoffHours || existingUniversity.settings.cutoffHours,
-          maxAdvanceOrderDays: settings.maxAdvanceOrderDays || existingUniversity.settings.maxAdvanceOrderDays,
-          minAdvanceOrderHours: settings.minAdvanceOrderHours || existingUniversity.settings.minAdvanceOrderHours,
-          allowWeekendOrders: settings.allowWeekendOrders !== undefined ? settings.allowWeekendOrders : existingUniversity.settings.allowWeekendOrders,
-          baseTaxRate: settings.baseTaxRate !== undefined ? settings.baseTaxRate : existingUniversity.settings.baseTaxRate,
-          serviceTaxRate: settings.serviceTaxRate !== undefined ? settings.serviceTaxRate : existingUniversity.settings.serviceTaxRate,
-          additionalTaxes: settings.additionalTaxes || existingUniversity.settings.additionalTaxes,
-          contactEmail: settings.contactEmail || existingUniversity.settings.contactEmail,
-          contactPhone: settings.contactPhone || existingUniversity.settings.contactPhone
-        }
-      })
-    }
+    console.log(`✅ University updated: ${updatedUniversity.name} (${updatedUniversity.code}) by Super Admin: ${currentUser.name}`)
 
-    console.log(`✅ University updated: ${university.name} by Super Admin: ${currentUser.name}`)
+    const universityWithStats = {
+      ...updatedUniversity,
+      stats: {
+        activeStudents: updatedUniversity._count.users,
+        totalOrders: updatedUniversity._count.orders,
+        activeMenuItems: updatedUniversity._count.menuItems
+      }
+    }
 
     return NextResponse.json({
       success: true,
       message: 'University updated successfully',
-      university
+      university: universityWithStats
     })
 
   } catch (error) {

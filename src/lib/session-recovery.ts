@@ -155,7 +155,7 @@ export class SessionRecovery {
   /**
    * Auto-recovery hook for React components
    */
-  static useAutoRecovery() {
+  static enableAutoRecovery() {
     if (typeof window === 'undefined') return
 
     // Listen for storage events (session errors from other tabs)

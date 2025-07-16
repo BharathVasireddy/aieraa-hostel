@@ -22,7 +22,7 @@ export async function PATCH(
       include: { university: true }
     })
 
-    if (!currentUser || currentUser.role !== 'ADMIN') {
+    if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'MANAGER')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -44,18 +44,19 @@ export async function PATCH(
     }
 
     // Check if current user can manage this user
-    // Super admins (without university assignment) can manage all users
-    // University managers can only manage users from their university
+    // ADMIN (super admin) can manage all users from any university
+    // MANAGER (university manager) can only manage users from their university
     console.log('🔍 Permission check:', {
       currentUserId: currentUser.id,
+      currentUserRole: currentUser.role,
       currentUserUniversityId: currentUser.universityId,
       targetUserId: targetUser.id,
       targetUserUniversityId: targetUser.universityId,
       action: 'update_user_status'
     })
     
-    if (currentUser.universityId && targetUser.universityId !== currentUser.universityId) {
-      console.log('❌ Permission denied: Different universities')
+    if (currentUser.role === 'MANAGER' && targetUser.universityId !== currentUser.universityId) {
+      console.log('❌ Permission denied: MANAGER can only manage users from their own university')
       return NextResponse.json({ 
         error: 'Cannot manage users from different universities' 
       }, { status: 403 })
@@ -130,7 +131,7 @@ export async function DELETE(
       include: { university: true }
     })
 
-    if (!currentUser || currentUser.role !== 'ADMIN') {
+    if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'MANAGER')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -144,9 +145,9 @@ export async function DELETE(
     }
 
     // Check if current user can manage this user
-    // Super admins (without university assignment) can manage all users
-    // University managers can only manage users from their university
-    if (currentUser.universityId && targetUser.universityId !== currentUser.universityId) {
+    // ADMIN (super admin) can manage all users from any university
+    // MANAGER (university manager) can only manage users from their university
+    if (currentUser.role === 'MANAGER' && targetUser.universityId !== currentUser.universityId) {
       return NextResponse.json({ 
         error: 'Cannot manage users from different universities' 
       }, { status: 403 })

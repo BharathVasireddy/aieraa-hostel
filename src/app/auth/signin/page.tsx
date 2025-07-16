@@ -38,27 +38,35 @@ function SignInForm() {
         }
       } else if (result?.ok) {
         // Get the session to determine user role and redirect
-        // Add retry logic for session retrieval with proper timing
+        // Improved retry logic with exponential backoff and better error handling
         let session = null
         let retryCount = 0
-        const maxRetries = 3
+        const maxRetries = 5
         
         while (!session?.user?.role && retryCount < maxRetries) {
           if (retryCount > 0) {
-            // Wait longer for JWT token processing
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            // Exponential backoff: 500ms, 1s, 2s, 4s, 8s
+            const delay = Math.min(500 * Math.pow(2, retryCount - 1), 8000)
+            await new Promise(resolve => setTimeout(resolve, delay))
           }
           
           try {
+            // Force refresh the session to get latest data
             session = await getSession()
             console.log(`🔍 Session attempt ${retryCount + 1}/${maxRetries}:`, {
               hasSession: !!session,
               hasUser: !!session?.user,
               userRole: session?.user?.role || 'NO ROLE',
-              userEmail: session?.user?.email || 'NO EMAIL'
+              userEmail: session?.user?.email || 'NO EMAIL',
+              tokenExp: session?.expires || 'NO EXPIRY'
             })
+            
+            // Check if we have a valid session with user data
+            if (session?.user?.role) {
+              break
+            }
           } catch (error) {
-            console.error('Session retrieval error:', error)
+            console.error(`Session retrieval error (attempt ${retryCount + 1}):`, error)
           }
           
           retryCount++
@@ -82,11 +90,33 @@ function SignInForm() {
             }
           }
           
-          console.log('Redirecting to:', redirectUrl)
+          console.log('✅ Redirecting to:', redirectUrl)
           router.push(redirectUrl)
         } else {
-          console.error('Failed to get user role after', maxRetries, 'attempts')
-          setError('Unable to determine user role. Please try refreshing the page and logging in again.')
+          console.error('❌ Failed to get user role after', maxRetries, 'attempts')
+          // Wait a bit more and try one final direct redirect based on likely role
+          console.log('🔄 Attempting final redirect with delay...')
+          setTimeout(() => {
+            // Try to get session one more time
+            getSession().then(finalSession => {
+              if (finalSession?.user?.role) {
+                console.log('🎯 Final session found, redirecting to:', finalSession.user.role)
+                if (finalSession.user.role === 'ADMIN' || finalSession.user.role === 'MANAGER') {
+                  router.push('/admin')
+                } else if (finalSession.user.role === 'STUDENT') {
+                  router.push('/student')
+                } else {
+                  router.push('/')
+                }
+              } else {
+                console.log('🔄 Final fallback to home page')
+                router.push('/')
+              }
+            }).catch(() => {
+              console.log('🔄 Final fallback to home page due to error')
+              router.push('/')
+            })
+          }, 2000) // Wait 2 seconds before final attempt
         }
       }
     } catch (error) {

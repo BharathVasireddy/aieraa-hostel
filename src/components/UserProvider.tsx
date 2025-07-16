@@ -18,6 +18,7 @@ interface UserContextType {
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
+  clearCacheAndRefetch: () => Promise<void>
   isMounted: boolean
 }
 
@@ -36,7 +37,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setIsMounted(true)
     // Enable auto-recovery for session errors
-    SessionRecovery.useAutoRecovery()
+    SessionRecovery.enableAutoRecovery()
   }, [])
 
   const fetchUserData = useCallback(async () => {
@@ -44,6 +45,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setLoading(false)
       setError(null)
+      return
+    }
+
+    // Check if session has required role information
+    if (!session.user.role) {
+      console.warn('⚠️  Session missing user role in fetchUserData, skipping fetch')
       return
     }
 
@@ -64,7 +71,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const cacheKey = `user_${session.user.id}`
       const cachedUser = lightningCache.getInstant<UserWithUniversity>(cacheKey)
       if (cachedUser) {
-        console.log('⚡ INSTANT user data from cache')
+        console.log('⚡ INSTANT user data from cache:', {
+          id: cachedUser.id,
+          name: cachedUser.name,
+          studentId: cachedUser.studentId,
+          roomNumber: cachedUser.roomNumber,
+          university: cachedUser.university,
+          role: cachedUser.role,
+          status: cachedUser.status
+        })
         setUser(cachedUser)
         setLoading(false)
         setHasTriedFetch(true)
@@ -74,7 +89,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Use lightning fetch with 30 minute cache for user data
       const data = await lightningFetch(`/api/user/${session.user.id}`, {}, 30)
       
+      console.log('🔍 User data fetched from API:', JSON.stringify(data, null, 2))
+      
       if (data.user) {
+        console.log('✅ User data structure:', {
+          id: data.user.id,
+          name: data.user.name,
+          studentId: data.user.studentId,
+          roomNumber: data.user.roomNumber,
+          university: data.user.university,
+          role: data.user.role,
+          status: data.user.status
+        })
         setUser(data.user)
         // Store in instant cache for immediate future access
         lightningCache.setInstant(cacheKey, data.user)
@@ -106,18 +132,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
       //   }
       // }
       
-      // Handle specific error cases
+      // Handle specific error cases with more resilient logic
       if (err.message?.includes('404')) {
         console.warn('User not found in database')
         setError('User account not found. Please login again.')
         // Don't automatically sign out on first 404, give user a chance to retry
-        if (retryCount > 1) {
+        if (retryCount > 2) {
           await SessionRecovery.forceLogout()
         }
       } else if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
-        console.warn('Unauthorized access, forcing logout')
+        console.warn('Unauthorized access detected')
         setError('Session expired. Please login again.')
-        await SessionRecovery.forceLogout()
+        // Only force logout after multiple attempts to avoid page reload issues
+        if (retryCount > 1) {
+          await SessionRecovery.forceLogout()
+        }
       } else {
         setError('Failed to load your account data. Please try again.')
         setRetryCount(prev => prev + 1)
@@ -132,6 +161,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (!isMounted || status === 'loading') return
     
     if (status === 'authenticated' && session?.user?.id) {
+      // Check session validity first - be more patient with missing role
+      if (!session.user.role) {
+        console.warn('⚠️  Session missing user role, waiting for session to be fully loaded...')
+        // Don't return immediately, give it more time
+        const timer = setTimeout(() => {
+          if (session?.user?.role) {
+            console.log('✅ Session role loaded after delay')
+            // Session is now ready, continue with normal flow
+          } else {
+            console.warn('⚠️  Session still missing role after timeout')
+          }
+        }, 2000)
+        return () => clearTimeout(timer)
+      }
+      
       // Check if we have instant cached data first
       const cacheKey = `user_${session.user.id}`
       const cachedUser = lightningCache.getInstant<UserWithUniversity>(cacheKey)
@@ -165,11 +209,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, [session?.user?.id])
 
+  const clearCacheAndRefetch = useCallback(async () => {
+    console.log('🗑️ Clearing cache and refetching user data...')
+    lightningCache.clear()
+    if (session?.user?.id) {
+      const cacheKey = `user_${session.user.id}`
+      lightningCache.deleteInstant(cacheKey)
+    }
+    setUser(null)
+    setHasTriedFetch(false)
+    await fetchUserData()
+  }, [session?.user?.id, fetchUserData])
+
   const value = {
     user,
     loading: loading || status === 'loading' || !isMounted,
     error,
     refetch: fetchUserData,
+    clearCacheAndRefetch,
     isMounted
   }
 
