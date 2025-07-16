@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
 
 // POST /api/admin/universities/[id]/staff - Assign user to university
 export async function POST(
@@ -141,7 +142,6 @@ export async function POST(
       }
 
       // Create new user and assign to university
-      const bcrypt = require('bcryptjs')
       const hashedPassword = await bcrypt.hash(password, 10)
 
       const newUser = await prisma.user.create({
@@ -184,7 +184,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error('Error assigning user to university:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to assign user to university' },
       { status: 500 }
@@ -283,7 +283,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('Error removing user from university:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to remove user from university' },
       { status: 500 }

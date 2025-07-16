@@ -1,6 +1,6 @@
 import React from 'react'
 import QRCode from 'react-qr-code'
-import { Download, Copy, Check } from 'lucide-react'
+import { Check, Copy, Download } from 'lucide-react'
 import { useState } from 'react'
 
 interface QRCodeGeneratorProps {

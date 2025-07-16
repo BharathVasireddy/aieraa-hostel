@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(formattedOrders)
   } catch (error) {
-    console.error('Error fetching caterer orders:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to fetch orders' },
       { status: 500 }

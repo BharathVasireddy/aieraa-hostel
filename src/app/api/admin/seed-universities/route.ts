@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ University update failed:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to update universities' },
       { status: 500 }

@@ -1,37 +1,9 @@
 'use client'
 
-import { 
-  Users, 
-  UtensilsCrossed, 
-  ShoppingCart, 
-  TrendingUp, 
-  DollarSign, 
-  Clock, 
-  AlertTriangle,
-  CheckCircle,
-  BarChart3,
-  Calendar,
-  Settings,
-  Bell,
-  Download,
-  Filter,
-  Search,
-  RefreshCw,
-  Eye,
-  MoreHorizontal,
-  Zap,
-  Activity,
-  Target,
-  Award,
-  Building,
-  Crown,
-  UserPlus,
-  ChefHat,
-  Utensils
-} from 'lucide-react'
+import { Activity, AlertTriangle, Award, BarChart3, Bell, Building, Calendar, Check, CheckCircle, ChefHat, Clock, Crown, DollarSign, Download, Eye, Filter, MoreHorizontal, RefreshCw, Search, Settings, ShoppingCart, Target, TrendingUp, User, UserPlus, Users, Utensils, UtensilsCrossed, Zap } from 'lucide-react'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { format, subDays, startOfDay, endOfDay } from 'date-fns'
+import { format } from 'date-fns'
 import { useUser } from '@/components/UserProvider'
 import { lightningCache, lightningFetch } from '@/lib/cache'
 
@@ -69,7 +41,7 @@ interface PopularItem {
 
 export default function AdminDashboard() {
   const router = useRouter()
-  const { user } = useUser()
+    const { user } = useUser()
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     activeOrders: 0,
@@ -192,7 +164,7 @@ export default function AdminDashboard() {
         lightningCache.setInstant(cacheKey, cacheData)
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error)
+    console.error(error)
     } finally {
       setLoading(false)
       setRefreshing(false)

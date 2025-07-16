@@ -1,0 +1,618 @@
+# Security Rules and Guidelines
+
+## Input Validation and Sanitization
+
+### Server-Side Validation
+- **Always validate inputs** on the server, never trust client-side validation alone
+- **Use schema validation** (Zod) for all API requests
+- **Validate data types, lengths, and formats**
+- **Sanitize user inputs** to prevent XSS attacks
+
+```typescript
+// Good: Server-side validation with Zod
+import { z } from 'zod';
+
+const CreateOrderSchema = z.object({
+  items: z.array(z.object({
+    menuItemId: z.string().uuid(),
+    quantity: z.number().min(1).max(10),
+  })),
+  deliveryDate: z.string().datetime(),
+  notes: z.string().max(500).optional(),
+});
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const validatedData = CreateOrderSchema.parse(body);
+    
+    // Process validated data
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+    }
+  }
+}
+```
+
+### Client-Side Sanitization
+- **Sanitize display data** to prevent XSS
+- **Use proper HTML escaping** for user content
+- **Validate form inputs** before submission
+- **Use Content Security Policy** headers
+
+```typescript
+// Good: Sanitizing user content
+import DOMPurify from 'dompurify';
+
+const sanitizeContent = (content: string): string => {
+  return DOMPurify.sanitize(content, {
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br'],
+    ALLOWED_ATTR: []
+  });
+};
+
+// Use in component
+const OrderNotes: React.FC<{ notes: string }> = ({ notes }) => {
+  return (
+    <div 
+      dangerouslySetInnerHTML={{ 
+        __html: sanitizeContent(notes) 
+      }} 
+    />
+  );
+};
+```
+
+## Authentication and Authorization
+
+### Session Management
+- **Use secure session handling** with NextAuth
+- **Implement proper session expiration**
+- **Use CSRF protection** for forms
+- **Validate session on every request**
+
+```typescript
+// Good: Session validation middleware
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+export async function authenticateRequest(request: Request) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session) {
+    throw new Error('Unauthorized');
+  }
+  
+  return session;
+}
+
+// Use in API routes
+export async function GET(request: Request) {
+  try {
+    const session = await authenticateRequest(request);
+    // Proceed with authenticated request
+  } catch (error) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+}
+```
+
+### Role-Based Access Control
+- **Implement proper role checking** for all protected routes
+- **Use principle of least privilege**
+- **Validate permissions** on both client and server
+- **Use middleware** for route protection
+
+```typescript
+// Good: Role-based access control
+export async function checkUserRole(
+  session: Session, 
+  requiredRole: UserRole
+): Promise<boolean> {
+  if (!session?.user?.role) {
+    return false;
+  }
+  
+  const roleHierarchy = {
+    STUDENT: 1,
+    MANAGER: 2,
+    ADMIN: 3,
+  };
+  
+  return roleHierarchy[session.user.role] >= roleHierarchy[requiredRole];
+}
+
+// Use in API routes
+export async function DELETE(request: Request) {
+  const session = await authenticateRequest(request);
+  
+  if (!checkUserRole(session, 'ADMIN')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  
+  // Admin-only operation
+}
+```
+
+### University Data Isolation
+- **Ensure users can only access their university data**
+- **Validate university associations** on all operations
+- **Use database-level constraints** for data isolation
+
+```typescript
+// Good: University data isolation
+export async function getOrdersForUser(userId: string, userRole: UserRole) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { university: true },
+  });
+  
+  if (!user) {
+    throw new Error('User not found');
+  }
+  
+  const whereClause = userRole === 'ADMIN' 
+    ? {} // Admin can see all orders
+    : { 
+        user: { 
+          universityId: user.universityId 
+        } 
+      };
+  
+  return await prisma.order.findMany({
+    where: whereClause,
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          university: {
+            select: {
+              name: true,
+              code: true,
+            }
+          }
+        }
+      }
+    }
+  });
+}
+```
+
+## Data Protection
+
+### Sensitive Data Handling
+- **Use environment variables** for all secrets
+- **Never commit secrets** to version control
+- **Encrypt sensitive data** at rest
+- **Use secure connections** (HTTPS) for all communications
+
+```typescript
+// Good: Environment variable usage
+const config = {
+  database: {
+    url: process.env.DATABASE_URL,
+  },
+  auth: {
+    secret: process.env.NEXTAUTH_SECRET,
+  },
+  payment: {
+    razorpayKey: process.env.RAZORPAY_KEY_ID,
+    razorpaySecret: process.env.RAZORPAY_KEY_SECRET,
+  },
+};
+
+// Bad: Hardcoded secrets
+const config = {
+  razorpayKey: 'rzp_test_1234567890',  // ❌ Never do this
+};
+```
+
+### Database Security
+- **Use parameterized queries** (Prisma handles this)
+- **Implement proper database constraints**
+- **Use database-level permissions**
+- **Regular security audits** of database access
+
+```typescript
+// Good: Secure database query with Prisma
+async function getOrderById(orderId: string, userId: string) {
+  return await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      userId: userId, // Ensure user can only access their own orders
+    },
+    include: {
+      orderItems: {
+        include: {
+          menuItem: true,
+        },
+      },
+    },
+  });
+}
+```
+
+### Password Security
+- **Use bcrypt** for password hashing
+- **Implement password strength requirements**
+- **Use secure password reset** mechanisms
+- **Never store plain text passwords**
+
+```typescript
+// Good: Secure password handling
+import bcrypt from 'bcryptjs';
+
+export async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
+}
+
+export async function verifyPassword(
+  password: string, 
+  hashedPassword: string
+): Promise<boolean> {
+  return await bcrypt.compare(password, hashedPassword);
+}
+```
+
+## API Security
+
+### Rate Limiting
+- **Implement rate limiting** for API endpoints
+- **Use different limits** for different operations
+- **Log suspicious activity**
+- **Block malicious IPs**
+
+```typescript
+// Good: Rate limiting implementation
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '1 m'), // 10 requests per minute
+});
+
+export async function POST(request: Request) {
+  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  const { success } = await ratelimit.limit(identifier);
+  
+  if (!success) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+  }
+  
+  // Process request
+}
+```
+
+### CORS Configuration
+- **Configure CORS properly** for production
+- **Whitelist allowed origins**
+- **Restrict allowed methods**
+- **Validate origin headers**
+
+```typescript
+// Good: CORS configuration
+export async function GET(request: Request) {
+  const origin = request.headers.get('origin');
+  const allowedOrigins = [
+    'https://aieraa-hostel.com',
+    'https://admin.aieraa-hostel.com',
+  ];
+  
+  if (origin && !allowedOrigins.includes(origin)) {
+    return NextResponse.json({ error: 'CORS error' }, { status: 403 });
+  }
+  
+  const response = NextResponse.json({ data: 'success' });
+  response.headers.set('Access-Control-Allow-Origin', origin || '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  return response;
+}
+```
+
+## Error Handling Security
+
+### Secure Error Messages
+- **Don't expose sensitive information** in error messages
+- **Use generic error messages** for client-facing errors
+- **Log detailed errors** server-side only
+- **Implement proper error boundaries**
+
+```typescript
+// Good: Secure error handling
+export async function loginUser(email: string, password: string) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+    
+    if (!user || !await verifyPassword(password, user.password)) {
+      // Generic error message - don't reveal if user exists
+      throw new Error('Invalid credentials');
+    }
+    
+    return { success: true, user };
+  } catch (error) {
+    // Log detailed error server-side
+    console.error('Login attempt failed:', {
+      email,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+    
+    // Return generic error to client
+    return { 
+      success: false, 
+      error: 'Authentication failed' 
+    };
+  }
+}
+```
+
+## Frontend Security
+
+### XSS Prevention
+- **Escape all user content** before display
+- **Use React's built-in protection** (JSX escaping)
+- **Validate and sanitize** before using dangerouslySetInnerHTML
+- **Implement Content Security Policy**
+
+```typescript
+// Good: XSS prevention
+const UserProfile: React.FC<{ user: User }> = ({ user }) => {
+  return (
+    <div>
+      {/* Safe - React automatically escapes */}
+      <h1>{user.name}</h1>
+      <p>{user.bio}</p>
+      
+      {/* Safe - Sanitized HTML */}
+      <div 
+        dangerouslySetInnerHTML={{ 
+          __html: DOMPurify.sanitize(user.description) 
+        }} 
+      />
+    </div>
+  );
+};
+```
+
+### CSRF Protection
+- **Use CSRF tokens** for forms
+- **Validate tokens** on form submission
+- **Use SameSite cookies**
+- **Implement proper session management**
+
+```typescript
+// Good: CSRF protection
+import { getCsrfToken } from 'next-auth/react';
+
+const OrderForm: React.FC = () => {
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  
+  useEffect(() => {
+    getCsrfToken().then(setCsrfToken);
+  }, []);
+  
+  const handleSubmit = async (formData: FormData) => {
+    formData.append('csrfToken', csrfToken || '');
+    
+    // Submit form with CSRF token
+  };
+  
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Form fields */}
+    </form>
+  );
+};
+```
+
+## Payment Security
+
+### Razorpay Integration
+- **Use server-side verification** for all payments
+- **Validate payment signatures**
+- **Never trust client-side payment status**
+- **Log all payment transactions**
+
+```typescript
+// Good: Secure payment verification
+import crypto from 'crypto';
+
+export async function verifyPayment(
+  orderId: string,
+  paymentId: string,
+  signature: string
+): Promise<boolean> {
+  const expectedSignature = crypto
+    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+    .update(`${orderId}|${paymentId}`)
+    .digest('hex');
+  
+  return expectedSignature === signature;
+}
+
+// Use in payment verification endpoint
+export async function POST(request: Request) {
+  const { orderId, paymentId, signature } = await request.json();
+  
+  if (!verifyPayment(orderId, paymentId, signature)) {
+    return NextResponse.json({ error: 'Invalid payment' }, { status: 400 });
+  }
+  
+  // Update order status
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { status: 'PAID' },
+  });
+  
+  return NextResponse.json({ success: true });
+}
+```
+
+## Security Headers
+
+### HTTP Security Headers
+- **Use security headers** to protect against common attacks
+- **Implement Content Security Policy**
+- **Use HSTS** for HTTPS enforcement
+- **Set proper cache headers**
+
+```typescript
+// Good: Security headers in Next.js config
+// next.config.js
+const securityHeaders = [
+  {
+    key: 'X-DNS-Prefetch-Control',
+    value: 'on'
+  },
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains; preload'
+  },
+  {
+    key: 'X-XSS-Protection',
+    value: '1; mode=block'
+  },
+  {
+    key: 'X-Frame-Options',
+    value: 'DENY'
+  },
+  {
+    key: 'X-Content-Type-Options',
+    value: 'nosniff'
+  },
+  {
+    key: 'Referrer-Policy',
+    value: 'origin-when-cross-origin'
+  },
+  {
+    key: 'Content-Security-Policy',
+    value: `
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: https:;
+      font-src 'self';
+      connect-src 'self';
+    `.replace(/\s{2,}/g, ' ').trim()
+  }
+];
+
+module.exports = {
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: securityHeaders,
+      },
+    ]
+  },
+}
+```
+
+## Security Testing
+
+### Security Checklist
+- [ ] Input validation on all endpoints
+- [ ] Authentication on protected routes
+- [ ] Authorization checks for user roles
+- [ ] University data isolation
+- [ ] CSRF protection on forms
+- [ ] XSS prevention in user content
+- [ ] SQL injection prevention (using Prisma)
+- [ ] Rate limiting on APIs
+- [ ] Security headers implemented
+- [ ] Environment variables secured
+- [ ] Payment verification server-side
+- [ ] Error messages don't expose sensitive data
+- [ ] Session management secure
+- [ ] HTTPS enforced in production
+
+### Regular Security Audits
+- **Review dependencies** for vulnerabilities
+- **Scan code** for security issues
+- **Test authentication flows**
+- **Verify data isolation**
+- **Check for information disclosure**
+- **Validate input sanitization**
+
+## Common Security Mistakes to Avoid
+
+### Authentication Mistakes
+❌ **Don't trust client-side authentication**
+```typescript
+// Bad - Client-side only check
+if (user.role === 'admin') {
+  // Show admin content
+}
+```
+
+✅ **Always verify on server-side**
+```typescript
+// Good - Server-side verification
+const session = await getServerSession(authOptions);
+if (session?.user?.role === 'ADMIN') {
+  // Show admin content
+}
+```
+
+### Data Exposure Mistakes
+❌ **Don't expose sensitive data in API responses**
+```typescript
+// Bad - Exposing password hash
+return NextResponse.json({ 
+  user: {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    password: user.password, // ❌ Never expose this
+  }
+});
+```
+
+✅ **Filter sensitive data**
+```typescript
+// Good - Only expose necessary data
+return NextResponse.json({ 
+  user: {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+  }
+});
+```
+
+### Input Validation Mistakes
+❌ **Don't trust client-side validation**
+```typescript
+// Bad - No server-side validation
+export async function POST(request: Request) {
+  const data = await request.json();
+  // Direct use without validation
+  await createOrder(data);
+}
+```
+
+✅ **Always validate on server**
+```typescript
+// Good - Server-side validation
+export async function POST(request: Request) {
+  const body = await request.json();
+  const validatedData = OrderSchema.parse(body);
+  await createOrder(validatedData);
+}
+```
+
+Remember: Security is not a one-time implementation but an ongoing process. Regular reviews, updates, and security audits are essential for maintaining a secure application.
+description:
+globs:
+alwaysApply: false
+---

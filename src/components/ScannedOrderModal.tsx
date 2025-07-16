@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckCircle, Package, X, User, Clock, Home } from 'lucide-react'
+import { Check, CheckCircle, Clock, Home, Package, User, X } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface OrderForServing {

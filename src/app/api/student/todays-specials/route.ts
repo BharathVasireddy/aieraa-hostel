@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching today\'s specials:')
+    console.error(error)
     console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error)
     console.error('Error message:', error instanceof Error ? error.message : error)
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')

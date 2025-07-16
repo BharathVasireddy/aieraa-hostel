@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(universities)
   } catch (error) {
-    console.error('Error fetching universities:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to fetch universities' },
       { status: 500 }

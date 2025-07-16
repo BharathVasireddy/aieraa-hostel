@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, ShoppingCart, Clock, User, ChevronDown, Star, MapPin, Flame, TrendingUp, Zap, Home, UtensilsCrossed, Sparkles, Search } from 'lucide-react'
+import { Clock, Flame, Search, Sparkles, User, UtensilsCrossed } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { format, addDays, startOfToday } from 'date-fns'
 import StudentLayout from '@/components/StudentLayout'
@@ -38,7 +38,7 @@ interface TodaysSpecial {
 
 export default function StudentDashboard() {
   const router = useRouter()
-  const { user } = useUser()
+    const { user } = useUser()
   const [currentTime, setCurrentTime] = useState(getVietnamTime())
   const [popularDishes, setPopularDishes] = useState<PopularDish[]>([])
   const [todaysSpecials, setTodaysSpecials] = useState<TodaysSpecial[]>([])
@@ -101,7 +101,7 @@ export default function StudentDashboard() {
           console.error('Failed to fetch popular dishes:', data.error)
         }
       } catch (error) {
-        console.error('Error fetching popular dishes:', error)
+    console.error(error)
       } finally {
         setLoadingDishes(false)
       }
@@ -124,7 +124,7 @@ export default function StudentDashboard() {
           console.error('Failed to fetch today\'s specials:', data.error)
         }
       } catch (error) {
-        console.error('Error fetching today\'s specials:', error)
+    console.error(error)
       } finally {
         setLoadingSpecials(false)
       }
@@ -136,7 +136,7 @@ export default function StudentDashboard() {
   // Calculate countdown using new timezone logic - based on selected date
   const countdown = useMemo(() => {
     return getOrderingCountdown(selectedDate)
-  }, [currentTime, selectedDate])
+  }, [ selectedDate])
 
   // Dynamic popular search terms based on popular dishes
   const popularSearches = useMemo(() => {
@@ -162,7 +162,7 @@ export default function StudentDashboard() {
     // Clear any existing search query when navigating normally
     localStorage.removeItem('searchQuery')
     router.push('/student/menu')
-  }, [router])
+  }, [])
 
   const handleSearchClick = useCallback((searchTerm?: string) => {
     if (searchTerm) {

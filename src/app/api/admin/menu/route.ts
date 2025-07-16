@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(menuItems)
   } catch (error) {
-    console.error('Error fetching menu items for admin:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to fetch menu items' },
       { status: 500 }
@@ -290,8 +290,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(menuItem, { status: 201 })
   } catch (error) {
-    console.error('❌ Error creating menu item:', error)
-    
+    console.error(error)
     // Check if it's a Prisma error
     if (error && typeof error === 'object' && 'code' in error) {
       console.error('Prisma error code:', error.code)

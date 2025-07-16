@@ -57,9 +57,9 @@ export function useRealTimeUpdates({
         onConnectionChange?.(true)
       }
 
-      eventSource.onmessage = (event) => {
+      eventSource.onmessage = (_event) => {
         try {
-          const update: RealTimeUpdate = JSON.parse(event.data)
+          const update: RealTimeUpdate = JSON.parse(_event.data)
           
           setLastUpdate(update)
           setConnectionStats(prev => ({
@@ -98,7 +98,7 @@ export function useRealTimeUpdates({
               console.log('📨 Unknown update type:', update.type)
           }
         } catch (error) {
-          console.error('Error parsing real-time update:', error)
+    console.error(error)
         }
       }
 
@@ -128,7 +128,7 @@ export function useRealTimeUpdates({
       }
 
     } catch (error) {
-      console.error('Failed to establish real-time connection:', error)
+    console.error(error)
       setIsConnected(false)
       onConnectionChange?.(false)
     }

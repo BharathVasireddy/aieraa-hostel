@@ -98,7 +98,7 @@ export async function POST(
       }
     })
   } catch (error) {
-    console.error('Error marking order as served:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to mark order as served' },
       { status: 500 }

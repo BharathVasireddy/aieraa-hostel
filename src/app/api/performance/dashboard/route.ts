@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(dashboard)
 
   } catch (error) {
-    console.error('Error generating performance dashboard:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to generate performance dashboard' },
       { status: 500 }

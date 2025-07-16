@@ -1,6 +1,6 @@
 'use client'
 
-import { ShoppingCart, ArrowRight, Clock, Utensils } from 'lucide-react'
+import { ArrowRight, Clock, ShoppingCart, Utensils } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 
 interface CartItem {

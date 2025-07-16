@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Error forcing student logout:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to force logout student sessions' },
       { status: 500 }

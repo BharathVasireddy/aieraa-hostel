@@ -1,0 +1,165 @@
+---
+description: TypeScript coding standards and type safety rules for the hostel food ordering system
+globs: ["**/*.ts", "**/*.tsx"]
+---
+
+# TypeScript Coding Standards
+
+## Type Safety Rules
+
+### Strict TypeScript Configuration
+- Always use strict TypeScript configuration
+- Enable `strict: true` in tsconfig.json
+- Use `noImplicitAny: true` to catch missing type annotations
+- Enable `strictNullChecks: true` to handle null/undefined properly
+
+### Type Definitions
+- Never use `any` type - use proper types or `unknown`
+- Define interfaces for all props and API responses
+- Use proper return types for all functions
+- Prefer interfaces over types for object shapes
+- Use discriminated unions for complex state management
+
+### Common Type Patterns
+```typescript
+// Good: Proper interface definition
+interface StudentOrderProps {
+  orderId: string;
+  studentName: string;
+  totalAmount: number;
+  orderDate: Date;
+  status: OrderStatus;
+}
+
+// Good: Discriminated union
+type OrderStatus = 'pending' | 'approved' | 'preparing' | 'ready' | 'served' | 'cancelled';
+
+// Bad: Using any
+function processOrder(order: any) { ... }
+
+// Good: Proper typing
+function processOrder(order: StudentOrderProps): Promise<OrderResponse> { ... }
+```
+
+### Error Handling Types
+- Use proper error types for API responses
+- Implement Result<T, E> pattern for better error handling
+- Use union types for expected errors
+
+```typescript
+// Good: Proper error typing
+type OrderResult = 
+  | { success: true; data: Order }
+  | { success: false; error: string };
+
+// API response interface
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+```
+
+### Component Props
+- Always define interfaces for React component props
+- Use optional properties with `?` when appropriate
+- Provide default values for optional props
+
+```typescript
+// Good: Proper component props
+interface MenuItemCardProps {
+  item: MenuItem;
+  onAddToCart: (itemId: string) => void;
+  isInCart?: boolean;
+  quantity?: number;
+}
+
+const MenuItemCard: React.FC<MenuItemCardProps> = ({
+  item,
+  onAddToCart,
+  isInCart = false,
+  quantity = 0
+}) => {
+  // Component implementation
+};
+```
+
+### Database Types
+- Use Prisma generated types for database operations
+- Create proper types for database queries
+- Use type-safe database operations
+
+```typescript
+// Good: Using Prisma types
+import { Order, OrderItem, MenuItem } from '@prisma/client';
+
+type OrderWithItems = Order & {
+  orderItems: (OrderItem & {
+    menuItem: MenuItem;
+  })[];
+};
+```
+
+### API Route Types
+- Define proper types for API request/response
+- Use type guards for runtime validation
+- Implement proper error response types
+
+```typescript
+// Good: API route types
+interface CreateOrderRequest {
+  items: {
+    menuItemId: string;
+    quantity: number;
+  }[];
+  deliveryDate: string;
+  notes?: string;
+}
+
+interface CreateOrderResponse {
+  orderId: string;
+  totalAmount: number;
+  orderNumber: string;
+}
+```
+
+### Type Guards and Validation
+- Use type guards for runtime type checking
+- Implement proper validation functions
+- Use Zod for schema validation
+
+```typescript
+// Good: Type guard
+function isValidOrderStatus(status: string): status is OrderStatus {
+  return ['pending', 'approved', 'preparing', 'ready', 'served', 'cancelled'].includes(status);
+}
+
+// Good: Zod validation
+import { z } from 'zod';
+
+const OrderSchema = z.object({
+  items: z.array(z.object({
+    menuItemId: z.string(),
+    quantity: z.number().min(1)
+  })),
+  deliveryDate: z.string().datetime(),
+  notes: z.string().optional()
+});
+```
+
+### Common TypeScript Mistakes to Avoid
+- Don't use `any` type
+- Don't ignore TypeScript compiler warnings
+- Don't use `@ts-ignore` without proper justification
+- Don't use loose equality (`==`) - use strict equality (`===`)
+- Don't forget to handle null/undefined cases
+- Don't use `var` - use `const` or `let`
+
+### Best Practices
+- Use descriptive type names
+- Keep types close to where they're used
+- Use generic types for reusable components
+- Implement proper type inference
+- Use readonly for immutable data
+- Use const assertions for literal types

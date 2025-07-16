@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching admin profile:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to fetch profile data' },
       { status: 500 }
@@ -154,7 +154,7 @@ export async function PATCH(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error updating admin profile:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to update profile' },
       { status: 500 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Filter, CheckCircle, XCircle, Clock, Eye, User, Mail, Phone, RefreshCw, Check, X, AlertTriangle, Crown, ChefHat } from 'lucide-react'
+import { AlertTriangle, Check, CheckCircle, ChefHat, Clock, Crown, Filter, Mail, Phone, RefreshCw, Search, User, X, XCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
@@ -53,38 +53,6 @@ export default function AdminUsers() {
     }
   }, [session?.data?.user?.role])
 
-  useEffect(() => {
-    applyFilters()
-  }, [users, selectedStatusTab, selectedRoleFilter, searchQuery])
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/admin/users')
-      const data = await response.json()
-      
-      if (response.ok) {
-        setUsers(data.users || [])
-      } else {
-        console.error('Error fetching users:', data.error)
-        addNotification({
-          type: 'error',
-          title: 'Error',
-          message: data.error || 'Failed to fetch users'
-        })
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error)
-      addNotification({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to fetch users'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const applyFilters = () => {
     let filtered = [...users]
 
@@ -113,6 +81,38 @@ export default function AdminUsers() {
     }
 
     setFilteredUsers(filtered)
+  }
+
+  useEffect(() => {
+    applyFilters()
+  }, [users, selectedStatusTab, selectedRoleFilter, searchQuery, applyFilters])
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/admin/users')
+      const data = await response.json()
+      
+      if (response.ok) {
+        setUsers(data.users || [])
+      } else {
+        console.error('Error fetching users:', data.error)
+        addNotification({
+          type: 'error',
+          title: 'Error',
+          message: data.error || 'Failed to fetch users'
+        })
+      }
+    } catch (error) {
+    console.error(error)
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to fetch users'
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const refreshUsers = async () => {
@@ -153,7 +153,7 @@ export default function AdminUsers() {
         })
       }
     } catch (error) {
-      console.error('Error updating user:', error)
+    console.error(error)
       addNotification({
         type: 'error',
         title: 'Error',

@@ -51,7 +51,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           setItems(parsedCart)
         }
       } catch (error) {
-        console.error('Error parsing saved cart:', error)
+    console.error(error)
         localStorage.removeItem(cartKey)
       }
     }

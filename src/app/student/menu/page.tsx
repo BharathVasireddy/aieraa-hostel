@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Filter, Calendar, User, ChevronDown, Leaf, ShoppingCart, Plus, Minus, Menu } from 'lucide-react'
+import { Leaf, Menu, Minus, Plus, Search, ShoppingCart } from 'lucide-react'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, addDays, startOfToday, set } from 'date-fns'
@@ -35,7 +35,7 @@ interface CartItem {
 
 export default function StudentMenu() {
   const router = useRouter()
-  const [selectedCategory, setSelectedCategory] = useState('all')
+    const [selectedCategory, setSelectedCategory] = useState('all')
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -125,7 +125,7 @@ export default function StudentMenu() {
           setCartItems(items)
         }
       } catch (error) {
-        console.error('Error loading cart from localStorage:', error)
+    console.error(error)
         localStorage.removeItem('tempCart')
       }
     }
@@ -142,7 +142,7 @@ export default function StudentMenu() {
   // Calculate countdown for selected date using new timezone logic
   const countdown = useMemo(() => {
     return getOrderingCountdown(selectedDate)
-  }, [currentTime, selectedDate])
+  }, [ selectedDate])
 
   const goToCheckout = useCallback(() => {
     // Clear temporary cart and save final cart to localStorage
@@ -232,7 +232,7 @@ export default function StudentMenu() {
           setMenuItems([])
         }
       } catch (error) {
-        console.error('Error fetching menu items:', error)
+    console.error(error)
         setMenuItems([])
       } finally {
         setLoading(false)

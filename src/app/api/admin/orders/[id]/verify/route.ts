@@ -144,7 +144,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error('Error verifying order pickup:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to verify order pickup' },
       { status: 500 }
@@ -206,7 +206,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Error checking order status:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to check order status' },
       { status: 500 }

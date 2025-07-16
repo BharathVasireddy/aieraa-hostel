@@ -3,16 +3,15 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Mail, Key } from 'lucide-react'
+import { ArrowLeft, Key, Mail } from 'lucide-react'
 
 export default function ForgotPassword() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
-  const router = useRouter()
-
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')

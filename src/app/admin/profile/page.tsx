@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Shield, Camera, Eye, EyeOff, LogOut, Activity, Settings, Phone, Mail, MapPin, Calendar, Check, X, AlertTriangle, Save, Edit3 } from 'lucide-react'
+import { Activity, AlertTriangle, Calendar, Camera, Check, Edit, Edit3, Eye, EyeOff, LogOut, Mail, Phone, Save, Settings, Shield, User, X } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
@@ -34,7 +34,7 @@ interface ProfileData {
 export default function AdminProfile() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [profileData, setProfileData] = useState<ProfileData | null>(null)
+    const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity'>('profile')
   
@@ -100,7 +100,7 @@ export default function AdminProfile() {
         throw new Error('Failed to fetch profile')
       }
     } catch (error) {
-      console.error('Error fetching profile:', error)
+    console.error(error)
       showNotification('error', 'Failed to load profile data')
     } finally {
       setLoading(false)
@@ -169,7 +169,7 @@ export default function AdminProfile() {
       }
       
     } catch (error) {
-      console.error('Error uploading image:', error)
+    console.error(error)
       showNotification('error', 'Failed to upload image')
     } finally {
       setUploadingImage(false)
@@ -201,7 +201,7 @@ export default function AdminProfile() {
         showNotification('error', data.error || 'Failed to update profile')
       }
     } catch (error) {
-      console.error('Error updating profile:', error)
+    console.error(error)
       showNotification('error', 'Failed to update profile')
     } finally {
       setProfileUpdateLoading(false)
@@ -243,7 +243,7 @@ export default function AdminProfile() {
         showNotification('error', data.error || 'Failed to change password')
       }
     } catch (error) {
-      console.error('Error changing password:', error)
+    console.error(error)
       showNotification('error', 'Failed to change password')
     } finally {
       setPasswordChangeLoading(false)

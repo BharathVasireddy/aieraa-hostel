@@ -116,7 +116,7 @@ export const authOptions: NextAuthOptions = {
 
           return authUser
         } catch (error) {
-          console.error('❌ Authorization error:', error)
+    console.error(error)
           return null
         }
       }
@@ -164,7 +164,7 @@ export const authOptions: NextAuthOptions = {
 
         return token
       } catch (error) {
-        console.error('❌ JWT callback error:', error)
+    console.error(error)
         // Return a minimal token instead of null
         return {
           ...token,
@@ -206,7 +206,7 @@ export const authOptions: NextAuthOptions = {
 
         return session
       } catch (error) {
-        console.error('❌ Session callback error:', error)
+    console.error(error)
         // Return a minimal session with default user structure
         return {
           ...session,

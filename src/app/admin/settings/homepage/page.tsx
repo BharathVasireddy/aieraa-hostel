@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Plus, Edit3, Eye, EyeOff, Star, Zap } from 'lucide-react'
+import { ArrowLeft, Edit, Edit3, Eye, EyeOff, Menu, Plus, Star, Zap } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface MenuItem {
@@ -28,7 +28,7 @@ interface TodaysSpecial extends MenuItem {
 
 export default function HomepageSettings() {
   const router = useRouter()
-  const [popularDishes, setPopularDishes] = useState<PopularDish[]>([])
+    const [popularDishes, setPopularDishes] = useState<PopularDish[]>([])
   const [todaysSpecials, setTodaysSpecials] = useState<TodaysSpecial[]>([])
   const [availableItems, setAvailableItems] = useState<MenuItem[]>([])
   const [activeTab, setActiveTab] = useState<'popular' | 'specials'>('popular')

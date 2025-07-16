@@ -3,19 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { 
-  ArrowLeft, 
-  Save, 
-  Clock, 
-  Calendar, 
-  DollarSign, 
-  Settings, 
-  Building,
-  Mail,
-  Phone,
-  AlertCircle,
-  Check
-} from 'lucide-react'
+import { AlertCircle, ArrowLeft, Building, Calendar, Check, Clock, DollarSign, Mail, Phone, Save, Settings } from 'lucide-react'
 
 interface UniversitySettings {
   cutoffHours: number
@@ -43,8 +31,8 @@ interface University {
 
 export default function UniversitySettings() {
   const params = useParams()
+    const { data: session } = useSession()
   const router = useRouter()
-  const { data: session } = useSession()
   const [university, setUniversity] = useState<University | null>(null)
   const [settings, setSettings] = useState<UniversitySettings | null>(null)
   const [loading, setLoading] = useState(true)
@@ -70,7 +58,7 @@ export default function UniversitySettings() {
         }
       }
     } catch (error) {
-      console.error('Error fetching university settings:', error)
+    console.error(error)
     } finally {
       setLoading(false)
     }
@@ -95,7 +83,7 @@ export default function UniversitySettings() {
         alert(data.error || 'Failed to update settings')
       }
     } catch (error) {
-      console.error('Error updating settings:', error)
+    console.error(error)
       alert('Failed to update settings')
     } finally {
       setSaving(false)

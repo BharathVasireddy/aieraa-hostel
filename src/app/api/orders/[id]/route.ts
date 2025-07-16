@@ -101,7 +101,7 @@ export async function GET(
     return NextResponse.json(transformedOrder)
 
   } catch (error) {
-    console.error('Error fetching order details:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to fetch order details' },
       { status: 500 }

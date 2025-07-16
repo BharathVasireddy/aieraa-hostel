@@ -20,8 +20,75 @@
     ],
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    
+    // Additional strict type checking
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    
+    // Additional helpful options
+    "forceConsistentCasingInFileNames": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": true,
+    "removeComments": false,
+    "noEmitOnError": true,
+    "preserveConstEnums": true,
+    "suppressExcessPropertyErrors": false,
+    "suppressImplicitAnyIndexErrors": false,
+    "skipDefaultLibCheck": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    
+    // Module resolution
+    "baseUrl": ".",
+    "typeRoots": ["./node_modules/@types"],
+    "allowSyntheticDefaultImports": true,
+    "preserveSymlinks": true,
+    
+    // Output options
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "newLine": "lf",
+    
+    // Advanced options
+    "charset": "utf8",
+    "keyofStringsOnly": false,
+    "useDefineForClassFields": true,
+    "importsNotUsedAsValues": "error",
+    "preserveValueImports": true
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts", 
+    "**/*.ts", 
+    "**/*.tsx", 
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "dist",
+    "build",
+    "coverage",
+    "*.config.js",
+    "*.config.ts"
+  ],
+  "ts-node": {
+    "esm": true
+  }
 } 

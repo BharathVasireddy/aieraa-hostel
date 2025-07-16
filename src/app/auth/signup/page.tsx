@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, UserPlus, ArrowLeft, MapPin } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, MapPin, User, UserPlus } from 'lucide-react'
 import { ButtonPress } from '@/components/PageTransition'
 
 interface University {
@@ -27,6 +27,7 @@ const validatePhone = (phone: string): boolean => {
 }
 
 export default function SignUp() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -45,9 +46,7 @@ export default function SignUp() {
   const [success, setSuccess] = useState('')
   const [universities, setUniversities] = useState<University[]>([])
   const [phoneError, setPhoneError] = useState('')
-  const router = useRouter()
-
-  // Fetch active universities for student registration
+    // Fetch active universities for student registration
   useEffect(() => {
     const fetchUniversities = async () => {
       try {
@@ -59,7 +58,7 @@ export default function SignUp() {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch universities:', error)
+    console.error(error)
       }
     }
     fetchUniversities()

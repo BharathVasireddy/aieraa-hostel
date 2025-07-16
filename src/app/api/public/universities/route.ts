@@ -25,7 +25,7 @@ export async function GET() {
       universities
     })
   } catch (error) {
-    console.error('Error fetching public universities:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to fetch universities' },
       { status: 500 }

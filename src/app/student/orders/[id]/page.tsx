@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { ArrowLeft, Package, Clock, CheckCircle, Star, IndianRupee, MapPin, Phone, QrCode, Download, Share2 } from 'lucide-react'
+import { ArrowLeft, Check, CheckCircle, Clock, Download, IndianRupee, Package, QrCode, Share2, Star } from 'lucide-react'
 import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -43,8 +43,7 @@ interface OrderDetail {
 
 export default function StudentOrderDetail({ params }: { params: Promise<{ id: string }> }) {
   const { data: session } = useSession()
-  const router = useRouter()
-  const [order, setOrder] = useState<OrderDetail | null>(null)
+    const [order, setOrder] = useState<OrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [showQR, setShowQR] = useState(false)
   const [qrCodeData, setQrCodeData] = useState('')
@@ -87,7 +86,7 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
       // Store in instant cache
       lightningCache.setInstant(cacheKey, orderData)
     } catch (error) {
-      console.error('Error fetching order detail:', error)
+    console.error(error)
       addNotification({
         type: 'error',
         title: 'Error',

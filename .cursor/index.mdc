@@ -1,0 +1,98 @@
+---
+title: Aieraa Hostel Food Ordering System - Core Rules
+---
+
+# Aieraa Hostel Food Ordering System - Core Rules
+
+## Project Context
+This is a Next.js 15 hostel food ordering system built with TypeScript, Prisma, NextAuth, and PostgreSQL. Students can pre-order hostel meals and administrators can manage orders, menus, and university settings.
+
+## Tech Stack
+- **Frontend**: Next.js 15 (App Router), React 18, TypeScript
+- **Backend**: Next.js API routes, Server Actions, Prisma ORM
+- **Database**: PostgreSQL with Prisma
+- **Authentication**: NextAuth.js with JWT
+- **Styling**: Tailwind CSS with responsive design
+- **Icons**: Lucide React
+- **Payments**: Razorpay integration
+
+## Core Coding Standards
+
+### TypeScript Rules
+- Use strict TypeScript configuration
+- Never use `any` type - use proper types or `unknown`
+- Define interfaces for all props and API responses
+- Use proper return types for all functions
+- Prefer interfaces over types for object shapes
+
+### React/Next.js Best Practices
+- Use functional components with TypeScript interfaces
+- Prefer Server Components over Client Components
+- Use `"use client"` directive only when necessary
+- Implement proper error boundaries and loading states
+- Use React.Suspense for async operations
+
+### File Organization
+- Use kebab-case for directories and files
+- Group related files in feature folders
+- Place shared components in `/components`
+- Keep API routes in `/app/api`
+- Use descriptive file names
+
+### Error Handling
+- Always handle errors at the beginning of functions
+- Use early returns for error conditions
+- Implement proper error logging with context
+- Return user-friendly error messages
+- Use try-catch blocks for async operations
+
+### Security Guidelines
+- Validate all user inputs on both client and server
+- Use CSRF protection for forms
+- Implement proper session management
+- Sanitize all user-generated content
+- Use HTTPS in production
+- Implement proper role-based access control
+
+### Performance Optimization
+- Use Next.js Image component for all images
+- Implement proper caching strategies
+- Use code splitting for large components
+- Optimize database queries with proper indexing
+- Minimize bundle size with tree shaking
+
+### Business Logic
+- Orders must be placed at least 12 hours in advance
+- Students can only order for their registered university
+- Implement proper inventory management
+- Use optimistic updates with rollback for better UX
+
+### User Roles
+- STUDENT: Can view menu, place orders, track orders
+- MANAGER: Can manage university-specific data
+- ADMIN: Full system access across all universities
+
+## Anti-patterns to Avoid
+- Don't use `useEffect` for data fetching in Server Components
+- Don't use `any` type in TypeScript
+- Don't put business logic in components
+- Don't forget to handle loading and error states
+- Don't use inline styles - use Tailwind classes
+- Don't ignore TypeScript compiler warnings
+
+## Development Workflow
+- Run `npm run lint` before committing
+- Use `npm run build` to check for build errors
+- Test all changes thoroughly before deployment
+- Use meaningful commit messages
+- Keep PRs focused and small
+
+When making suggestions or writing code, always consider:
+1. Security implications
+2. Performance impact
+3. Type safety
+4. Error handling
+5. User experience
+6. Accessibility
+7. Maintainability
+8. Business logic constraints

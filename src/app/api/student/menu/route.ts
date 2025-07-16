@@ -81,7 +81,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }
     })
   } catch (error) {
-    console.error('Error fetching student menu:', error)
+    console.error(error)
     return NextResponse.json({ error: 'Failed to fetch menu' }, { status: 500 })
   }
 } 

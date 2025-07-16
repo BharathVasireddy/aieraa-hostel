@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Save, RefreshCw, Building } from 'lucide-react'
+import { ArrowLeft, Building, Menu, RefreshCw, Save } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -39,7 +39,7 @@ interface MenuItemFormData {
 export default function NewMenuItemPage() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [universities, setUniversities] = useState<University[]>([])
+    const [universities, setUniversities] = useState<University[]>([])
   const [currentUserData, setCurrentUserData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -112,7 +112,7 @@ export default function NewMenuItemPage() {
         }
       }
     } catch (error) {
-      console.error('Failed to fetch current user:', error)
+    console.error(error)
     } finally {
       setLoading(false)
     }
@@ -126,7 +126,7 @@ export default function NewMenuItemPage() {
         setUniversities(data)
       }
     } catch (error) {
-      console.error('Failed to fetch universities:', error)
+    console.error(error)
     }
   }
 
@@ -190,7 +190,7 @@ export default function NewMenuItemPage() {
         alert(error.error || 'Failed to create menu item')
       }
     } catch (error) {
-      console.error('Save error:', error)
+    console.error(error)
       alert('Failed to create menu item')
     } finally {
       setSaving(false)
@@ -487,7 +487,7 @@ export default function NewMenuItemPage() {
                               throw new Error(errorData.error || 'Upload failed')
                             }
                           } catch (error) {
-                            console.error('Upload error:', error)
+    console.error(error)
                             alert('Failed to upload image')
                           }
                         }}

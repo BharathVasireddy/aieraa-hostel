@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import crypto from 'crypto'
 
 // Cloudinary configuration
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
@@ -13,8 +14,6 @@ if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
 
 // Helper function to generate signature for Cloudinary
 function generateSignature(params: any, apiSecret: string) {
-  const crypto = require('crypto')
-  
   // Sort parameters and create string
   const sortedParams = Object.keys(params)
     .sort()
@@ -130,7 +129,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Upload API error:', error)
+    console.error(error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 

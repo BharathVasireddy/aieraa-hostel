@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Clock, CheckCircle, XCircle, RefreshCw, Calendar, IndianRupee, Eye, ChefHat, Package, AlertCircle } from 'lucide-react'
+import { AlertCircle, Calendar, Check, CheckCircle, ChefHat, Clock, Eye, Filter, IndianRupee, Package, RefreshCw, X, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import StudentLayout from '@/components/StudentLayout'
@@ -51,7 +51,7 @@ type FilterStatus = 'all' | 'upcoming' | 'PENDING' | 'APPROVED' | 'PREPARING' | 
 
 export default function StudentOrders() {
   const router = useRouter()
-  const [orders, setOrders] = useState<Order[]>([])
+    const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [filter, setFilter] = useState<FilterStatus>('upcoming')
@@ -78,7 +78,7 @@ export default function StudentOrders() {
       setOrders(processedOrders)
       
     } catch (error) {
-      console.error('Error fetching orders:', error)
+    console.error(error)
       setError('Failed to load orders')
       setOrders([])
     } finally {

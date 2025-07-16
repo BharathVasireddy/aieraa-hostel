@@ -1,12 +1,11 @@
 'use client'
 
-import { ArrowLeft, MessageCircle, Phone, Mail, Book, Bug } from 'lucide-react'
+import { ArrowLeft, Book, Bug, Mail, MessageCircle, Phone } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function HelpSupport() {
   const router = useRouter()
-
-  const supportOptions = [
+    const supportOptions = [
     {
       icon: <MessageCircle className="w-6 h-6 text-blue-600" />,
       title: "Chat Support",

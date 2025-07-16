@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { QrCode, Package, CheckCircle, RefreshCw, User, Home, Clock, Utensils } from 'lucide-react'
+import { Check, CheckCircle, Clock, Package, QrCode, RefreshCw, Utensils } from 'lucide-react'
 import { format } from 'date-fns'
 import MobileHeader from '@/components/MobileHeader'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
@@ -64,7 +64,7 @@ export default function CatererDashboard() {
         setTodayStats(stats)
       }
     } catch (error) {
-      console.error('Error fetching stats:', error)
+    console.error(error)
     }
   }
 
@@ -79,7 +79,7 @@ export default function CatererDashboard() {
         setOrders(ordersData)
       }
     } catch (error) {
-      console.error('Error fetching ready orders:', error)
+    console.error(error)
       addNotification({
         type: 'error',
         title: 'Error',
@@ -89,8 +89,6 @@ export default function CatererDashboard() {
       setLoading(false)
     }
   }
-
-
 
   const handleQRScan = (qrData: string) => {
     try {
@@ -127,7 +125,7 @@ export default function CatererDashboard() {
       setShowQRScanner(false)
 
     } catch (error) {
-      console.error('Error parsing QR code:', error)
+    console.error(error)
       addNotification({
         type: 'error',
         title: 'Invalid QR Code',
@@ -168,7 +166,7 @@ export default function CatererDashboard() {
       fetchStats()
       fetchReadyOrders()
     } catch (error) {
-      console.error('Error marking order as served:', error)
+    console.error(error)
       // Revert local state on error
       setOrders(orders =>
         orders.map(order =>
@@ -309,7 +307,6 @@ export default function CatererDashboard() {
         </div>
       </div>
                 
-
       {/* QR Scanner Modal */}
       {showQRScanner && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">

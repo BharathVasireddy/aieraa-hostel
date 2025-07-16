@@ -81,7 +81,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Error fetching university:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to fetch university' },
       { status: 500 }
@@ -242,7 +242,7 @@ export async function PUT(
     })
 
   } catch (error) {
-    console.error('Error updating university:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to update university' },
       { status: 500 }
@@ -318,7 +318,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('Error deactivating university:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to deactivate university' },
       { status: 500 }

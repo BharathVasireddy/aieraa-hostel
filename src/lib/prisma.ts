@@ -26,7 +26,7 @@ export const ensureConnection = async () => {
   try {
     await prisma.$connect()
   } catch (error) {
-    console.error('Database connection failed, retrying...', error)
+    console.error(error)
     // Retry connection after 1 second
     setTimeout(async () => {
       try {

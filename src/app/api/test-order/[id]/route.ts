@@ -294,7 +294,7 @@ export async function GET(
     }, { status: 400 })
 
   } catch (error) {
-    console.error('❌ API error:', error)
+    console.error(error)
     return NextResponse.json({
       success: false,
       error: 'API error occurred',

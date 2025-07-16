@@ -1,0 +1,297 @@
+---
+alwaysApply: true
+---
+
+# React and Next.js Best Practices
+
+## Component Structure
+
+### Functional Components
+- Use functional components with TypeScript interfaces
+- Prefer arrow functions for component definitions
+- Use proper prop destructuring with default values
+
+```typescript
+// Good: Functional component with proper typing
+interface OrderSummaryProps {
+  order: Order;
+  onCancel: () => void;
+  isLoading?: boolean;
+}
+
+const OrderSummary: React.FC<OrderSummaryProps> = ({
+  order,
+  onCancel,
+  isLoading = false
+}) => {
+  // Component implementation
+};
+```
+
+### Server vs Client Components
+- Prefer Server Components over Client Components
+- Use `"use client"` directive only when necessary for interactivity
+- Fetch data in Server Components and pass to Client Components
+
+```typescript
+// Good: Server Component for data fetching
+async function OrdersPage() {
+  const orders = await getOrders();
+  
+  return (
+    <div>
+      <OrdersList orders={orders} />
+    </div>
+  );
+}
+
+// Good: Client Component for interactivity
+"use client";
+
+interface OrdersListProps {
+  orders: Order[];
+}
+
+const OrdersList: React.FC<OrdersListProps> = ({ orders }) => {
+  const [filter, setFilter] = useState('all');
+  
+  return (
+    // Interactive component implementation
+  );
+};
+```
+
+## State Management
+
+### React Hooks Best Practices
+- Use useState for local component state
+- Use useEffect sparingly - prefer event handlers
+- Use useCallback for memoizing event handlers
+- Use useMemo for expensive calculations
+
+```typescript
+// Good: Proper hook usage
+const MenuPage: React.FC = () => {
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [cart, setCart] = useState<CartItem[]>([]);
+  
+  const handleAddToCart = useCallback((item: MenuItem) => {
+    setCart(prev => [...prev, { ...item, quantity: 1 }]);
+  }, []);
+  
+  const filteredItems = useMemo(() => {
+    return items.filter(item => 
+      selectedCategory === 'all' || item.category === selectedCategory
+    );
+  }, [items, selectedCategory]);
+  
+  return (
+    // Component JSX
+  );
+};
+```
+
+### Context Usage
+- Use React Context for global state
+- Keep context providers close to where they're needed
+- Use multiple contexts instead of one large context
+
+```typescript
+// Good: Specific context for cart
+interface CartContextType {
+  cart: CartItem[];
+  addToCart: (item: MenuItem) => void;
+  removeFromCart: (itemId: string) => void;
+  clearCart: () => void;
+}
+
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error('useCart must be used within CartProvider');
+  }
+  return context;
+};
+```
+
+## Next.js App Router Best Practices
+
+### File Organization
+- Use the app directory structure
+- Create page.tsx for pages
+- Create layout.tsx for shared layouts
+- Use loading.tsx for loading states
+- Use error.tsx for error handling
+
+```
+app/
+├── layout.tsx          # Root layout
+├── page.tsx           # Home page
+├── admin/
+│   ├── layout.tsx     # Admin layout
+│   ├── page.tsx       # Admin dashboard
+│   └── orders/
+│       ├── page.tsx   # Orders list
+│       └── [id]/
+│           └── page.tsx # Order details
+└── student/
+    ├── layout.tsx     # Student layout
+    ├── page.tsx       # Student dashboard
+    └── order/
+        └── page.tsx   # Order form
+```
+
+### Data Fetching
+- Use Server Components for data fetching
+- Use React Suspense for loading states
+- Implement proper error boundaries
+
+```typescript
+// Good: Server Component with data fetching
+async function OrderDetailsPage({ params }: { params: { id: string } }) {
+  const order = await getOrderById(params.id);
+  
+  if (!order) {
+    notFound();
+  }
+  
+  return (
+    <Suspense fallback={<OrderDetailsSkeleton />}>
+      <OrderDetails order={order} />
+    </Suspense>
+  );
+}
+```
+
+### Server Actions
+- Use Server Actions for form submissions
+- Implement proper error handling
+- Use redirect() for navigation after actions
+
+```typescript
+// Good: Server Action with proper error handling
+async function createOrder(formData: FormData) {
+  'use server';
+  
+  try {
+    const orderData = {
+      items: JSON.parse(formData.get('items') as string),
+      deliveryDate: formData.get('deliveryDate') as string,
+    };
+    
+    const order = await prisma.order.create({
+      data: orderData,
+    });
+    
+    revalidatePath('/student/orders');
+    redirect(`/student/orders/${order.id}`);
+  } catch (error) {
+    return { error: 'Failed to create order' };
+  }
+}
+```
+
+## Error Handling
+
+### Error Boundaries
+- Implement error boundaries for unexpected errors
+- Use error.tsx files for route-level error handling
+- Provide fallback UI for errors
+
+```typescript
+// Good: Error boundary component
+interface ErrorBoundaryProps {
+  error: Error;
+  reset: () => void;
+}
+
+const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({ error, reset }) => {
+  return (
+    <div className="error-boundary">
+      <h2>Something went wrong!</h2>
+      <p>{error.message}</p>
+      <button onClick={reset}>Try again</button>
+    </div>
+  );
+};
+```
+
+### Loading States
+- Use loading.tsx for page-level loading
+- Implement skeleton components for better UX
+- Use Suspense for component-level loading
+
+```typescript
+// Good: Loading component
+const OrderListSkeleton: React.FC = () => {
+  return (
+    <div className="space-y-4">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="animate-pulse">
+          <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-300 rounded w-1/2 mt-2"></div>
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+## Performance Optimization
+
+### React.memo and Memoization
+- Use React.memo for expensive components
+- Use useMemo for expensive calculations
+- Use useCallback for event handlers
+
+```typescript
+// Good: Memoized component
+const MenuItemCard = React.memo<MenuItemCardProps>(({ item, onAddToCart }) => {
+  return (
+    <div className="menu-item-card">
+      <h3>{item.name}</h3>
+      <p>{item.description}</p>
+      <button onClick={() => onAddToCart(item)}>
+        Add to Cart
+      </button>
+    </div>
+  );
+});
+```
+
+### Code Splitting
+- Use dynamic imports for code splitting
+- Implement lazy loading for non-critical components
+- Use Next.js built-in optimization features
+
+```typescript
+// Good: Dynamic import
+const AdminDashboard = dynamic(() => import('./AdminDashboard'), {
+  loading: () => <DashboardSkeleton />,
+  ssr: false,
+});
+```
+
+## Common Patterns to Avoid
+
+### Anti-patterns
+- Don't use useEffect for data fetching in Server Components
+- Don't put business logic in components
+- Don't forget to handle loading and error states
+- Don't use inline styles - use Tailwind classes
+- Don't mutate state directly - use immutable updates
+- Don't use string refs - use useRef hook
+
+### Best Practices
+- Keep components small and focused
+- Use composition over inheritance
+- Implement proper prop validation
+- Use consistent naming conventions
+- Write self-documenting code
+- Test components thoroughly
+description:
+globs:
+alwaysApply: false
+---

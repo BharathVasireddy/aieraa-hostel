@@ -3,20 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { 
-  ArrowLeft, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  User, 
-  Phone, 
-  MapPin, 
-  IndianRupee,
-  QrCode,
-  Scan,
-  Package,
-  Download
-} from 'lucide-react'
+import { ArrowLeft, Check, CheckCircle, Clock, Download, IndianRupee, MapPin, Package, Phone, QrCode, Scan, User, X, XCircle } from 'lucide-react'
 import QRCodeGenerator from '@/components/QRCodeGenerator'
 import QRScanner from '@/components/QRScanner'
 import { lightningFetch } from '@/lib/cache'
@@ -48,8 +35,8 @@ interface OrderDetails {
 
 export default function OrderDetailsPage() {
   const params = useParams()
+    const { data: session } = useSession()
   const router = useRouter()
-  const { data: session } = useSession()
   const [order, setOrder] = useState<OrderDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -58,10 +45,6 @@ export default function OrderDetailsPage() {
   const [verifying, setVerifying] = useState(false)
 
   const orderId = params.id as string
-
-  useEffect(() => {
-    fetchOrderDetails()
-  }, [orderId])
 
   const fetchOrderDetails = async () => {
     try {
@@ -75,12 +58,16 @@ export default function OrderDetailsPage() {
       const data = await response.json()
       setOrder(data.order)
     } catch (error) {
-      console.error('Error fetching order:', error)
+    console.error(error)
       setError('Failed to load order details')
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchOrderDetails()
+  }, [orderId, fetchOrderDetails])
 
   const updateOrderStatus = async (newStatus: string) => {
     try {
@@ -94,7 +81,7 @@ export default function OrderDetailsPage() {
         await fetchOrderDetails() // Refresh order data
       }
     } catch (error) {
-      console.error('Error updating order status:', error)
+    console.error(error)
     }
   }
 
@@ -121,7 +108,7 @@ export default function OrderDetailsPage() {
         alert(`❌ Verification failed: ${error.error}\n${error.details || ''}`)
       }
     } catch (error) {
-      console.error('Error verifying order:', error)
+    console.error(error)
       alert('❌ Failed to verify order pickup')
     } finally {
       setVerifying(false)

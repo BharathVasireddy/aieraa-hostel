@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, User, ChevronDown } from 'lucide-react'
+import { Calendar, ChevronDown, User } from 'lucide-react'
 import { format, addDays, startOfToday } from 'date-fns'
 import { getOrderingCountdown } from '@/lib/timezone'
 
@@ -24,7 +24,7 @@ export default function StudentHeader({
   user
 }: StudentHeaderProps) {
   const router = useRouter()
-  const [showDatePickerDropdown, setShowDatePickerDropdown] = useState(false)
+    const [showDatePickerDropdown, setShowDatePickerDropdown] = useState(false)
 
   // Generate next 7 days for date selection (starting from tomorrow)
   const availableDates = useMemo(() => {

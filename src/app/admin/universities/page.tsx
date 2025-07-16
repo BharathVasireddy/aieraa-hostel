@@ -3,23 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { 
-  Plus, 
-  Search, 
-  Building, 
-  Users, 
-  Settings, 
-  Eye, 
-  ToggleLeft, 
-  ToggleRight, 
-  UserPlus,
-  MapPin,
-  Activity,
-  AlertCircle,
-  Crown,
-  ChefHat,
-  BarChart3
-} from 'lucide-react'
+import { Activity, AlertCircle, BarChart3, Building, ChefHat, Crown, Eye, MapPin, Plus, Search, Settings, ToggleLeft, ToggleRight, User, UserPlus, Users } from 'lucide-react'
 import { showToast } from '@/components/ui/Toast'
 
 interface University {
@@ -51,7 +35,7 @@ interface University {
 export default function SuperAdminUniversities() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [universities, setUniversities] = useState<University[]>([])
+    const [universities, setUniversities] = useState<University[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -113,7 +97,7 @@ export default function SuperAdminUniversities() {
         }
       }
     } catch (error) {
-      console.error('Error fetching universities:', error)
+    console.error(error)
       showToast({
         type: 'error',
         title: 'Network Error',
@@ -190,7 +174,7 @@ export default function SuperAdminUniversities() {
         }
       }
     } catch (error) {
-      console.error('Error creating university:', error)
+    console.error(error)
       showToast({
         type: 'error',
         title: 'Network Error',
@@ -229,7 +213,7 @@ export default function SuperAdminUniversities() {
         })
       }
     } catch (error) {
-      console.error('Error updating university status:', error)
+    console.error(error)
       showToast({
         type: 'error',
         title: 'Network Error',
@@ -282,7 +266,7 @@ export default function SuperAdminUniversities() {
         })
       }
     } catch (error) {
-      console.error('Error assigning staff:', error)
+    console.error(error)
       showToast({
         type: 'error',
         title: 'Network Error',

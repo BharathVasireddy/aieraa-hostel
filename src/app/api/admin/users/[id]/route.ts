@@ -104,7 +104,7 @@ export async function PATCH(
 
     return NextResponse.json({ user: sanitizedUser })
   } catch (error) {
-    console.error('Error updating user:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -170,7 +170,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'User deleted successfully' })
   } catch (error) {
-    console.error('Error deleting user:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

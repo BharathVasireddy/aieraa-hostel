@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, Search, Filter, Edit, Trash2, ToggleLeft, ToggleRight, RefreshCw, AlertTriangle, Building } from 'lucide-react'
+import { Building, Edit, Menu, Plus, RefreshCw, Search, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -53,7 +53,7 @@ interface University {
 export default function AdminMenu() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [selectedTab, setSelectedTab] = useState('all')
+    const [selectedTab, setSelectedTab] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
@@ -81,67 +81,6 @@ export default function AdminMenu() {
       fetchMenuItems()
     }
   }, [session])
-
-  useEffect(() => {
-    filterItems()
-  }, [menuItems, selectedTab, statusFilter, searchQuery])
-
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await fetch('/api/admin/profile')
-      if (response.ok) {
-        const data = await response.json()
-        setCurrentUserData(data.profile)
-        
-        // Set default university for managers
-        if (data.profile.role === 'MANAGER' && data.profile.university) {
-          setSelectedUniversity(data.profile.university.id)
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch current user:', error)
-    }
-  }
-
-  const fetchUniversities = async () => {
-    try {
-      const response = await fetch('/api/universities')
-      if (response.ok) {
-        const data = await response.json()
-        setUniversities(data)
-        
-        // Set first university as default for super admin
-        if (data.length > 0 && !selectedUniversity) {
-          setSelectedUniversity(data[0].id)
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch universities:', error)
-    }
-  }
-
-  const fetchMenuItems = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/admin/menu')
-      if (response.ok) {
-        const data = await response.json()
-        setMenuItems(data)
-      } else {
-        console.error('Failed to fetch menu items')
-      }
-    } catch (error) {
-      console.error('Failed to fetch menu items:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    await fetchMenuItems()
-    setRefreshing(false)
-  }
 
   const filterItems = () => {
     let filtered = menuItems
@@ -175,6 +114,67 @@ export default function AdminMenu() {
     setFilteredItems(filtered)
   }
 
+  useEffect(() => {
+    filterItems()
+  }, [menuItems, selectedTab, statusFilter, searchQuery, filterItems])
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/admin/profile')
+      if (response.ok) {
+        const data = await response.json()
+        setCurrentUserData(data.profile)
+        
+        // Set default university for managers
+        if (data.profile.role === 'MANAGER' && data.profile.university) {
+          setSelectedUniversity(data.profile.university.id)
+        }
+      }
+    } catch (error) {
+    console.error(error)
+    }
+  }
+
+  const fetchUniversities = async () => {
+    try {
+      const response = await fetch('/api/universities')
+      if (response.ok) {
+        const data = await response.json()
+        setUniversities(data)
+        
+        // Set first university as default for super admin
+        if (data.length > 0 && !selectedUniversity) {
+          setSelectedUniversity(data[0].id)
+        }
+      }
+    } catch (error) {
+    console.error(error)
+    }
+  }
+
+  const fetchMenuItems = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/admin/menu')
+      if (response.ok) {
+        const data = await response.json()
+        setMenuItems(data)
+      } else {
+        console.error('Failed to fetch menu items')
+      }
+    } catch (error) {
+    console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchMenuItems()
+    setRefreshing(false)
+  }
+
   const handleAddNew = () => {
     router.push('/admin/menu/new')
   }
@@ -199,7 +199,7 @@ export default function AdminMenu() {
         console.error('Failed to toggle item status')
       }
     } catch (error) {
-      console.error('Toggle status error:', error)
+    console.error(error)
     }
   }
 
@@ -221,7 +221,7 @@ export default function AdminMenu() {
         alert(error.error || 'Failed to delete menu item')
       }
     } catch (error) {
-      console.error('Delete error:', error)
+    console.error(error)
       alert('Failed to delete menu item')
     } finally {
       setDeleting(null)

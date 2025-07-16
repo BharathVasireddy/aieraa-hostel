@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Calendar, ArrowLeft, Clock, ShoppingCart, Plus, Minus } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Menu, Minus, Plus, ShoppingCart } from 'lucide-react'
 import { format, addDays, isSameDay, isToday, isTomorrow } from 'date-fns'
 
 interface MenuItem {
@@ -20,8 +20,8 @@ interface MenuItem {
 }
 
 function OrderPageContent() {
+    const searchParams = useSearchParams()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const initialDate = searchParams.get('date')
   
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
@@ -51,7 +51,7 @@ function OrderPageContent() {
           setMenuItems(data)
         }
       } catch (error) {
-        console.error('Failed to fetch menu:', error)
+    console.error(error)
       } finally {
         setLoading(false)
       }
@@ -324,6 +324,7 @@ function OrderPageContent() {
 }
 
 export default function OrderPage() {
+  const router = useRouter()
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-white flex items-center justify-center">

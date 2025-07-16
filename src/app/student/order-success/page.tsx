@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { CheckCircle, Clock, MapPin, ArrowLeft, Home, Package, ChefHat, User, AlertCircle, Utensils } from 'lucide-react'
+import { AlertCircle, ArrowLeft, CheckCircle, ChefHat, Clock, Home, MapPin, Package, User, Utensils } from 'lucide-react'
 import { format } from 'date-fns'
 import { useUser } from '@/components/UserProvider'
 
@@ -66,9 +66,9 @@ interface OrderDetails {
 }
 
 function OrderSuccessContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+    const searchParams = useSearchParams()
   const { user } = useUser()
+  const router = useRouter()
   const orderId = searchParams.get('orderId')
   const orderNumber = searchParams.get('orderNumber')
   
@@ -94,7 +94,7 @@ function OrderSuccessContent() {
           setError(data.error || 'Failed to fetch order details')
         }
       } catch (error) {
-        console.error('Error fetching order:', error)
+    console.error(error)
         setError('Failed to fetch order details')
       } finally {
         setLoading(false)
@@ -510,6 +510,7 @@ function OrderSuccessContent() {
 }
 
 export default function OrderSuccessPage() {
+  const router = useRouter()
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center">

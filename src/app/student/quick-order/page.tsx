@@ -1,13 +1,13 @@
 'use client'
 
-import { Clock, Star, RotateCcw, Heart, Plus } from 'lucide-react'
+import { Heart, Plus, RotateCcw, Star } from 'lucide-react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BottomNavigation from '@/components/BottomNavigation'
 
 export default function QuickOrder() {
   const router = useRouter()
-  const [selectedTab, setSelectedTab] = useState('recent')
+    const [selectedTab, setSelectedTab] = useState('recent')
 
   const reorder = (orderItems: string[]) => {
     console.log('Reordering:', orderItems)

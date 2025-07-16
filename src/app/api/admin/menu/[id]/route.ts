@@ -70,7 +70,7 @@ export async function GET(
 
     return NextResponse.json(menuItem)
   } catch (error) {
-    console.error('Error fetching menu item:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to fetch menu item' },
       { status: 500 }
@@ -216,7 +216,7 @@ export async function PUT(
 
     return NextResponse.json(updatedMenuItem)
   } catch (error) {
-    console.error('Error updating menu item:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to update menu item' },
       { status: 500 }
@@ -300,7 +300,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedMenuItem)
   } catch (error) {
-    console.error('Error toggling menu item status:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to update menu item status' },
       { status: 500 }
@@ -366,7 +366,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Menu item deleted successfully', menuItem: deletedMenuItem })
   } catch (error) {
-    console.error('Error deleting menu item:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to delete menu item' },
       { status: 500 }

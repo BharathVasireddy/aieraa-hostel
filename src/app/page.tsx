@@ -3,12 +3,12 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Clock, Star, Shield, Smartphone } from 'lucide-react'
+import { Clock, Shield, Smartphone, Star } from 'lucide-react'
 
 export default function LandingPage() {
-  const { data: session, status } = useSession()
   const router = useRouter()
-  const [isMounted, setIsMounted] = useState(false)
+  const { data: session, status } = useSession()
+    const [isMounted, setIsMounted] = useState(false)
 
   // Prevent SSR hydration issues
   useEffect(() => {

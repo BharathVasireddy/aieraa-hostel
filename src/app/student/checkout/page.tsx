@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Clock, MapPin, User, CreditCard, Shield, CheckCircle, AlertCircle, Minus, Plus, Trash2, Edit3, Info } from 'lucide-react'
+import { AlertCircle, ArrowLeft, CreditCard, Edit, Edit3, Info, Minus, Plus, Shield, Trash2, User } from 'lucide-react'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, addDays, startOfToday } from 'date-fns'
@@ -25,13 +25,11 @@ interface OrderCartData {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { user } = useUser()
+    const { user } = useUser()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
-  const [orderPlaced, setOrderPlaced] = useState(false)
-  const [currentTime, setCurrentTime] = useState(getVietnamTime())
-  const [showEditCart, setShowEditCart] = useState(false)
-  const [specialInstructions, setSpecialInstructions] = useState('')
+    const [currentTime, setCurrentTime] = useState(getVietnamTime())
+    const [specialInstructions, setSpecialInstructions] = useState('')
   const [menuItems, setMenuItems] = useState<{ [key: string]: any }>({})
   
   // Get selected date from localStorage  
@@ -108,7 +106,7 @@ export default function CheckoutPage() {
           setCartItems(cartItemsArray)
         }
       } catch (error) {
-        console.error('Error loading cart:', error)
+    console.error(error)
         router.push('/student/menu')
       }
     }
@@ -193,7 +191,7 @@ export default function CheckoutPage() {
       }
       
     } catch (error) {
-      console.error('Error placing order:', error)
+    console.error(error)
       alert(`Failed to place order: ${error instanceof Error ? error.message : 'Please try again.'}`)
     } finally {
       setLoading(false)

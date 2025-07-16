@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, LogIn, ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, LogIn } from 'lucide-react'
 import { ButtonPress } from '@/components/PageTransition'
 import { Suspense } from 'react'
 
@@ -15,7 +15,7 @@ function SignInForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const searchParams = useSearchParams()
+    const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,7 +120,7 @@ function SignInForm() {
         }
       }
     } catch (error) {
-      console.error('Login error:', error)
+    console.error(error)
       setError('Something went wrong. Please try again.')
     } finally {
       setLoading(false)
@@ -216,8 +216,7 @@ function SignInForm() {
 
 export default function SignIn() {
   const router = useRouter()
-
-  return (
+    return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4 relative">
       {/* Back Button - Absolute positioned */}
       <ButtonPress 

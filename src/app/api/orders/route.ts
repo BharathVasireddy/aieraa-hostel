@@ -70,7 +70,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }
     })
   } catch (error) {
-    console.error('Error fetching orders:', error)
+    console.error(error)
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })
   }
 }
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error creating order:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to create order' },
       { status: 500 }

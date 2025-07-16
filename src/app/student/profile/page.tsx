@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, HelpCircle, LogOut, Shield, Camera } from 'lucide-react'
+import { Camera, HelpCircle, LogOut, Shield, User } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import MobileHeader from '@/components/MobileHeader'
@@ -24,13 +24,13 @@ interface UserData {
 export default function StudentProfile() {
   const { data: session } = useSession()
   const router = useRouter()
-  const { user: userFromProvider, clearCacheAndRefetch } = useUser()
+    const { user: userFromProvider, clearCacheAndRefetch } = useUser()
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showEditProfile, setShowEditProfile] = useState(false)
   const [showPrivacySecurity, setShowPrivacySecurity] = useState(false)
-
+    
   useEffect(() => {
     if (session?.user?.id) {
       fetchUserData()
@@ -61,7 +61,7 @@ export default function StudentProfile() {
         setUserData(data.user || data)
       }
     } catch (error) {
-      console.error('Error fetching user data:', error)
+    console.error(error)
     } finally {
       setLoading(false)
     }
@@ -135,7 +135,7 @@ export default function StudentProfile() {
         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
       }
     } catch (error) {
-      console.error('Error uploading image:', error)
+    console.error(error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
       alert(`Upload failed: ${errorMessage}`)
     } finally {
@@ -171,7 +171,7 @@ export default function StudentProfile() {
       })
       router.push('/auth/signin')
     } catch (error) {
-      console.error('Logout error:', error)
+    console.error(error)
     }
   }
 

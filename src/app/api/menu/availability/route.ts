@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(formattedItems)
   } catch (error) {
-    console.error('Error fetching menu availability:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to fetch menu availability' },
       { status: 500 }

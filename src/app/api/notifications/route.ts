@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching notifications:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to fetch notifications' },
       { status: 500 }
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error sending notification:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to send notification' },
       { status: 500 }

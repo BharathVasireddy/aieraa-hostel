@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching popular dishes:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to fetch popular dishes' },
       { status: 500 }

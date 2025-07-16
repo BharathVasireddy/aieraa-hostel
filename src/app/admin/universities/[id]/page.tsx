@@ -2,26 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { 
-  ArrowLeft, 
-  Edit, 
-  Save, 
-  X, 
-  Plus, 
-  Trash2, 
-  Users, 
-  Building2,
-  MapPin,
-  Calendar,
-  Settings,
-  UserPlus,
-  Mail,
-  Phone,
-  Crown,
-  ChefHat,
-  AlertCircle,
-  Check
-} from 'lucide-react'
+import { AlertCircle, ArrowLeft, Building, Building2, Calendar, Check, ChefHat, Crown, Edit, Mail, MapPin, Phone, Plus, Save, Settings, Trash2, User, UserPlus, Users, X } from 'lucide-react'
 
 interface University {
   id: string
@@ -69,8 +50,8 @@ interface User {
 
 export default function UniversityDetailsPage() {
   const params = useParams()
+    const universityId = params.id as string
   const router = useRouter()
-  const universityId = params.id as string
 
   const [university, setUniversity] = useState<University | null>(null)
   const [loading, setLoading] = useState(true)
@@ -287,7 +268,7 @@ export default function UniversityDetailsPage() {
 
   useEffect(() => {
     fetchUniversity()
-  }, [universityId])
+  }, [universityId, fetchUniversity])
 
   const managers = university?.users?.filter(user => user.role === 'MANAGER') || []
   const caterers = university?.users?.filter(user => user.role === 'CATERER') || []

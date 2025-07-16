@@ -114,7 +114,7 @@ export class SessionRecovery {
         redirect: true 
       })
     } catch (error) {
-      console.error('❌ Force logout failed:', error)
+    console.error(error)
       // Fallback: redirect manually
       if (typeof window !== 'undefined') {
         window.location.href = '/auth/signin?error=session-expired'
@@ -147,7 +147,7 @@ export class SessionRecovery {
       this.resetErrorCount()
       return true
     } catch (error) {
-      console.error('❌ Session validation error:', error)
+    console.error(error)
       return false
     }
   }
@@ -159,9 +159,9 @@ export class SessionRecovery {
     if (typeof window === 'undefined') return
 
     // Listen for storage events (session errors from other tabs)
-    window.addEventListener('storage', (event) => {
-      if (event.key === this.STORAGE_KEY) {
-        const errorCount = parseInt(event.newValue || '0', 10)
+    window.addEventListener('storage', (_event) => {
+      if (_event.key === this.STORAGE_KEY) {
+        const errorCount = parseInt(_event.newValue || '0', 10)
         if (errorCount >= this.MAX_RETRIES) {
           console.log('🔄 Auto-recovery triggered by storage event')
           this.forceLogout()

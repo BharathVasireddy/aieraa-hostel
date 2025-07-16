@@ -1,29 +1,14 @@
 'use client'
 
-import { 
-  Home, 
-  UtensilsCrossed, 
-  Clock, 
-  Settings, 
-  BarChart3, 
-  ChefHat, 
-  ShoppingBag, 
-  Users,
-  Building,
-  Crown,
-  UserPlus,
-  AlertTriangle,
-  Plus,
-  Menu
-} from 'lucide-react'
+import { AlertTriangle, BarChart3, Building, ChefHat, Clock, Crown, Home, Menu, Plus, Settings, ShoppingBag, UserPlus, Users, UtensilsCrossed } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useCallback, useState } from 'react'
 import { useSession } from 'next-auth/react'
 
 export default function BottomNavigation() {
-  const router = useRouter()
-  const pathname = usePathname()
+    const pathname = usePathname()
   const { data: session } = useSession()
+  const router = useRouter()
   const [showMore, setShowMore] = useState(false)
 
   const handleNavigation = useCallback((path: string) => {
@@ -31,7 +16,7 @@ export default function BottomNavigation() {
       router.push(path)
     }
     setShowMore(false) // Close more menu when navigating
-  }, [router, pathname])
+  }, [ pathname])
 
   // Determine user type from session
   const userType = session?.user?.role === 'ADMIN' || session?.user?.role === 'MANAGER' ? 'manager' : 'student'

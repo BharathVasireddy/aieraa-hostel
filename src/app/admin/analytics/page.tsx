@@ -1,10 +1,8 @@
 'use client'
 
-import { TrendingUp, TrendingDown, Users, DollarSign, ShoppingCart, Calendar, Clock, Target, RefreshCw, Download, BarChart3, PieChart } from 'lucide-react'
+import { BarChart3, Clock, DollarSign, Download, PieChart, RefreshCw, ShoppingCart, Target, TrendingDown, TrendingUp, User, Users } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import MobileHeader from '@/components/MobileHeader'
-
-import { useRouter } from 'next/navigation'
 import { lightningFetch, lightningCache } from '@/lib/cache'
 
 interface AnalyticsData {
@@ -59,11 +57,6 @@ export default function AdminAnalytics() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const router = useRouter()
-
-  useEffect(() => {
-    fetchAnalytics()
-  }, [selectedPeriod])
 
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -86,11 +79,15 @@ export default function AdminAnalytics() {
       // Store in instant cache for immediate future access
       lightningCache.setInstant(cacheKey, data)
     } catch (error) {
-      console.error('Error fetching analytics:', error)
+    console.error(error)
     } finally {
       setLoading(false)
     }
   }, [selectedPeriod])
+
+  useEffect(() => {
+    fetchAnalytics()
+  }, [selectedPeriod, fetchAnalytics])
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -107,7 +104,7 @@ export default function AdminAnalytics() {
         lightningCache.setInstant(cacheKey, data)
       }
     } catch (error) {
-      console.error('Error refreshing analytics:', error)
+    console.error(error)
     }
     setRefreshing(false)
   }, [selectedPeriod])

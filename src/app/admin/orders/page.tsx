@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Filter, CheckCircle, XCircle, Clock, Eye, Calendar, User, IndianRupee, RefreshCw, Check, X, ChefHat, Package, ArrowRight, Building, ChevronDown } from 'lucide-react'
+import { ArrowRight, Building, Calendar, Check, CheckCircle, ChefHat, ChevronDown, Clock, Eye, Filter, IndianRupee, Package, RefreshCw, Search, User, X, XCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { useSession } from 'next-auth/react'
@@ -81,9 +81,37 @@ export default function AdminOrders() {
     }
   }, [session])
 
+  const filterOrders = () => {
+    let filtered = orders
+
+    // Filter by university (Super Admin only)
+    if (currentUserData?.role === 'ADMIN' && selectedUniversity !== 'all') {
+      filtered = filtered.filter(order => order.university?.id === selectedUniversity)
+    }
+
+    // Filter by status
+    if (selectedTab !== 'all') {
+      filtered = filtered.filter(order => order.status === selectedTab)
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(order => 
+        order.orderNumber.toLowerCase().includes(query) ||
+        order.user.name.toLowerCase().includes(query) ||
+        order.user.email.toLowerCase().includes(query) ||
+        order.orderItems.some(item => item.menuItem.name.toLowerCase().includes(query)) ||
+        order.university?.name.toLowerCase().includes(query)
+      )
+    }
+
+    setFilteredOrders(filtered)
+  }
+
   useEffect(() => {
     filterOrders()
-  }, [orders, selectedTab, searchQuery, selectedUniversity])
+  }, [orders, selectedTab, searchQuery, selectedUniversity, filterOrders])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -115,7 +143,7 @@ export default function AdminOrders() {
       // Store in instant cache
       lightningCache.setInstant(cacheKey, data)
     } catch (error) {
-      console.error('Failed to fetch current user:', error)
+    console.error(error)
     }
   }
 
@@ -137,7 +165,7 @@ export default function AdminOrders() {
         lightningCache.setInstant(cacheKey, data.universities)
       }
     } catch (error) {
-      console.error('Failed to fetch universities:', error)
+    console.error(error)
     }
   }
 
@@ -160,7 +188,7 @@ export default function AdminOrders() {
       // Store in instant cache
       lightningCache.setInstant(cacheKey, ordersData)
     } catch (error) {
-      console.error('Error fetching orders:', error)
+    console.error(error)
       showToast({
         type: 'error',
         title: 'Error',
@@ -181,34 +209,6 @@ export default function AdminOrders() {
     await fetchCurrentUser()
     await fetchUniversities()
     setRefreshing(false)
-  }
-
-  const filterOrders = () => {
-    let filtered = orders
-
-    // Filter by university (Super Admin only)
-    if (currentUserData?.role === 'ADMIN' && selectedUniversity !== 'all') {
-      filtered = filtered.filter(order => order.university?.id === selectedUniversity)
-    }
-
-    // Filter by status
-    if (selectedTab !== 'all') {
-      filtered = filtered.filter(order => order.status === selectedTab)
-    }
-
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(order => 
-        order.orderNumber.toLowerCase().includes(query) ||
-        order.user.name.toLowerCase().includes(query) ||
-        order.user.email.toLowerCase().includes(query) ||
-        order.orderItems.some(item => item.menuItem.name.toLowerCase().includes(query)) ||
-        order.university?.name.toLowerCase().includes(query)
-      )
-    }
-
-    setFilteredOrders(filtered)
   }
 
   const updateOrderStatus = async (orderId: string, newStatus: string, rejectionReason?: string) => {
@@ -253,7 +253,7 @@ export default function AdminOrders() {
         throw new Error('Failed to update order')
       }
     } catch (error) {
-      console.error('Error updating order:', error)
+    console.error(error)
       showToast({
         type: 'error',
         title: 'Error',

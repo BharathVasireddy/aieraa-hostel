@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching universities:', error)
+    console.error(error)
     console.error('Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error creating university:', error)
+    console.error(error)
     return NextResponse.json(
       { error: 'Failed to create university' },
       { status: 500 }

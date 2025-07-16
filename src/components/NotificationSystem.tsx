@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react'
-import { X, CheckCircle, AlertTriangle, Info, Bell, Package, Clock, ChefHat } from 'lucide-react'
+import { AlertTriangle, Bell, Check, CheckCircle, Info, Package, X } from 'lucide-react'
 
 interface Notification {
   id: string
@@ -128,7 +128,7 @@ export function useRealTimeNotifications(userId: string | undefined) {
           setLastCheck(new Date())
         }
       } catch (error) {
-        console.error('Error polling notifications:', error)
+    console.error(error)
       }
     }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Camera, CameraOff, CheckCircle, XCircle, Scan, User, Package, Clock, MapPin } from 'lucide-react'
+import { Camera, CameraOff, Check, CheckCircle, Clock, MapPin, Scan, User, X, XCircle } from 'lucide-react'
 
 interface QRScannerProps {
   onScanSuccess: (data: OrderQRData) => void
@@ -41,7 +41,7 @@ export default function QRScanner({ onScanSuccess, onScanError, className = '' }
           setSelectedDevice(videoDevices[0].deviceId)
         }
       } catch (error) {
-        console.error('Error getting devices:', error)
+    console.error(error)
       }
     }
     getDevices()
@@ -62,7 +62,7 @@ export default function QRScanner({ onScanSuccess, onScanError, className = '' }
         videoRef.current.srcObject = stream
       }
     } catch (error) {
-      console.error('Camera permission denied:', error)
+    console.error(error)
       setHasPermission(false)
       onScanError('Camera permission denied. Please allow camera access.')
     }

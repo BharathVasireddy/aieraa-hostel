@@ -156,7 +156,7 @@ async function sendInitialData(
     controller.enqueue(encoder.encode(`data: ${message}\n\n`))
     
   } catch (error) {
-    console.error('Error sending initial data:', error)
+    console.error(error)
   }
 }
 

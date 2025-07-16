@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Save, RefreshCw, Building } from 'lucide-react'
+import { ArrowLeft, Building, Menu, RefreshCw, Save } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -38,9 +38,9 @@ interface MenuItemFormData {
 
 export default function EditMenuItemPage() {
   const { data: session } = useSession()
-  const router = useRouter()
-  const params = useParams()
+    const params = useParams()
   const itemId = params.id as string
+  const router = useRouter()
   
   const [universities, setUniversities] = useState<University[]>([])
   const [currentUserData, setCurrentUserData] = useState<any>(null)
@@ -83,7 +83,7 @@ export default function EditMenuItemPage() {
         setCurrentUserData(data.profile)
       }
     } catch (error) {
-      console.error('Failed to fetch current user:', error)
+    console.error(error)
     }
   }
 
@@ -95,7 +95,7 @@ export default function EditMenuItemPage() {
         setUniversities(data)
       }
     } catch (error) {
-      console.error('Failed to fetch universities:', error)
+    console.error(error)
     }
   }
 
@@ -129,7 +129,7 @@ export default function EditMenuItemPage() {
         router.push('/admin/menu')
       }
     } catch (error) {
-      console.error('Failed to fetch menu item:', error)
+    console.error(error)
       router.push('/admin/menu')
     } finally {
       setLoading(false)
@@ -187,7 +187,7 @@ export default function EditMenuItemPage() {
         alert(error.error || 'Failed to update menu item')
       }
     } catch (error) {
-      console.error('Update error:', error)
+    console.error(error)
       alert('Failed to update menu item')
     } finally {
       setSaving(false)
@@ -475,7 +475,7 @@ export default function EditMenuItemPage() {
                               throw new Error(errorData.error || 'Upload failed')
                             }
                           } catch (error) {
-                            console.error('Upload error:', error)
+    console.error(error)
                             alert('Failed to upload image')
                           }
                         }}

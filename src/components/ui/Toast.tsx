@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Info, X, XCircle } from 'lucide-react'
 
 export interface ToastProps {
   id: string

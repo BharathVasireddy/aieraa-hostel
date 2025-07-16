@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Clock, CreditCard, Settings, LogOut, Users, ChefHat, Package, User, Shield, Activity, Edit3, AlertTriangle } from 'lucide-react'
+import { Activity, AlertTriangle, Bell, Clock, CreditCard, Edit, Edit3, LogOut, Package, Settings, Shield, User, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -13,8 +13,8 @@ interface DashboardStats {
 }
 
 export default function ManagerSettings() {
+    const { data: session } = useSession()
   const router = useRouter()
-  const { data: session } = useSession()
   const [stats, setStats] = useState<DashboardStats>({
     activeStudents: 0,
     menuItems: 0,
@@ -46,7 +46,7 @@ export default function ManagerSettings() {
         })
       }
     } catch (error) {
-      console.error('Error fetching stats:', error)
+    console.error(error)
     } finally {
       setLoading(false)
     }
@@ -120,7 +120,7 @@ export default function ManagerSettings() {
         alert(`❌ Error: ${error.error}`)
       }
     } catch (error) {
-      console.error('Error forcing student logout:', error)
+    console.error(error)
       alert('❌ Failed to force logout student sessions. Please try again.')
     } finally {
       setForceLogoutLoading(false)
