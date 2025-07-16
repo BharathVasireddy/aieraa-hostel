@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.next/
+.vercel/
+.env*
+
+# Database
+prisma/migrations/
+*.db
+*.sqlite
+
+# Build outputs
+dist/
+build/
+out/
+
+# Generated files
+generated/
+.tsconfig.tsbuildinfo
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+CHANGELOG.md
+docs/
+
+# Config files that shouldn't be formatted
+next-env.d.ts
+public/manifest.json
+
+# Logs
+*.log
+logs/
+
+# Cache
+.cache/
+.turbo/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml 
