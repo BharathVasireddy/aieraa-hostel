@@ -3,7 +3,9 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Clock, Shield, Smartphone, Star, ArrowRight } from 'lucide-react'
+import { cachedFetch } from '@/lib/cache'
 
 export default function LandingPage() {
   const router = useRouter()
@@ -13,15 +15,36 @@ export default function LandingPage() {
   // Prevent SSR hydration issues
   useEffect(() => {
     setIsMounted(true)
-  }, [])
+    
+    // Preload universities for faster signup experience
+    // Only preload if user is not authenticated (likely to signup)
+    if (status === 'unauthenticated') {
+      const preloadUniversities = async () => {
+        try {
+          // Silently cache universities data for instant signup loading
+          await cachedFetch('/api/public/universities', {}, 30)
+          console.log('🚀 Universities preloaded for instant signup')
+        } catch (error) {
+          // Silently handle preload errors
+          console.debug('University preload failed:', error)
+        }
+      }
+      
+      // Delay preload by 1 second to not block initial page load
+      setTimeout(preloadUniversities, 1000)
+    }
+  }, [status])
 
   // Show loading while checking authentication or during SSR
   if (!isMounted || status === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="relative w-8 h-8 mx-auto mb-4">
+            <div className="absolute inset-0 w-8 h-8 border-4 border-green-200 rounded-full"></div>
+            <div className="absolute inset-0 w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-green-700 font-medium">Loading...</p>
         </div>
       </div>
     )
@@ -133,12 +156,13 @@ export default function LandingPage() {
               </button>
             ) : (
               <>
-                <button 
-                  onClick={() => router.push('/auth/signup')}
-                  className="px-8 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold text-lg transition-colors"
-                >
-                  Get Started
-                </button>
+                            <Link 
+              href="/auth/signup"
+              prefetch={true}
+              className="px-8 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold text-lg transition-colors inline-block text-center"
+            >
+              Get Started
+            </Link>
                 <button 
                   onClick={() => router.push('/auth/signin')}
                   className="px-8 py-4 border-2 border-green-600 text-green-600 rounded-xl hover:bg-green-50 font-semibold text-lg transition-colors"
@@ -259,12 +283,13 @@ export default function LandingPage() {
               <ArrowRight className="w-5 h-5" />
             </button>
           ) : (
-            <button 
-              onClick={() => router.push('/auth/signup')}
-              className="px-8 py-4 bg-white text-green-600 rounded-xl hover:bg-gray-50 font-semibold text-lg transition-colors"
+            <Link 
+              href="/auth/signup"
+              prefetch={true}
+              className="px-8 py-4 bg-white text-green-600 rounded-xl hover:bg-gray-50 font-semibold text-lg transition-colors inline-block text-center"
             >
               Sign Up Now
-            </button>
+            </Link>
           )}
         </div>
       </section>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { signIn, getSession, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Eye, EyeOff, LogIn, AlertCircle, Clock, XCircle, Info } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, AlertCircle, Clock, XCircle, Info } from 'lucide-react'
 import { ButtonPress } from '@/components/PageTransition'
 import { Suspense } from 'react'
 
@@ -47,17 +47,14 @@ function SignInForm() {
   // Show loading while checking session
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  // Don't render form if already authenticated
-  if (status === 'authenticated') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-8 h-8 mx-auto mb-4">
+            <div className="absolute inset-0 w-8 h-8 border-4 border-green-200 rounded-full"></div>
+            <div className="absolute inset-0 w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-green-700 font-medium">Loading...</p>
+        </div>
       </div>
     )
   }
@@ -76,30 +73,39 @@ function SignInForm() {
       })
 
       if (result?.error) {
-        // Handle specific error messages based on user status
+        // Handle different types of errors
         switch (result.error) {
+          case 'Invalid credentials':
+          case 'Invalid email or password':
+            setError('Invalid email or password. Please check your credentials and try again.')
+            setErrorType('auth')
+            break
           case 'ACCOUNT_PENDING_APPROVAL':
-            setError('Your account registration is pending approval. Please wait for an administrator to approve your account, or contact support if you have been waiting for more than 24 hours.')
+            setError('Your account is pending approval by the university manager. Please try again after approval.')
             setErrorType('status')
             break
           case 'ACCOUNT_SUSPENDED':
-            setError('Your account has been suspended. Please contact the administrator or support team to resolve this issue.')
+            setError('Your account has been suspended. Please contact your administrator.')
             setErrorType('status')
             break
           case 'ACCOUNT_REJECTED':
-            setError('Your account registration has been rejected. Please contact the administrator for more information or submit a new registration if eligible.')
+            setError('Your account has been rejected. Please contact your administrator.')
             setErrorType('status')
             break
-          case 'ACCOUNT_NOT_APPROVED':
-            setError('Your account is not approved for login. Please contact the administrator for assistance.')
+          case 'Account inactive':
+            setError('Your account is inactive. Please contact your administrator.')
+            setErrorType('status')
+            break
+          case 'Account not verified':
+            setError('Your account email is not verified. Please check your email and verify your account.')
             setErrorType('status')
             break
           default:
-            setError('Invalid email or password. Please check your credentials and try again.')
-            setErrorType('auth')
+            setError('An error occurred during sign in. Please try again.')
+            setErrorType('general')
         }
       } else if (result?.ok) {
-        // Success - get fresh session and redirect immediately
+        // Get fresh session after successful login
         const session = await getSession()
         
         if (session?.user?.role) {
@@ -120,14 +126,14 @@ function SignInForm() {
             }
           }
           
-          // Use replace to prevent back navigation to signin
-          router.replace(redirectUrl)
+          router.push(redirectUrl)
         } else {
-          router.replace('/')
+          router.push(callbackUrl)
         }
       }
     } catch (error) {
-      setError('Something went wrong. Please try again.')
+      console.error('Sign in error:', error)
+      setError('An unexpected error occurred. Please try again.')
       setErrorType('general')
     } finally {
       setLoading(false)
@@ -137,11 +143,11 @@ function SignInForm() {
   const getErrorIcon = () => {
     switch (errorType) {
       case 'status':
-        return <Clock className="w-5 h-5 text-amber-500" />
+        return <Clock className="w-5 h-5 text-amber-600" />
       case 'auth':
-        return <XCircle className="w-5 h-5 text-red-500" />
+        return <XCircle className="w-5 h-5 text-red-600" />
       default:
-        return <Info className="w-5 h-5 text-blue-500" />
+        return <Info className="w-5 h-5 text-blue-600" />
     }
   }
 
@@ -157,41 +163,53 @@ function SignInForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="bg-blue-600 p-3 rounded-full">
-              <LogIn className="w-8 h-8 text-white" />
-            </div>
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-          <p className="mt-2 text-gray-600">Sign in to your account</p>
-        </div>
+    <div className="min-h-screen bg-white relative">
+      {/* Back Button - Absolute positioned */}
+      <ButtonPress 
+        onClick={() => router.back()}
+        className="absolute top-4 left-4 flex items-center text-gray-600 hover:text-gray-900 transition-colors z-10"
+      >
+        <ArrowLeft className="w-5 h-5 mr-2" />
+        Back
+      </ButtonPress>
 
-        {/* Error Message */}
-        {error && (
-          <div className={`rounded-lg p-4 border flex items-start space-x-3 ${getErrorColor()}`}>
-            {getErrorIcon()}
-            <div className="flex-1">
-              <p className="text-sm font-medium">
-                {error}
-              </p>
-              {errorType === 'status' && (
-                <p className="text-xs mt-1 opacity-75">
-                  Contact support: support@aieraa.com
+      {/* Main Content */}
+      <div className="px-4 pt-16 pb-8">
+        <div className="max-w-md mx-auto">
+          {/* Logo and Title */}
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6">
+              <img 
+                src="https://aieraa.com/wp-content/uploads/2020/08/Aieraa-Overseas-Logo.png" 
+                alt="Aieraa Logo" 
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+            <p className="text-gray-600">Sign in to your Aieraa Hospitality account</p>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className={`rounded-lg p-4 border flex items-start space-x-3 mb-6 ${getErrorColor()}`}>
+              {getErrorIcon()}
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {error}
                 </p>
-              )}
+                {errorType === 'status' && (
+                  <p className="text-xs mt-1 opacity-75">
+                    Contact support: support@aieraa.com
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 space-y-5">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
               <input
@@ -202,13 +220,13 @@ function SignInForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
                 placeholder="your-email@university.edu"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -220,82 +238,63 @@ function SignInForm() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
+                  className="input pr-12"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? (
-                    <EyeOff className="w-5 h-5 text-gray-400" />
+                    <EyeOff className="w-5 h-5" />
                   ) : (
-                    <Eye className="w-5 h-5 text-gray-400" />
+                    <Eye className="w-5 h-5" />
                   )}
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Remember me
-                </label>
-              </div>
-
+            <div className="flex justify-end">
               <Link
                 href="/auth/forgot-password"
-                className="text-sm text-blue-600 hover:text-blue-500 font-medium"
+                className="text-sm text-green-600 hover:text-green-500 font-medium"
               >
                 Forgot password?
               </Link>
             </div>
 
-            <ButtonPress>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Signing in...
+            <ButtonPress
+              type="submit"
+              disabled={loading}
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <div className="relative w-5 h-5 mr-2">
+                    <div className="absolute inset-0 w-5 h-5 border-2 border-white border-opacity-25 rounded-full"></div>
+                    <div className="absolute inset-0 w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   </div>
-                ) : (
-                  'Sign in'
-                )}
-              </button>
+                  Signing in...
+                </div>
+              ) : (
+                'Sign in'
+              )}
             </ButtonPress>
+          </form>
+
+          {/* Footer */}
+          <div className="mt-8 text-center">
+            <p className="text-gray-600">
+              Don't have an account?{' '}
+              <Link
+                href="/auth/signup"
+                className="text-green-600 hover:text-green-500 font-medium"
+              >
+                Sign up here
+              </Link>
+            </p>
           </div>
-        </form>
-
-        {/* Footer */}
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link href="/auth/signup" className="text-blue-600 hover:text-blue-500 font-medium">
-              Sign up here
-            </Link>
-          </p>
-        </div>
-
-        {/* Back to Home */}
-        <div className="text-center">
-          <Link
-            href="/"
-            className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to Home
-          </Link>
         </div>
       </div>
     </div>
@@ -305,8 +304,14 @@ function SignInForm() {
 export default function SignInPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-8 h-8 mx-auto mb-4">
+            <div className="absolute inset-0 w-8 h-8 border-4 border-green-200 rounded-full"></div>
+            <div className="absolute inset-0 w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-green-700 font-medium">Loading...</p>
+        </div>
       </div>
     }>
       <SignInForm />

@@ -4,14 +4,61 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { ArrowLeft, Eye, EyeOff, MapPin, User, UserPlus } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, MapPin, User, UserPlus, CheckCircle, Clock, X } from 'lucide-react'
 import { ButtonPress } from '@/components/PageTransition'
+import { cachedFetch } from '@/lib/cache'
 
 interface University {
   id: string
   name: string
   code: string
   city: string
+}
+
+// Success Modal Component
+const SuccessModal = ({ isOpen, onClose, universityName }: { isOpen: boolean; onClose: () => void; universityName: string }) => {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-md w-full p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        
+        <div className="text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8 text-green-600" />
+          </div>
+          
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Account Created Successfully!</h3>
+          
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start space-x-3">
+              <Clock className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-sm font-medium text-amber-800 mb-1">Pending Approval</p>
+                <p className="text-xs text-amber-700">
+                  Your account is awaiting approval from the {universityName} manager. 
+                  You'll receive an email confirmation once approved.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <ButtonPress
+            onClick={onClose}
+            className="w-full btn-primary"
+          >
+            Go to Sign In
+          </ButtonPress>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // Phone validation for Indian and Vietnamese numbers
@@ -44,8 +91,9 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [universitiesLoading, setUniversitiesLoading] = useState(true) // Add loading state
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [universities, setUniversities] = useState<University[]>([])
   const [phoneError, setPhoneError] = useState('')
   
@@ -66,21 +114,27 @@ export default function SignUp() {
     }
   }, [session, status, router])
   
-  // Fetch active universities for student registration
+  // Optimized university fetching with caching
   useEffect(() => {
     const fetchUniversities = async () => {
       try {
-        const response = await fetch('/api/public/universities')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success) {
-            setUniversities(data.universities)
-          }
+        setUniversitiesLoading(true)
+        
+        // Use cachedFetch with 30-minute cache for universities (they rarely change)
+        const data = await cachedFetch('/api/public/universities', {}, 30) // 30 min cache
+        
+        if (data.success) {
+          setUniversities(data.universities)
+        } else {
+          console.error('Failed to fetch universities:', data.error)
         }
       } catch (error) {
-    console.error(error)
+        console.error('Error fetching universities:', error)
+      } finally {
+        setUniversitiesLoading(false)
       }
     }
+    
     fetchUniversities()
   }, [])
 
@@ -98,7 +152,6 @@ export default function SignUp() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    setSuccess('')
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
@@ -140,10 +193,7 @@ export default function SignUp() {
       const data = await response.json()
 
       if (response.ok) {
-        setSuccess('Account created successfully! Please wait for admin approval before signing in.')
-        setTimeout(() => {
-          router.push('/auth/signin')
-        }, 3000)
+        setShowSuccessModal(true)
       } else {
         setError(data.error || 'Something went wrong')
       }
@@ -167,11 +217,27 @@ export default function SignUp() {
     }
   }
 
+  const handleModalClose = () => {
+    setShowSuccessModal(false)
+    router.push('/auth/signin')
+  }
+
+  const getSelectedUniversityName = () => {
+    const university = universities.find(u => u.id === formData.universityId)
+    return university?.name || 'your university'
+  }
+
   // Show loading while checking authentication
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="relative w-8 h-8 mx-auto mb-4">
+            <div className="absolute inset-0 w-8 h-8 border-4 border-green-200 rounded-full"></div>
+            <div className="absolute inset-0 w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-green-700 font-medium">Loading...</p>
+        </div>
       </div>
     )
   }
@@ -180,91 +246,100 @@ export default function SignUp() {
   if (status === 'authenticated') {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="relative w-12 h-12">
+          <div className="absolute inset-0 w-12 h-12 border-4 border-green-200 rounded-full"></div>
+          <div className="absolute inset-0 w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white relative">
-      {/* Back Button - Absolute positioned */}
-      <ButtonPress 
-        onClick={() => router.back()}
-        className="absolute top-4 left-4 flex items-center text-gray-600 hover:text-gray-900 transition-colors z-10"
-      >
-        <ArrowLeft className="w-5 h-5 mr-2" />
-        Back
-      </ButtonPress>
+    <>
+      <div className="min-h-screen bg-white relative">
+        {/* Back Button - Absolute positioned */}
+        <ButtonPress 
+          onClick={() => router.back()}
+          className="absolute top-4 left-4 flex items-center text-gray-600 hover:text-gray-900 transition-colors z-10"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          Back
+        </ButtonPress>
 
-      {/* Main Content */}
-      <div className="px-4 pt-16 pb-8">
-        <div className="max-w-md mx-auto">
-          {/* Logo and Title */}
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6">
-              <img 
-                src="https://aieraa.com/wp-content/uploads/2020/08/Aieraa-Overseas-Logo.png" 
-                alt="Aieraa Logo" 
-                className="w-full h-full object-contain"
-              />
+        {/* Main Content */}
+        <div className="px-4 pt-16 pb-8">
+          <div className="max-w-md mx-auto">
+            {/* Logo and Title */}
+            <div className="text-center mb-6">
+              <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                <img 
+                  src="https://aieraa.com/wp-content/uploads/2020/08/Aieraa-Overseas-Logo.png" 
+                  alt="Aieraa Logo" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Join Aieraa Hostel</h1>
+              <p className="text-gray-600">Create your student account to order hostel meals</p>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Join Aieraa Hostel</h1>
-            <p className="text-gray-600">Create your student account to order hostel meals</p>
-          </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-800 text-sm">{error}</p>
-              </div>
-            )}
+            {/* Approval Notice - Moved to top */}
+            <div className="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-100">
+              <p className="text-sm text-blue-800 text-center">
+                <strong>Account requires manager approval</strong> before you can sign in
+              </p>
+            </div>
 
-            {success && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-green-800 text-sm">{success}</p>
-              </div>
-            )}
-
-            {/* University Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <MapPin className="w-4 h-4 inline mr-1" />
-                University
-              </label>
-              <select
-                name="universityId"
-                value={formData.universityId}
-                onChange={handleInputChange}
-                required
-                className="input"
-                disabled={universities.length === 0}
-              >
-                <option value="">
-                  {universities.length === 0 ? 'No universities available' : 'Select your university'}
-                </option>
-                {universities.map((university) => (
-                  <option key={university.id} value={university.id}>
-                    {university.name} ({university.code}) - {university.city}
-                  </option>
-                ))}
-              </select>
-              {universities.length === 0 && (
-                <p className="text-sm text-red-600 mt-1">
-                  ⚠️ No universities are currently accepting new student registrations. Please contact support.
-                </p>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-800 text-sm">{error}</p>
+                </div>
               )}
-            </div>
 
-            {/* Basic Info */}
-            <div className="space-y-4">
+              {/* University Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  University
+                </label>
+                               {universitiesLoading ? (
+                   <div className="flex items-center justify-center py-6 bg-green-50 rounded-xl border border-green-100">
+                     <div className="relative w-8 h-8">
+                       <div className="absolute inset-0 w-8 h-8 border-4 border-green-200 rounded-full"></div>
+                       <div className="absolute inset-0 w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                     </div>
+                     <span className="ml-3 text-green-700 font-medium">Loading universities...</span>
+                   </div>
+                 ) : (
+                  <select
+                    name="universityId"
+                    value={formData.universityId}
+                    onChange={handleInputChange}
+                    required
+                    className="input"
+                  >
+                    <option value="">Select your university</option>
+                    {universities.map((university) => (
+                      <option key={university.id} value={university.id}>
+                        {university.name} - {university.city}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Personal Information */}
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  <User className="w-4 h-4 inline mr-1" />
                   Full Name
                 </label>
                 <input
-                  type="text"
+                  id="name"
                   name="name"
+                  type="text"
+                  autoComplete="name"
                   required
                   value={formData.name}
                   onChange={handleInputChange}
@@ -274,112 +349,118 @@ export default function SignUp() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address
                 </label>
                 <input
-                  type="email"
+                  id="email"
                   name="email"
+                  type="email"
+                  autoComplete="email"
                   required
                   value={formData.email}
                   onChange={handleInputChange}
                   className="input"
-                  placeholder="Enter your email address"
+                  placeholder="your-email@university.edu"
                 />
               </div>
-            </div>
 
-            {/* Student Information */}
-            <div className="space-y-4">
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  required
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className={`input ${phoneError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
+                  placeholder="+91 9876543210 or +84 987654321"
+                />
+                {phoneError && (
+                  <p className="mt-1 text-sm text-red-600">{phoneError}</p>
+                )}
+              </div>
+
+              {/* Student Information */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-2">
                     Student ID
                   </label>
                   <input
-                    type="text"
+                    id="studentId"
                     name="studentId"
+                    type="text"
                     required
                     value={formData.studentId}
                     onChange={handleInputChange}
-                    className="input-small"
-                    placeholder="Student ID"
+                    className="input"
+                    placeholder="ST123456"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="roomNumber" className="block text-sm font-medium text-gray-700 mb-2">
                     Room Number
                   </label>
                   <input
-                    type="text"
+                    id="roomNumber"
                     name="roomNumber"
+                    type="text"
                     required
                     value={formData.roomNumber}
                     onChange={handleInputChange}
-                    className="input-small"
-                    placeholder="Room #"
+                    className="input"
+                    placeholder="A-101"
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Contact Info */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                required
-                value={formData.phone}
-                onChange={handleInputChange}
-                className={`input ${phoneError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="Enter your phone number (+91 or +84)"
-              />
-              {phoneError && (
-                <p className="mt-1 text-sm text-red-600">{phoneError}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">
-                Supported formats: Indian (+91) or Vietnamese (+84) numbers
-              </p>
-            </div>
-
-            {/* Password */}
-            <div className="grid grid-cols-1 gap-4">
+              {/* Password */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                   Password
                 </label>
                 <div className="relative">
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    id="password"
                     name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     required
                     value={formData.password}
                     onChange={handleInputChange}
                     className="input pr-12"
-                    placeholder="Create a password"
+                    placeholder="Create a strong password (min 6 characters)"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
                   Confirm Password
                 </label>
                 <div className="relative">
                   <input
-                    type={showConfirmPassword ? 'text' : 'password'}
+                    id="confirmPassword"
                     name="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     required
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
@@ -391,47 +472,53 @@ export default function SignUp() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
+
+              <ButtonPress
+                type="submit"
+                disabled={loading || !!phoneError}
+                className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <div className="relative w-5 h-5 mx-auto">
+                    <div className="absolute inset-0 w-5 h-5 border-2 border-white border-opacity-25 rounded-full"></div>
+                    <div className="absolute inset-0 w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <UserPlus className="w-5 h-5 mr-2" />
+                    Create Student Account
+                  </div>
+                )}
+              </ButtonPress>
+            </form>
+
+            {/* Links */}
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <Link href="/auth/signin" className="text-primary-hover font-medium">
+                  Sign in here
+                </Link>
+              </p>
             </div>
-
-            <ButtonPress
-              type="submit"
-              disabled={loading || !!phoneError}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
-              ) : (
-                <div className="flex items-center justify-center">
-                  <UserPlus className="w-5 h-5 mr-2" />
-                  Create Student Account
-                </div>
-              )}
-            </ButtonPress>
-          </form>
-
-          {/* Info Note */}
-          <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-100">
-            <p className="text-sm text-green-800">
-              <strong>Note:</strong> Your account will need approval from a manager before you can sign in. 
-              You&apos;ll receive confirmation once your account is approved.
-            </p>
-          </div>
-
-          {/* Links */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link href="/auth/signin" className="text-primary-hover font-medium">
-                Sign in here
-              </Link>
-            </p>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Success Modal */}
+      <SuccessModal 
+        isOpen={showSuccessModal} 
+        onClose={handleModalClose}
+        universityName={getSelectedUniversityName()}
+      />
+    </>
   )
 } 

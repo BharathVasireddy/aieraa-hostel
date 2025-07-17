@@ -32,6 +32,9 @@ model University {
   orders    Order[]
   settings  UniversitySettings?
 
+  // Indexes for performance
+  @@index([isActive]) // Index for fast active university queries
+  @@index([isActive, name]) // Compound index for active universities ordered by name
   @@map("universities")
 }
 

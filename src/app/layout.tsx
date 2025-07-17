@@ -76,7 +76,7 @@ export default function RootLayout({
         {/* Critical CSS inlining hint */}
         <meta name="optimize-css" content="true" />
       </head>
-      <body className={`${inter.variable} font-sans`}>
+      <body className={`${inter.variable} font-sans`} suppressHydrationWarning={true}>
         <div className="w-full min-h-full">
           <SessionWrapper>
             <UserProvider>
