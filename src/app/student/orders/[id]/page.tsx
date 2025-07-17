@@ -11,7 +11,7 @@ import QRCodeComponent from 'react-qr-code'
 import MobileHeader from '@/components/MobileHeader'
 import BottomNavigation from '@/components/BottomNavigation'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
-import { cachedFetch, cache } from '@/lib/cache'
+// Cache imports removed - caching disabled
 
 interface OrderDetail {
   id: string
@@ -68,23 +68,33 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
     try {
       setLoading(true)
       
-      // Check instant cache first
-      const cacheKey = `student_order_${orderId}`
-      const cachedOrder = cache.get<OrderDetail>(cacheKey)
-      if (cachedOrder) {
-        console.log('⚡ INSTANT order detail from cache')
-        setOrder(cachedOrder)
-        generateQRCode(cachedOrder)
-        setLoading(false)
-        return
-      }
-
-      const orderData = await cachedFetch(`/api/orders/${orderId}`, {}, 5) // 5 min cache
-      setOrder(orderData)
-      generateQRCode(orderData)
+      // Always fetch fresh data - no caching
+      const response = await fetch(`/api/orders/${orderId}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
+      })
       
-      // Store in instant cache
-      cache.set(cacheKey, orderData)
+      if (!response.ok) {
+        if (response.status === 404) {
+          setOrder(null) // Clear order if not found
+          setLoading(false)
+          return
+        }
+        throw new Error(`HTTP error: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setOrder(data.order)
+      } else {
+        setOrder(null) // Clear order on error
+      }
+      generateQRCode(data.order)
+      
     } catch (error) {
     console.error(error)
       addNotification({

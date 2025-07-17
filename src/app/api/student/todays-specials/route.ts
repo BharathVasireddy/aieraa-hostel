@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { cache } from '@/lib/cache'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,31 +11,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const cacheKey = `todays_specials_${session.user.universityId}`
-    
-    // Check cache first
-    const cachedData = cache.get(cacheKey)
-    if (cachedData) {
-      return NextResponse.json({
-        success: true,
-        specials: cachedData,
-        cached: true
-      })
-    }
+    // No caching - always fetch fresh data
 
-    // Get today's specials from database
-    const specialItems = await prisma.menuItem.findMany({
+    // Optimized single query - get today's specials
+    const todaysSpecials = await prisma.menuItem.findMany({
       where: {
         universityId: session.user.universityId,
         isActive: true,
-        AND: [
-          { 
-            OR: [
-              { isFeatured: true },
-              { offerPrice: { not: null } },
-              { basePrice: { lte: 200 } }
-            ]
-          }
+        OR: [
+          { offerPrice: { not: null } },
+          { isFeatured: true }
         ]
       },
       select: {
@@ -56,54 +40,56 @@ export async function GET(request: NextRequest) {
         fat: true
       },
       orderBy: [
-        { isFeatured: 'desc' },
         { offerPrice: 'asc' },
-        { basePrice: 'asc' }
+        { isFeatured: 'desc' }
       ],
       take: 6
     })
 
     // Transform the data for frontend consumption
-    const transformedSpecials = specialItems.map(item => {
-      const hasDiscount = item.offerPrice && item.offerPrice < item.basePrice
-      const discountPercentage = hasDiscount 
-        ? Math.round(((item.basePrice - item.offerPrice!) / item.basePrice) * 100)
+    const transformedSpecials = todaysSpecials.map((special, index) => {
+      const discountAmount = special.offerPrice 
+        ? special.basePrice - special.offerPrice 
+        : 0
+      const discountPercentage = discountAmount > 0 
+        ? Math.round((discountAmount / special.basePrice) * 100)
         : 0
 
       return {
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        originalPrice: hasDiscount ? item.basePrice : undefined,
-        discountPrice: item.offerPrice,
-        price: item.offerPrice || item.basePrice,
-        image: item.image,
-        badge: item.isFeatured 
-          ? 'Featured' 
-          : hasDiscount 
-            ? `${discountPercentage}% OFF`
-            : 'Special',
-        isVeg: item.isVegetarian,
-        category: item.categories?.[0]?.toLowerCase() || 'specials',
+        id: special.id,
+        name: special.name,
+        price: special.basePrice,
+        originalPrice: special.offerPrice ? special.basePrice : undefined,
+        discountPrice: special.offerPrice,
+        image: special.image,
+        badge: special.isFeatured ? 'Featured' : 'Special Offer',
+        isVeg: special.isVegetarian,
+        category: special.categories?.[0]?.toLowerCase() || 'special',
+        rating: 4.3 + Math.random() * 0.5,
+        reviewCount: 20 + Math.floor(Math.random() * 80),
+        preparationTime: '10-25 min',
         discount: discountPercentage,
-        rating: 4.0 + Math.random() * 0.8, // Mock rating for UI
-        reviewCount: 10 + Math.floor(Math.random() * 90),
-        preparationTime: '12-18 min',
-        calories: item.calories,
-        protein: item.protein,
-        carbs: item.carbs,
-        fat: item.fat
+        calories: special.calories,
+        protein: special.protein,
+        carbs: special.carbs,
+        fat: special.fat
       }
     })
 
-    // Cache for 10 minutes (specials change less frequently)
-    cache.set(cacheKey, transformedSpecials, 10)
-
-    return NextResponse.json({
-      success: true,
-      specials: transformedSpecials,
-      cached: false
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        specials: transformedSpecials,
+        cached: false
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      }
+    )
 
   } catch (error) {
     console.error('Error fetching today\'s specials:', error)

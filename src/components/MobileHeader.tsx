@@ -1,7 +1,7 @@
 'use client'
 
 import { Bell, Menu, Search } from 'lucide-react'
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 interface MobileHeaderProps {
   title: string

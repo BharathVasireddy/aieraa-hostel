@@ -98,18 +98,6 @@ export default function StudentLayout({
         }}
       />
 
-      {/* Debug Info - Temporary */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="bg-red-50 border border-red-200 p-2 text-xs">
-          <strong>Debug - User Data:</strong>
-          <br />Name: {user.name}
-          <br />Room: {user.roomNumber || 'N/A'}
-          <br />University: {user.university?.name || 'Unknown University'}
-          <br />Student ID: {user.studentId || 'N/A'}
-          <br />Status: {user.status}
-        </div>
-      )}
-
       {/* Page Content */}
       <main className="pb-20">
         {children}

@@ -86,12 +86,13 @@ export async function POST(request: NextRequest) {
     cloudinaryFormData.append('api_key', CLOUDINARY_API_KEY!)
     cloudinaryFormData.append('signature', signature)
 
-    // Upload to Cloudinary
+    // Upload to Cloudinary with timeout handling
     const cloudinaryResponse = await fetch(
       `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME!}/image/upload`,
       {
         method: 'POST',
-        body: cloudinaryFormData
+        body: cloudinaryFormData,
+        signal: AbortSignal.timeout(30000) // 30 second timeout
       }
     )
 
@@ -129,7 +130,25 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Image upload error:', error)
+    
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.name === 'AbortError' || error.message.includes('timeout')) {
+        return NextResponse.json({ 
+          error: 'Upload timeout. Please try again with a smaller image or check your internet connection.' 
+        }, { status: 408 })
+      }
+      
+      if (error.message.includes('ConnectTimeoutError') || error.message.includes('fetch failed')) {
+        return NextResponse.json({ 
+          error: 'Network connection failed. Please check your internet connection and try again.' 
+        }, { status: 503 })
+      }
+    }
+    
+    return NextResponse.json({ 
+      error: 'Failed to upload image. Please try again.' 
+    }, { status: 500 })
   }
 } 

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react'
-import { AlertTriangle, Bell, Check, CheckCircle, Info, Package, X } from 'lucide-react'
+import { useState, useEffect, createContext, useContext } from 'react'
+import type { ReactNode } from 'react'
+import { AlertTriangle, Bell, CheckCircle, Info, Package, X } from 'lucide-react'
 
 interface Notification {
   id: string

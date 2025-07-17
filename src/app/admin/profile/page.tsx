@@ -6,7 +6,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
 import { format } from 'date-fns'
-import { cachedFetch } from '@/lib/cache'
+// Cache imports removed - caching disabled
 
 interface ProfileData {
   id: string
@@ -88,8 +88,23 @@ export default function AdminProfile() {
   const fetchProfileData = async () => {
     try {
       setLoading(true)
-      const data = await cachedFetch('/api/admin/profile', {}, 10) // 10 minute cache
-      if (data.profile) {
+      
+      // Always fetch fresh data - no caching
+      const response = await fetch('/api/admin/profile', {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
         setProfileData(data.profile)
         setEditForm({
           name: data.profile.name || '',

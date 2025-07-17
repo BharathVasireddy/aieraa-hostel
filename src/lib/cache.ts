@@ -1,141 +1,100 @@
-// Simplified high-performance caching system
+// CACHING DISABLED - All cache operations are now no-ops
 import { unstable_cache as nextCache } from 'next/cache'
 
 // Types
 export interface CacheOptions {
-  duration?: number // minutes
+  duration?: number // minutes (ignored)
   force?: boolean
   tags?: string[]
 }
 
-// Simple in-memory cache for immediate access (client-side only)
-class SimpleCache {
+// Disabled cache class - all operations are no-ops
+class DisabledCache {
   private cache = new Map<string, { data: any; expires: number }>()
 
   set<T>(key: string, data: T, ttlMinutes: number = 5): void {
-    const expires = Date.now() + (ttlMinutes * 60 * 1000)
-    this.cache.set(key, { data, expires })
+    // Cache disabled - no-op
   }
 
   get<T>(key: string): T | null {
-    const item = this.cache.get(key)
-    if (!item) return null
-
-    if (Date.now() > item.expires) {
-      this.cache.delete(key)
-      return null
-    }
-
-    return item.data
+    // Cache disabled - always return null
+    return null
   }
 
   delete(key: string): void {
-    this.cache.delete(key)
+    // Cache disabled - no-op
   }
 
   clear(): void {
-    this.cache.clear()
+    // Cache disabled - no-op
   }
 
   // Get cache size for debugging
   size(): number {
-    return this.cache.size
+    return 0 // Always return 0 as cache is disabled
   }
 }
 
-// Global cache instance
-export const cache = new SimpleCache()
+// Global cache instance (disabled)
+export const cache = new DisabledCache()
 
-// Request deduplication to prevent duplicate API calls
+// Request deduplication disabled
 const pendingRequests = new Map<string, Promise<any>>()
 
-// Simplified fetch with basic caching
+// Fetch without caching - always fresh data
 export async function cachedFetch(
   url: string,
   options: CacheOptions = {},
-  cacheDuration: number = 5 // minutes
+  cacheDuration: number = 0 // Ignored - no caching
 ): Promise<any> {
-  const { force = false } = options
-  const cacheKey = `fetch_${url}`
+  // No caching, no deduplication - always fresh fetch
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-store', // Disable browser caching
+      ...options,
+    })
 
-  // Check if request is already pending (deduplication)
-  if (pendingRequests.has(cacheKey)) {
-    return await pendingRequests.get(cacheKey)!
-  }
-
-  // Check cache first (unless forced)
-  if (!force) {
-    const cached = cache.get(cacheKey)
-    if (cached) {
-      return cached
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`)
     }
-  }
 
-  // Create the request promise
-  const requestPromise = (async () => {
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        next: { revalidate: cacheDuration * 60 }, // Next.js cache
-        ...options,
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`)
-      }
-
-      const contentType = response.headers.get('content-type')
-      let data
-      
-      if (contentType?.includes('application/json')) {
-        data = await response.json()
-      } else {
-        data = await response.text()
-      }
-
-      // Cache the successful response
-      cache.set(cacheKey, data, cacheDuration)
-
-      return data
-    } catch (error) {
-      throw error
-    } finally {
-      // Clean up pending request
-      pendingRequests.delete(cacheKey)
+    const contentType = response.headers.get('content-type')
+    let data
+    
+    if (contentType?.includes('application/json')) {
+      data = await response.json()
+    } else {
+      data = await response.text()
     }
-  })()
 
-  // Store the promise to prevent duplicate requests
-  pendingRequests.set(cacheKey, requestPromise)
-
-  return requestPromise
+    // No caching - return data immediately
+    return data
+  } catch (error) {
+    throw error
+  }
 }
 
-// Next.js cache wrapper for server-side caching
+// Disabled server cache - returns function without caching
 export const serverCache = (
   fn: Function,
   keys: string[],
   options: { revalidate?: number; tags?: string[] } = {}
 ) => {
-  return nextCache(fn, keys, {
-    revalidate: options.revalidate || 300, // 5 minutes default
-    tags: options.tags || []
-  })
+  // No caching - return original function
+  return fn
 }
 
-// Simple cache invalidation
+// Disabled cache invalidation
 export const invalidateCache = (pattern: string) => {
-  for (const [key] of cache['cache']) {
-    if (key.includes(pattern)) {
-      cache.delete(key)
-    }
-  }
+  // Cache disabled - no-op
 }
 
-// Clear all cache
+// Disabled cache clearing
 export const clearAllCache = () => {
-  cache.clear()
-  pendingRequests.clear()
+  // Cache disabled - no-op
 } 

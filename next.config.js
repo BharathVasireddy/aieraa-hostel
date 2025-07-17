@@ -47,12 +47,12 @@ const nextConfig = {
     return config
   },
 
-  // Image optimization
+  // Image optimization (caching disabled)
   images: {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60 * 60 * 24 * 7, // 7 days
+    minimumCacheTTL: 0, // Disable image caching
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
@@ -60,7 +60,7 @@ const nextConfig = {
   // Compression
   compress: true,
   
-  // PWA-like features
+  // Headers with caching disabled
   headers: async () => [
     {
       source: '/(.*)',
@@ -80,6 +80,18 @@ const nextConfig = {
         {
           key: 'Referrer-Policy',
           value: 'origin-when-cross-origin'
+        },
+        {
+          key: 'Cache-Control',
+          value: 'no-store, no-cache, must-revalidate, proxy-revalidate'
+        },
+        {
+          key: 'Pragma',
+          value: 'no-cache'
+        },
+        {
+          key: 'Expires',
+          value: '0'
         }
       ]
     },
@@ -88,7 +100,15 @@ const nextConfig = {
       headers: [
         {
           key: 'Cache-Control',
-          value: 'public, max-age=300, stale-while-revalidate=60'
+          value: 'no-store, no-cache, must-revalidate, proxy-revalidate'
+        },
+        {
+          key: 'Pragma',
+          value: 'no-cache'
+        },
+        {
+          key: 'Expires',
+          value: '0'
         }
       ]
     },
@@ -97,7 +117,11 @@ const nextConfig = {
       headers: [
         {
           key: 'Cache-Control',
-          value: 'public, max-age=31536000, immutable'
+          value: 'no-store, no-cache, must-revalidate, proxy-revalidate'
+        },
+        {
+          key: 'Pragma',
+          value: 'no-cache'
         }
       ]
     }

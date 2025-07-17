@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { cache } from '@/lib/cache'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,17 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const cacheKey = `popular_dishes_${session.user.universityId}`
-    
-    // Check cache first
-    const cachedData = cache.get(cacheKey)
-    if (cachedData) {
-      return NextResponse.json({
-        success: true,
-        dishes: cachedData,
-        cached: true
-      })
-    }
+    // No caching - always fetch fresh data
 
     // Optimized single query - get popular dishes based on featured status and price
     const popularDishes = await prisma.menuItem.findMany({
@@ -77,14 +66,20 @@ export async function GET(request: NextRequest) {
       fat: dish.fat
     }))
 
-    // Cache for 5 minutes
-    cache.set(cacheKey, transformedDishes, 5)
-
-    return NextResponse.json({
-      success: true,
-      dishes: transformedDishes,
-      cached: false
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        dishes: transformedDishes,
+        cached: false
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      }
+    )
 
   } catch (error) {
     console.error('Error fetching popular dishes:', error)

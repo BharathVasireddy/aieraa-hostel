@@ -3,7 +3,7 @@
 import { BarChart3, Clock, DollarSign, Download, PieChart, RefreshCw, ShoppingCart, Target, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import MobileHeader from '@/components/MobileHeader'
-import { cachedFetch, cache } from '@/lib/cache'
+// Cache imports removed - caching disabled
 
 interface AnalyticsData {
   period: string
@@ -62,21 +62,21 @@ export default function AdminAnalytics() {
     try {
       setLoading(true)
       
-      // Check instant cache first
-      const cacheKey = `analytics_${selectedPeriod}`
-      const cachedAnalytics = cache.get<AnalyticsData>(cacheKey)
-      if (cachedAnalytics) {
-        setAnalytics(cachedAnalytics)
-        setLoading(false)
-        return
+      // Always fetch fresh data - no caching
+      const response = await fetch(`/api/admin/analytics?period=${selectedPeriod}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`)
       }
       
-      // Use lightning fetch with 10 minute cache for analytics
-      const data = await cachedFetch(`/api/admin/analytics?period=${selectedPeriod}`, {}, 10)
+      const data = await response.json()
       setAnalytics(data)
-      
-      // Store in instant cache for immediate future access
-      cache.set(cacheKey, data)
     } catch (error) {
       // Handle error silently
     } finally {

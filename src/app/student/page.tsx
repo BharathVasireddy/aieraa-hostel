@@ -4,6 +4,7 @@ import { Clock, Flame, Search, Sparkles, User, UtensilsCrossed } from 'lucide-re
 import { useRouter } from 'next/navigation'
 import { format, addDays, startOfToday } from 'date-fns'
 import StudentLayout from '@/components/StudentLayout'
+import PromotionalSlider from '@/components/PromotionalSlider'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { getVietnamTime, getVietnamGreeting, getOrderingCountdown } from '@/lib/timezone'
 import { useUser } from '@/components/UserProvider'
@@ -237,6 +238,9 @@ export default function StudentDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Promotional Slider */}
+      <PromotionalSlider universityId={user.universityId} />
 
       {/* Main Content */}
       <div className="px-4 py-6 space-y-6">

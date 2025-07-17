@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { useUser } from '@/components/UserProvider'
-import { cache, cachedFetch } from '@/lib/cache'
+// Cache imports removed - caching disabled
 
 interface DashboardStats {
   totalUsers: number
@@ -60,115 +60,117 @@ export default function AdminDashboard() {
   const [showNotifications, setShowNotifications] = useState(false)
 
   // Fetch dashboard data with lightning caching
-  const fetchDashboardData = useCallback(async (refresh = false) => {
+  const fetchDashboardData = useCallback(async () => {
+    if (loading) return
+    
     try {
-      if (refresh) setRefreshing(true)
-      else setLoading(true)
+      setLoading(true)
+      
+      // Always fetch fresh data - no caching
+      const response = await fetch('/api/admin/analytics?period=week', {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`)
+      }
+      
+      const data = await response.json()
 
-      // Check instant cache first (unless refreshing)
-      const cacheKey = `admin_dashboard_${selectedDateRange}`
-      if (!refresh) {
-        const cachedData = cache.get<any>(cacheKey)
-        if (cachedData) {
-          setStats(cachedData.stats)
-          setRecentOrders(cachedData.recentOrders)
-          setPopularItems(cachedData.popularItems)
-          setLoading(false)
-          return
-        }
+      // Transform analytics data
+      const analyticsData = data.data
+      const transformedStats: DashboardStats = {
+        totalUsers: analyticsData.totalStudents || 0,
+        activeOrders: analyticsData.activeOrders || 0,
+        todaysRevenue: analyticsData.todaysRevenue || 0,
+        menuItems: analyticsData.totalMenuItems || 0,
+        pendingOrders: analyticsData.pendingOrders || 0,
+        completedOrders: analyticsData.completedOrders || 0,
+        monthlyGrowth: analyticsData.monthlyGrowth || 0,
+        averageOrderValue: analyticsData.averageOrderValue || 0
       }
 
-      // Fetch fresh data
-      const [analyticsResponse, ordersResponse] = await Promise.all([
-        cachedFetch('/api/admin/analytics', {}, refresh ? 0 : 5), // 5 min cache
-        cachedFetch('/api/admin/orders?limit=10', {}, refresh ? 0 : 2) // 2 min cache for recent orders
-      ])
+      // Transform recent orders
+      const ordersResponse = await fetch('/api/admin/orders?limit=10', {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
+      })
 
-      if (analyticsResponse.success && ordersResponse.success) {
-        // Transform analytics data
-        const analyticsData = analyticsResponse.data
-        const transformedStats: DashboardStats = {
-          totalUsers: analyticsData.totalStudents || 0,
-          activeOrders: analyticsData.activeOrders || 0,
-          todaysRevenue: analyticsData.todaysRevenue || 0,
-          menuItems: analyticsData.totalMenuItems || 0,
-          pendingOrders: analyticsData.pendingOrders || 0,
-          completedOrders: analyticsData.completedOrders || 0,
-          monthlyGrowth: analyticsData.monthlyGrowth || 0,
-          averageOrderValue: analyticsData.averageOrderValue || 0
-        }
-
-        // Transform recent orders
-        const transformedOrders: RecentOrder[] = ordersResponse.orders?.map((order: any) => ({
-          id: order.id,
-          orderNumber: order.orderNumber || `ORD-${order.id.slice(-6)}`,
-          studentName: order.user?.name || 'Student',
-          items: order.orderItems?.length || 0,
-          total: order.totalAmount || 0,
-          status: order.status || 'PENDING',
-          orderDate: order.orderDate || order.createdAt,
-          deliveryTime: order.deliveryTime
-        })) || []
-
-        // Mock popular items (enhance with real data)
-        const mockPopularItems: PopularItem[] = [
-          {
-            id: '1',
-            name: 'Butter Chicken Rice',
-            category: 'lunch',
-            ordersCount: 45,
-            revenue: 8100,
-            isVegetarian: false,
-            trend: 'up'
-          },
-          {
-            id: '2', 
-            name: 'Paneer Tikka Masala',
-            category: 'lunch',
-            ordersCount: 38,
-            revenue: 5700,
-            isVegetarian: true,
-            trend: 'up'
-          },
-          {
-            id: '3',
-            name: 'Chicken Biryani',
-            category: 'dinner',
-            ordersCount: 32,
-            revenue: 6400,
-            isVegetarian: false,
-            trend: 'stable'
-          },
-          {
-            id: '4',
-            name: 'Masala Dosa',
-            category: 'breakfast',
-            ordersCount: 28,
-            revenue: 2800,
-            isVegetarian: true,
-            trend: 'down'
-          }
-        ]
-
-        setStats(transformedStats)
-        setRecentOrders(transformedOrders)
-        setPopularItems(mockPopularItems)
-
-        // Store in instant cache
-        const cacheData = {
-          stats: transformedStats,
-          recentOrders: transformedOrders,
-          popularItems: mockPopularItems
-        }
-        cache.set(cacheKey, cacheData)
+      if (!ordersResponse.ok) {
+        throw new Error(`HTTP error: ${ordersResponse.status}`)
       }
+
+      const ordersData = await ordersResponse.json()
+
+      const transformedOrders: RecentOrder[] = ordersData.orders?.map((order: any) => ({
+        id: order.id,
+        orderNumber: order.orderNumber || `ORD-${order.id.slice(-6)}`,
+        studentName: order.user?.name || 'Student',
+        items: order.orderItems?.length || 0,
+        total: order.totalAmount || 0,
+        status: order.status || 'PENDING',
+        orderDate: order.orderDate || order.createdAt,
+        deliveryTime: order.deliveryTime
+      })) || []
+
+      // Mock popular items (enhance with real data)
+      const mockPopularItems: PopularItem[] = [
+        {
+          id: '1',
+          name: 'Butter Chicken Rice',
+          category: 'lunch',
+          ordersCount: 45,
+          revenue: 8100,
+          isVegetarian: false,
+          trend: 'up'
+        },
+        {
+          id: '2', 
+          name: 'Paneer Tikka Masala',
+          category: 'lunch',
+          ordersCount: 38,
+          revenue: 5700,
+          isVegetarian: true,
+          trend: 'up'
+        },
+        {
+          id: '3',
+          name: 'Chicken Biryani',
+          category: 'dinner',
+          ordersCount: 32,
+          revenue: 6400,
+          isVegetarian: false,
+          trend: 'stable'
+        },
+        {
+          id: '4',
+          name: 'Masala Dosa',
+          category: 'breakfast',
+          ordersCount: 28,
+          revenue: 2800,
+          isVegetarian: true,
+          trend: 'down'
+        }
+      ]
+
+      setStats(transformedStats)
+      setRecentOrders(transformedOrders)
+      setPopularItems(mockPopularItems)
+
     } catch (error) {
       // Handle error silently
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [selectedDateRange])
+  }, [loading])
 
   // Initial data fetch
   useEffect(() => {
@@ -309,7 +311,7 @@ export default function AdminDashboard() {
             
             {/* Refresh Button */}
             <button
-              onClick={() => fetchDashboardData(true)}
+              onClick={() => fetchDashboardData()}
               disabled={refreshing}
               className="btn-outline p-2"
             >

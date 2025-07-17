@@ -7,7 +7,6 @@ import { useSession } from 'next-auth/react'
 
 import MobileHeader from '@/components/MobileHeader'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
-import { cachedFetch, cache } from '@/lib/cache'
 import { showToast } from '@/components/ui/Toast'
 
 interface OrderItem {
@@ -126,19 +125,16 @@ export default function AdminOrders() {
 
     const fetchCurrentUser = useCallback(async () => {
     try {
-      // Check instant cache first
-      const cacheKey = 'admin_profile'
-      const cachedProfile = cache.get<{profile: any}>(cacheKey)
-      if (cachedProfile) {
-        console.log('⚡ INSTANT admin profile from cache')
-        setCurrentUserData(cachedProfile.profile)
-        return
-      }
-
-      const data = await cachedFetch('/api/admin/profile', {}, 30) // 30 min cache
+      // Always fetch fresh data - no caching
+      const profileResponse = await fetch('/api/admin/profile', {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
+      })
+      const data = await profileResponse.json()
       setCurrentUserData(data.profile)
-      // Store in instant cache
-      cache.set(cacheKey, data)
     } catch (error) {
        console.error(error)
     }
@@ -149,17 +145,17 @@ export default function AdminOrders() {
       // Only fetch for Super Admins
       if (currentUserData?.role !== 'ADMIN') return
 
-      const cacheKey = 'admin_universities_filter'
-      const cachedUniversities = cache.get<University[]>(cacheKey)
-      if (cachedUniversities) {
-        setUniversities(cachedUniversities)
-        return
-      }
-
-      const data = await cachedFetch('/api/admin/universities', {}, 15) // 15 min cache
+      // Always fetch fresh data - no caching
+      const universitiesResponse = await fetch('/api/admin/universities', {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
+      })
+      const data = await universitiesResponse.json()
       if (data.success) {
         setUniversities(data.universities)
-        cache.set(cacheKey, data.universities)
       }
     } catch (error) {
        console.error(error)
@@ -170,20 +166,16 @@ export default function AdminOrders() {
     try {
       setLoading(true)
       
-      // Check instant cache first
-      const cacheKey = 'admin_orders'
-      const cachedOrders = cache.get<Order[]>(cacheKey)
-      if (cachedOrders) {
-        console.log('⚡ INSTANT orders from cache')
-        setOrders(cachedOrders)
-        setLoading(false)
-        return
-      }
-
-      const ordersData = await cachedFetch('/api/admin/orders', {}, 5) // 5 min cache for orders
-      setOrders(ordersData)
-      // Store in instant cache
-      cache.set(cacheKey, ordersData)
+      // Always fetch fresh data - no caching
+      const ordersResponse = await fetch(`/api/admin/orders?university=${selectedUniversity}&status=${selectedTab}&page=1&limit=100`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
+      })
+      const data = await ordersResponse.json()
+      setOrders(data)
     } catch (error) {
        console.error(error)
       showToast({
@@ -194,14 +186,11 @@ export default function AdminOrders() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [selectedUniversity, selectedTab])
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
     // Clear cache and force fresh data
-    cache.delete('admin_orders')
-    cache.delete('admin_profile')
-    cache.delete('admin_universities_filter')
     await fetchOrders()
     await fetchCurrentUser()
     await fetchUniversities()
@@ -239,7 +228,7 @@ export default function AdminOrders() {
         ))
         
         // Clear cache to force fresh data on next load
-        cache.delete('admin_orders')
+        // cache.delete('admin_orders') // Removed cache
         
         const statusMessages = {
           'APPROVED': 'Order approved - ready for kitchen preparation',

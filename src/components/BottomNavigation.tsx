@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, BarChart3, Building, ChefHat, Clock, Crown, Home, Menu, Plus, Settings, ShoppingBag, UserPlus, Users, UtensilsCrossed } from 'lucide-react'
+import { AlertTriangle, BarChart3, Building, ChefHat, Clock, Crown, Home, Menu, Plus, Settings, ShoppingBag, Users, UtensilsCrossed } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useCallback, useState, useTransition, useMemo, memo } from 'react'
 import { useSession } from 'next-auth/react'
@@ -106,6 +106,12 @@ const BottomNavigation = memo(function BottomNavigation() {
         label: 'Analytics',
         path: '/admin/analytics',
         isActive: pathname === '/admin/analytics' || (isPending && activeRoute === '/admin/analytics')
+      },
+      {
+        icon: AlertTriangle,
+        label: 'Promotions',
+        path: '/admin/promotional-banners',
+        isActive: pathname.startsWith('/admin/promotional-banners') || (isPending && activeRoute.startsWith('/admin/promotional-banners'))
       },
       {
         icon: Settings,

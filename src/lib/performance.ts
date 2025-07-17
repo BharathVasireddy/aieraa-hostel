@@ -1,5 +1,5 @@
-// Performance monitoring and optimization utilities
-import { cache } from './cache'
+// Performance monitoring and optimization utilities (caching disabled)
+// Cache imports removed
 
 // Performance metrics tracking
 class PerformanceMonitor {
@@ -68,15 +68,9 @@ export async function lightningFastFetch(url: string, options?: RequestInit): Pr
   }
 }
 
-// Preload critical application data
+// Preload critical application data (disabled - no caching)
 export async function preloadCriticalData(): Promise<void> {
-  try {
-    // Preload menu data for faster navigation
-    const menuData = await lightningFastFetch('/api/menu')
-    cache.set('menu_data', menuData)
-  } catch (error) {
-    // Silently handle preload errors
-  }
+  // Preloading disabled - no caching
 }
 
 // Optimized image loading
@@ -169,15 +163,9 @@ export function lazyLoad<T>(importFunction: () => Promise<T>): Promise<T> {
   return importFunction()
 }
 
-// Memory usage optimization
+// Memory usage optimization (cache clearing disabled)
 export function optimizeMemoryUsage(): void {
-  // Clear old cache entries
-  if (typeof window !== 'undefined') {
-    // Clear expired cache entries every 5 minutes
-    setInterval(() => {
-      cache.clear()
-    }, 5 * 60 * 1000)
-  }
+  // Cache clearing disabled - no-op
 }
 
 // Resource hints for better performance

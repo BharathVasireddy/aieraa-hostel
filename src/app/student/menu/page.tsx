@@ -3,10 +3,12 @@
 import { Leaf, Menu, Minus, Plus, Search, ShoppingCart } from 'lucide-react'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { format, addDays, startOfToday, set } from 'date-fns'
+import { format, addDays, startOfToday } from 'date-fns'
 import StudentLayout from '@/components/StudentLayout'
+import { useCart } from '@/components/CartProvider'
+import { useUser } from '@/components/UserProvider'
 import { getVietnamTime, getOrderingCountdown } from '@/lib/timezone'
-import { cache, cachedFetch } from '@/lib/cache'
+// Cache imports removed - caching disabled
 
 interface MenuItem {
   id: string
@@ -182,54 +184,28 @@ export default function StudentMenu() {
   // Fetch menu items from API - optimized loading
   useEffect(() => {
     const fetchMenuItems = async () => {
-      setLoading(true)
+      if (!user?.universityId) return
+      
       try {
-        // Use the new student menu API with proper parameters
-        const params = new URLSearchParams({
-          date: selectedDate,
-          category: selectedCategory,
-          search: searchQuery,
-          vegOnly: showVegOnly.toString()
+        setLoading(true)
+        
+        // Always fetch fresh data - no caching
+        const response = await fetch(`/api/menu?universityId=${user.universityId}&date=${selectedDate}`, {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          cache: 'no-store'
         })
         
-        // Check instant cache first
-        const cacheKey = `menu_${selectedDate}_${selectedCategory}_${searchQuery}_${showVegOnly}`
-        const cachedMenu = cache.get<MenuItem[]>(cacheKey)
-        if (cachedMenu) {
-          console.log('⚡ INSTANT menu from cache')
-          setMenuItems(cachedMenu)
-          setLoading(false)
-          return
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`)
         }
         
-        const response = await cachedFetch(`/api/student/menu?${params}`, {}, 15) // 15 min cache
+        const data = await response.json()
         
-        if (response.success) {
-          // Transform API response to match component interface
-          const transformedItems: MenuItem[] = response.menuItems.map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            price: item.price,
-            offerPrice: item.offerPrice,
-            category: item.categories?.[0] || 'SNACKS', // Use first category for display
-            isVegetarian: item.isVegetarian,
-            image: item.image,
-            variations: item.variants?.map((variant: any) => ({
-              id: variant.id,
-              name: variant.name,
-              quantity: variant.name, // Use name as quantity description
-              price: variant.price,
-              offerPrice: null
-            })) || []
-          }))
-          
-          setMenuItems(transformedItems)
-          // Store in instant cache for immediate future access
-          cache.set(cacheKey, transformedItems)
-        } else {
-          console.error('Failed to fetch menu items:', response.error)
-          setMenuItems([])
+        if (data.success) {
+          setMenuItems(data.items || [])
         }
       } catch (error) {
     console.error(error)
@@ -240,7 +216,7 @@ export default function StudentMenu() {
     }
 
     fetchMenuItems()
-  }, [selectedDate, selectedCategory, searchQuery, showVegOnly])
+  }, [selectedDate, selectedCategory, searchQuery, showVegOnly, user?.universityId])
 
   // Filter items based on category, search, and vegetarian preference - memoized
   const filteredItems = useMemo(() => {

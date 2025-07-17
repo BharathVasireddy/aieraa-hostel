@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { ArrowLeft, Eye, EyeOff, MapPin, User, UserPlus, CheckCircle, Clock, X } from 'lucide-react'
 import { ButtonPress } from '@/components/PageTransition'
-import { cachedFetch } from '@/lib/cache'
+// Cache imports removed - caching disabled
 
 interface University {
   id: string
@@ -120,8 +120,20 @@ export default function SignUp() {
       try {
         setUniversitiesLoading(true)
         
-        // Use cachedFetch with 30-minute cache for universities (they rarely change)
-        const data = await cachedFetch('/api/public/universities', {}, 30) // 30 min cache
+        // Always fetch fresh data - no caching
+        const response = await fetch('/api/public/universities', {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          cache: 'no-store'
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`)
+        }
+        
+        const data = await response.json()
         
         if (data.success) {
           setUniversities(data.universities)

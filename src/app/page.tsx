@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Clock, Shield, Smartphone, Star, ArrowRight } from 'lucide-react'
-import { cachedFetch } from '@/lib/cache'
+// Cache imports removed - caching disabled
 
 export default function LandingPage() {
   const router = useRouter()
@@ -22,7 +22,7 @@ export default function LandingPage() {
       const preloadUniversities = async () => {
         try {
           // Silently cache universities data for instant signup loading
-          await cachedFetch('/api/public/universities', {}, 30)
+          await fetch('/api/public/universities')
           console.log('🚀 Universities preloaded for instant signup')
         } catch (error) {
           // Silently handle preload errors

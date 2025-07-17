@@ -31,6 +31,7 @@ model University {
   menuItems MenuItem[]
   orders    Order[]
   settings  UniversitySettings?
+  promotionalBanners PromotionalBanner[]
 
   // Indexes for performance
   @@index([isActive]) // Index for fast active university queries
@@ -357,4 +358,43 @@ model PushNotificationToken {
   updatedAt DateTime @updatedAt
 
   @@map("push_notification_tokens")
+}
+
+// Promotional banners for student dashboard slider
+model PromotionalBanner {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  image        String   // Cloudinary URL or path to banner image
+  
+  // Action configuration
+  actionType   String   @default("none") // "menu", "url", "category", "none"
+  actionValue  String?  // Menu item ID, URL, category name, etc.
+  buttonText   String?  // Text for action button
+  
+  // Offer details
+  discountPercentage Float?
+  offerValidUntil    DateTime?
+  
+  // Display settings
+  backgroundColor String @default("#10B981") // Default green
+  textColor       String @default("#FFFFFF") // Default white
+  order           Int    @default(0) // Display order in slider
+  
+  // Availability
+  isActive     Boolean @default(true)
+  universityId String
+  
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String   // User ID who created the banner
+
+  // Relations
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([universityId, isActive, order])
+  @@index([universityId, isActive, createdAt])
+  @@map("promotional_banners")
 }

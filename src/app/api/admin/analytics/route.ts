@@ -4,11 +4,7 @@ import { startOfDay, endOfDay, format, startOfWeek, endOfWeek, startOfMonth, end
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 
-// Cache analytics for 15 minutes - analytics don't need real-time updates
-const CACHE_DURATION = 15 * 60 * 1000 // 15 minutes
-let cachedAnalytics: any = null
-let cacheTimestamp = 0
-let cacheKey = ''
+// CACHING DISABLED - Always fetch fresh analytics data
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,18 +38,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'week'
     
-    // Create cache key based on user and period
-    const newCacheKey = `${currentUser.id}-${period}`
-    const now = Date.now()
-    
-    // Return cached data if still valid and for same user/period
-    if (cachedAnalytics && cacheTimestamp && cacheKey === newCacheKey && (now - cacheTimestamp) < CACHE_DURATION) {
-      console.log('✅ Analytics: Returning cached data')
-      return NextResponse.json({
-        ...cachedAnalytics,
-        cached: true
-      })
-    }
+    // No caching - always fetch fresh data
 
     // Calculate date range based on period
     let startDate: Date, endDate: Date
@@ -200,12 +185,7 @@ export async function GET(request: NextRequest) {
       cached: false
     }
 
-    // Update cache
-    cachedAnalytics = analyticsData
-    cacheTimestamp = now
-    cacheKey = newCacheKey
-
-    console.log('✅ Analytics: Successfully calculated analytics data')
+    console.log('✅ Analytics: Successfully calculated analytics data (no caching)')
     
     return NextResponse.json(analyticsData)
     

@@ -1,8 +1,9 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import type { ReactNode } from 'react'
 import { useSession, signOut } from 'next-auth/react'
-import { User, University, UniversitySettings } from '@/generated/prisma'
+import type { User, University, UniversitySettings } from '@/generated/prisma'
 
 // Custom type that includes university relationship
 interface UserWithUniversity extends User {
@@ -125,6 +126,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [session, status, isMounted, fetchUserData])
 
   const clearCacheAndRefetch = useCallback(async () => {
+    // Cache disabled - just refetch user data
     setUser(null)
     setError(null)
     await fetchUserData()
