@@ -53,7 +53,9 @@ export default function StudentMenu() {
   const [selectedDate, setSelectedDate] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('selectedOrderDate');
-      if (saved) {return saved;}
+      if (saved) {
+        return saved;
+      }
     }
     const tomorrow = addDays(startOfToday(), 1);
     return format(tomorrow, 'yyyy-MM-dd');
@@ -211,14 +213,20 @@ export default function StudentMenu() {
   // Fetch menu items from API - optimized loading
   useEffect(() => {
     const fetchMenuItems = async () => {
-      if (!user?.universityId) {return;}
+      if (!user?.university?.id) {
+        console.log('User or university ID not available:', {
+          user: !!user,
+          universityId: user?.university?.id,
+        });
+        return;
+      }
 
       try {
         setLoading(true);
 
         // Always fetch fresh data - no caching
         const response = await fetch(
-          `/api/menu?universityId=${user.universityId}&date=${selectedDate}`,
+          `/api/menu?universityId=${user.university.id}&date=${selectedDate}`,
           {
             headers: {
               'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -251,7 +259,7 @@ export default function StudentMenu() {
     selectedCategory,
     searchQuery,
     showVegOnly,
-    user?.universityId,
+    user?.university?.id,
   ]);
 
   // Filter items based on category, search, and vegetarian preference - memoized
@@ -397,13 +405,17 @@ export default function StudentMenu() {
     const nameKey = Object.keys(foodImages).find(key =>
       itemName.toLowerCase().includes(key)
     );
-    if (nameKey && foodImages[nameKey]) {return foodImages[nameKey];}
+    if (nameKey && foodImages[nameKey]) {
+      return foodImages[nameKey];
+    }
 
     // Fall back to category
     const categoryKey = Object.keys(foodImages).find(key =>
       category.toLowerCase().includes(key)
     );
-    if (categoryKey && foodImages[categoryKey]) {return foodImages[categoryKey];}
+    if (categoryKey && foodImages[categoryKey]) {
+      return foodImages[categoryKey];
+    }
 
     // Default fallback
     return 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200&h=200&fit=crop';
