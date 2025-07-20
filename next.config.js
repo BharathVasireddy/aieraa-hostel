@@ -47,12 +47,12 @@ const nextConfig = {
     return config;
   },
 
-  // Image optimization with reasonable caching
+  // Image optimization with NO caching
   images: {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60, // 1 minute cache for development, longer in production
+    minimumCacheTTL: 0, // No image caching
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
@@ -60,7 +60,7 @@ const nextConfig = {
   // Compression
   compress: true,
 
-  // Headers with smart caching
+  // Headers with NO caching - all requests fresh
   headers: async () => [
     {
       source: '/(.*)',
@@ -81,45 +81,17 @@ const nextConfig = {
           key: 'Referrer-Policy',
           value: 'origin-when-cross-origin',
         },
-      ],
-    },
-    {
-      // Cache static assets for better performance
-      source: '/icons/:path*',
-      headers: [
         {
           key: 'Cache-Control',
-          value: 'public, max-age=86400, stale-while-revalidate=604800', // 1 day cache, 1 week stale
+          value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
         },
-      ],
-    },
-    {
-      // Cache API responses briefly to avoid unnecessary requests
-      source: '/api/student/:path*',
-      headers: [
         {
-          key: 'Cache-Control',
-          value: 'private, max-age=60, stale-while-revalidate=300', // 1 minute cache
+          key: 'Pragma',
+          value: 'no-cache',
         },
-      ],
-    },
-    {
-      // No cache for auth and critical APIs
-      source: '/api/auth/:path*',
-      headers: [
         {
-          key: 'Cache-Control',
-          value: 'no-store, no-cache, must-revalidate',
-        },
-      ],
-    },
-    {
-      // Reasonable caching for static files
-      source: '/_next/static/:path*',
-      headers: [
-        {
-          key: 'Cache-Control',
-          value: 'public, max-age=31536000, immutable', // 1 year for static assets
+          key: 'Expires',
+          value: '0',
         },
       ],
     },
