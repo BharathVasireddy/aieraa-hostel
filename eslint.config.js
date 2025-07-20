@@ -8,15 +8,24 @@ import next from '@next/eslint-plugin-next';
 export default [
   js.configs.recommended,
   {
-    files: ['**/*.{js,jsx,ts,tsx}'],
     ignores: [
       'src/generated/**/*',
+      'src/generated/**/*.js',
+      'src/generated/**/*.ts',
       '.next/**/*',
       'node_modules/**/*',
       '*.d.ts',
       'dist/**/*',
       'build/**/*',
+      '*.config.js',
+      '*.config.ts',
+      'eslint.config.js',
+      'next.config.js',
+      'tailwind.config.js',
     ],
+  },
+  {
+    files: ['src/**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {

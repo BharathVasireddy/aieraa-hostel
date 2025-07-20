@@ -35,6 +35,10 @@ interface University {
   code: string;
 }
 
+interface UniversitiesResponse {
+  universities: University[];
+}
+
 const categories = [
   'Breakfast',
   'Lunch',
@@ -93,7 +97,8 @@ export default function NewMenuItemPage() {
 
   const fetchUniversities = async () => {
     try {
-      const data = await cachedFetch('/api/admin/universities');
+      const response = await cachedFetch('/api/admin/universities');
+      const data = response as UniversitiesResponse;
       setUniversities(data.universities ?? []);
 
       // Auto-select first university for admin
@@ -113,7 +118,9 @@ export default function NewMenuItemPage() {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
-    if (!file) {return;}
+    if (!file) {
+      return;
+    }
 
     setUploadingImage(true);
     setError('');

@@ -1,60 +1,60 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import Razorpay from 'razorpay'
-import { getFastUserOrders } from '@/lib/db-optimized'
-import { trackAPIEndpoint } from '@/lib/performance'
-import { OrderStatus } from '@/generated/prisma'
-import { toOrderStatus } from '@/lib/validation'
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import Razorpay from 'razorpay';
+import { getFastUserOrders } from '@/lib/db-optimized';
+import { OrderStatus } from '@/generated/prisma';
+import { toOrderStatus } from '@/lib/validation';
 
 interface OrderItem {
-  menuItemId: string
-  quantity: number
-  price: number
+  menuItemId: string;
+  quantity: number;
+  price: number;
 }
 
 // Initialize Razorpay only if keys are provided
-const razorpay = process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET 
-  ? new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
-    })
-  : null
+const razorpay =
+  process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET
+    ? new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
+      })
+    : null;
 
 // Get orders for a user
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(authOptions);
+
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const status = searchParams.get('status')
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const status = searchParams.get('status');
 
     // Validate status parameter
-    const validStatus = toOrderStatus(status)
-    const statusFilter = validStatus ? [validStatus] : undefined
-    const offset = (page - 1) * limit
+    const validStatus = toOrderStatus(status);
+    const statusFilter = validStatus ? [validStatus] : undefined;
+    const offset = (page - 1) * limit;
 
     // Use lightning-fast optimized query
     const orders = await getFastUserOrders(session.user.id, {
       status: statusFilter,
       limit,
-      offset
-    })
+      offset,
+    });
 
     // Get total count with parallel query
     const totalOrders = await prisma.order.count({
       where: {
         userId: session.user.id,
-        ...(validStatus ? { status: validStatus } : {})
-      }
-    })
+        ...(validStatus ? { status: validStatus } : {}),
+      },
+    });
 
     return NextResponse.json({
       success: true,
@@ -63,37 +63,46 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         page,
         limit,
         total: totalOrders,
-        hasMore: (page * limit) < totalOrders
+        hasMore: page * limit < totalOrders,
       },
       performance: {
-        timestamp: Date.now()
-      }
-    })
+        timestamp: Date.now(),
+      },
+    });
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })
+    console.error(error);
+    return NextResponse.json(
+      { error: 'Failed to fetch orders' },
+      { status: 500 }
+    );
   }
 }
 
 // Create a new order
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
+    const session = await getServerSession(authOptions);
+
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json()
-    const { items, orderDate, specialInstructions, paymentMethod } = body
+    const body = await request.json();
+    const { items, orderDate, specialInstructions, paymentMethod } = body;
 
     // Validate required fields
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: 'Order items are required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Order items are required' },
+        { status: 400 }
+      );
     }
 
     if (!orderDate) {
-      return NextResponse.json({ error: 'Order date is required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Order date is required' },
+        { status: 400 }
+      );
     }
 
     // Get user details
@@ -102,88 +111,96 @@ export async function POST(request: NextRequest) {
       include: {
         university: {
           include: {
-            settings: true
-          }
-        }
-      }
-    })
+            settings: true,
+          },
+        },
+      },
+    });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Validate menu items and calculate total
-    let totalAmount = 0
-    const validatedItems = []
+    let totalAmount = 0;
+    const validatedItems = [];
 
     for (const item of items) {
       // Extract base menu item ID (remove variant suffix if present)
-      const baseMenuItemId = item.menuItemId.includes('-') 
-        ? item.menuItemId.split('-')[0] 
-        : item.menuItemId
-      
+      const baseMenuItemId = item.menuItemId.includes('-')
+        ? item.menuItemId.split('-')[0]
+        : item.menuItemId;
+
       const menuItem = await prisma.menuItem.findFirst({
         where: {
           id: baseMenuItemId,
           universityId: user.universityId,
-          isActive: true
+          isActive: true,
         },
         include: {
-          variants: true
-        }
-      })
+          variants: true,
+        },
+      });
 
       if (!menuItem) {
-        return NextResponse.json({ 
-          error: `Menu item ${baseMenuItemId} not found or not available` 
-        }, { status: 400 })
+        return NextResponse.json(
+          {
+            error: `Menu item ${baseMenuItemId} not found or not available`,
+          },
+          { status: 400 }
+        );
       }
 
       // Handle variant pricing
-      let itemPrice = menuItem.basePrice
-      let variantId = null
+      let itemPrice = menuItem.basePrice;
+      let variantId = null;
 
       if (item.menuItemId.includes('-')) {
-        const variantIdFromRequest = item.menuItemId.split('-')[1]
-        const variant = menuItem.variants.find(v => v.id === variantIdFromRequest)
-        
-        if (variant && variant.isActive) {
-          itemPrice = variant.price
-          variantId = variant.id
+        const variantIdFromRequest = item.menuItemId.split('-')[1];
+        const variant = menuItem.variants.find(
+          v => v.id === variantIdFromRequest
+        );
+
+        if (variant?.isActive) {
+          itemPrice = variant.price;
+          variantId = variant.id;
         } else {
-          return NextResponse.json({ 
-            error: `Variant ${variantIdFromRequest} not found or not available` 
-          }, { status: 400 })
+          return NextResponse.json(
+            {
+              error: `Variant ${variantIdFromRequest} not found or not available`,
+            },
+            { status: 400 }
+          );
         }
       } else {
         // Use default variation if no specific variation selected
-        const defaultVariant = menuItem.variants.find(v => v.isDefault)
+        const defaultVariant = menuItem.variants.find(v => v.isDefault);
         if (defaultVariant) {
-          itemPrice = defaultVariant.price
-          variantId = defaultVariant.id
+          itemPrice = defaultVariant.price;
+          variantId = defaultVariant.id;
         }
       }
 
-      const itemTotal = itemPrice * item.quantity
+      const itemTotal = itemPrice * item.quantity;
 
       validatedItems.push({
         menuItemId: menuItem.id,
         variantId: variantId,
         quantity: item.quantity,
-        price: itemPrice
-      })
+        price: itemPrice,
+      });
 
-      totalAmount += itemTotal
+      totalAmount += itemTotal;
     }
 
     // Add tax
-    const taxRate = user.university?.settings?.baseTaxRate || 0.1
-    const taxAmount = Math.round(totalAmount * taxRate)
-    const finalTotal = totalAmount + taxAmount
+    const taxRate = user.university?.settings?.baseTaxRate || 0.1;
+    const taxAmount = Math.round(totalAmount * taxRate);
+    const finalTotal = totalAmount + taxAmount;
 
     // Generate order number
-    const orderCount = await prisma.order.count()
-    const orderNumber = `AH${String(orderCount + 1).padStart(6, '0')}`
+    const orderCount = await prisma.order.count();
+    const orderNumber = `AH${String(orderCount + 1).padStart(6, '0')}`;
 
     // Create order
     const order = await prisma.order.create({
@@ -200,8 +217,8 @@ export async function POST(request: NextRequest) {
         paymentStatus: paymentMethod === 'cash' ? 'PENDING' : 'PENDING',
         specialInstructions: specialInstructions || '',
         orderItems: {
-          create: validatedItems
-        }
+          create: validatedItems,
+        },
       },
       include: {
         orderItems: {
@@ -210,13 +227,13 @@ export async function POST(request: NextRequest) {
               select: {
                 id: true,
                 name: true,
-                categories: true
-              }
-            }
-          }
-        }
-      }
-    })
+                categories: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
     return NextResponse.json({
       success: true,
@@ -228,15 +245,14 @@ export async function POST(request: NextRequest) {
         totalAmount: order.totalAmount,
         orderDate: order.orderDate,
         paymentMethod: order.paymentMethod,
-        paymentStatus: order.paymentStatus
-      }
-    })
-
+        paymentStatus: order.paymentStatus,
+      },
+    });
   } catch (error) {
-    console.error(error)
+    console.error(error);
     return NextResponse.json(
       { error: 'Failed to create order' },
       { status: 500 }
-    )
+    );
   }
-} 
+}

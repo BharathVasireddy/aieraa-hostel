@@ -45,6 +45,10 @@ interface OrderDetails {
   }[];
 }
 
+interface OrderDetailsResponse {
+  order: OrderDetails;
+}
+
 export default function OrderDetailsPage() {
   const params = useParams();
   useSession();
@@ -61,7 +65,8 @@ export default function OrderDetailsPage() {
   const fetchOrderDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await cachedFetch(`/api/admin/orders/${orderId}`);
+      const response = await cachedFetch(`/api/admin/orders/${orderId}`);
+      const data = response as OrderDetailsResponse;
       setOrder(data.order);
     } catch {
       setError('Failed to load order details');
@@ -93,29 +98,23 @@ export default function OrderDetailsPage() {
     try {
       setVerifying(true);
 
-      const response = await cachedFetch(
-        `/api/admin/orders/${orderId}/verify`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            qrData: JSON.stringify(qrData),
-            pickupNotes: 'Verified via QR scan',
-          }),
-        }
-      );
+      const result = await cachedFetch(`/api/admin/orders/${orderId}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          qrData: JSON.stringify(qrData),
+          pickupNotes: 'Verified via QR scan',
+        }),
+      });
 
-      if (response.ok) {
-        const result = await response.json();
-        alert(
-          `✅ Order pickup verified successfully!\n\nOrder: ${result.order.orderNumber}\nStudent: ${result.order.studentName}`
-        );
-        await fetchOrderDetails();
-        setShowQRScanner(false);
-      } else {
-        const error = await response.json();
-        alert(`❌ Verification failed: ${error.error}\n${error.details || ''}`);
-      }
+      // cachedFetch returns parsed data directly, not Response object
+      // If we get here, the request was successful
+      const data = result as any; // Type assertion for the verification response
+      alert(
+        `✅ Order pickup verified successfully!\n\nOrder: ${data.order?.orderNumber || 'Unknown'}\nStudent: ${data.order?.studentName || 'Unknown'}`
+      );
+      void fetchOrderDetails();
+      setShowQRScanner(false);
     } catch (error) {
       console.error(error);
       alert('❌ Failed to verify order pickup');

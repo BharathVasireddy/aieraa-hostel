@@ -61,28 +61,22 @@
 
     // Output options
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "./src",
     "newLine": "lf",
 
     // Advanced options
     "keyofStringsOnly": false,
     "useDefineForClassFields": true
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    "eslint.config.js",
-    "next.config.js"
-  ],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": [
     "node_modules",
     ".next",
     "dist",
     "build",
     "coverage",
-    "*.config.ts"
+    "*.config.ts",
+    "src/generated/**/*"
   ],
   "ts-node": {
     "esm": true
