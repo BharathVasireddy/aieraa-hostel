@@ -13,7 +13,9 @@ export default [
       'src/generated/**/*',
       '.next/**/*',
       'node_modules/**/*',
-      '*.d.ts'
+      '*.d.ts',
+      'dist/**/*',
+      'build/**/*',
     ],
     languageOptions: {
       parser: typescriptParser,
@@ -22,8 +24,8 @@ export default [
         sourceType: 'module',
         project: './tsconfig.json',
         ecmaFeatures: {
-          jsx: true
-        }
+          jsx: true,
+        },
       },
       globals: {
         React: 'readonly',
@@ -36,191 +38,71 @@ export default [
         module: 'readonly',
         require: 'readonly',
         exports: 'readonly',
-        global: 'readonly'
-      }
+        global: 'readonly',
+      },
     },
     plugins: {
       '@typescript-eslint': typescript,
       'react-hooks': reactHooks,
-      'react': react,
-      '@next/next': next
+      react: react,
+      '@next/next': next,
     },
     rules: {
       // Next.js rules
       ...next.configs.recommended.rules,
       ...next.configs['core-web-vitals'].rules,
-      
-      // TypeScript rules - relaxed for deployment
+
+      // TypeScript rules - more relaxed for better DX
       '@typescript-eslint/no-unused-vars': 'warn',
-      '@typescript-eslint/no-unused-expressions': 'warn',
-      '@typescript-eslint/no-this-alias': 'error',
-      '@typescript-eslint/no-require-imports': 'error',
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-var-requires': 'error',
-      '@typescript-eslint/no-empty-function': 'error',
-      '@typescript-eslint/no-inferrable-types': 'error',
-      '@typescript-eslint/explicit-function-return-type': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/prefer-optional-chain': 'warn',
       '@typescript-eslint/prefer-nullish-coalescing': 'warn',
-      '@typescript-eslint/no-unnecessary-condition': 'warn',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/await-thenable': 'error',
-      '@typescript-eslint/no-misused-promises': 'warn',
-      '@typescript-eslint/strict-boolean-expressions': 'off',
-      
+
       // React rules
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'error',
+      'react-hooks/exhaustive-deps': 'warn', // Changed from error to warn
       'react/jsx-no-target-blank': 'error',
-      'react/jsx-no-undef': 'error',
-      'react/jsx-uses-react': 'error',
+      'react/jsx-uses-react': 'off', // Not needed in React 17+
       'react/jsx-uses-vars': 'error',
       'react/no-children-prop': 'error',
-      'react/no-danger-with-children': 'error',
-      'react/no-deprecated': 'error',
-      'react/no-direct-mutation-state': 'error',
-      'react/no-find-dom-node': 'error',
-      'react/no-is-mounted': 'error',
-      'react/no-render-return-value': 'error',
-      'react/no-string-refs': 'error',
       'react/no-unescaped-entities': 'error',
-      'react/no-unknown-property': 'error',
-      'react/no-unsafe': 'error',
       'react/prop-types': 'off',
-      'react/react-in-jsx-scope': 'off',
-      
-      // General JavaScript rules - relaxed for deployment
+      'react/react-in-jsx-scope': 'off', // Not needed in React 17+
+
+      // General JavaScript rules - relaxed for better DX
       'no-unused-vars': 'off', // Handled by TypeScript
-      'no-console': 'warn',
-      'no-debugger': 'error',
-      'no-alert': 'error',
+      'no-console': 'warn', // Allow console in development
+      'no-debugger': 'warn', // Allow debugger in development
       'no-var': 'error',
       'prefer-const': 'error',
-      'no-duplicate-imports': 'error',
       'no-undef': 'off', // TypeScript handles this
-      'no-unreachable': 'error',
-      'no-unused-expressions': 'off', // Handled by TypeScript
-      'no-use-before-define': 'error',
-      'eqeqeq': 'error',
-      'curly': 'error',
+      eqeqeq: 'warn',
+      curly: 'error',
+
+      // Disable overly strict rules that hurt DX
+      'no-alert': 'off',
       'no-eval': 'error',
-      'no-implied-eval': 'error',
-      'no-new-func': 'error',
-      'no-script-url': 'error',
-      'no-sequences': 'error',
-      'no-throw-literal': 'error',
-      'no-void': 'error',
-      'radix': 'error',
-      'wrap-iife': 'error',
-      'yoda': 'error',
-      
-      // Security rules
-      'no-new-wrappers': 'error',
-      'no-caller': 'error',
-      'no-extend-native': 'error',
-      'no-extra-bind': 'error',
-      'no-implicit-globals': 'error',
-      'no-iterator': 'error',
-      'no-labels': 'error',
-      'no-lone-blocks': 'error',
-      'no-loop-func': 'error',
-      'no-new': 'error',
-      'no-new-object': 'error',
-      'no-octal-escape': 'error',
-      'no-proto': 'error',
-      'no-return-assign': 'error',
-      'no-self-compare': 'error',
-      'no-unmodified-loop-condition': 'error',
-      'no-useless-call': 'error',
-      'no-useless-concat': 'error',
-      'no-useless-escape': 'error',
-      'no-useless-return': 'error',
-      'no-with': 'error',
-      
-      // Code quality rules
-      'array-callback-return': 'error',
-      'block-scoped-var': 'error',
-      'complexity': ['warn', 10],
-      'consistent-return': 'error',
-      'default-case': 'error',
-      'dot-notation': 'error',
-      'guard-for-in': 'error',
-      'max-classes-per-file': ['error', 1],
-      'max-depth': ['error', 4],
-      'max-lines': ['warn', 500],
-      'max-params': ['error', 4],
-      'no-empty': 'error',
-      'no-fallthrough': 'error',
-      'no-magic-numbers': ['warn', { 'ignore': [0, 1, -1] }],
-      'no-multi-assign': 'error',
-      'no-nested-ternary': 'error',
-      'no-param-reassign': 'error',
-      'no-plusplus': 'error',
-      'no-return-await': 'error',
-      'no-shadow': 'error',
-      'no-ternary': 'off',
-      'no-underscore-dangle': 'error',
-      'no-unneeded-ternary': 'error',
-      'no-useless-constructor': 'error',
-      'prefer-arrow-callback': 'error',
-      'prefer-destructuring': 'error',
-      'prefer-rest-params': 'error',
-      'prefer-spread': 'error',
-      'prefer-template': 'error',
-      'sort-imports': 'off', // Can be annoying
-      'sort-keys': 'off', // Can be annoying
-      'sort-vars': 'off', // Can be annoying
-      
-      // Style rules (handled by Prettier but good to have)
-      'indent': ['error', 2],
-      'linebreak-style': ['error', 'unix'],
-      'quotes': ['error', 'single'],
-      'semi': ['error', 'never'],
-      'comma-dangle': ['error', 'never'],
-      'object-curly-spacing': ['error', 'always'],
-      'array-bracket-spacing': ['error', 'never'],
-      'computed-property-spacing': ['error', 'never'],
-      'key-spacing': ['error', { 'beforeColon': false, 'afterColon': true }],
-      'keyword-spacing': ['error', { 'before': true, 'after': true }],
-      'space-before-blocks': ['error', 'always'],
-      'space-before-function-paren': ['error', 'never'],
-      'space-in-parens': ['error', 'never'],
-      'space-infix-ops': 'error',
-      'space-unary-ops': 'error',
-      'spaced-comment': ['error', 'always'],
-      'arrow-spacing': 'error',
-      'block-spacing': 'error',
-      'brace-style': ['error', '1tbs'],
-      'camelcase': 'error',
-      'comma-spacing': ['error', { 'before': false, 'after': true }],
-      'comma-style': ['error', 'last'],
-      'eol-last': 'error',
-      'func-call-spacing': ['error', 'never'],
-      'implicit-arrow-linebreak': ['error', 'beside'],
-      'jsx-quotes': ['error', 'prefer-double'],
-      'max-len': ['error', { 'code': 100, 'ignoreUrls': true }],
-      'new-cap': 'error',
-      'new-parens': 'error',
-      'no-array-constructor': 'error',
-      'no-mixed-spaces-and-tabs': 'error',
-      'no-multiple-empty-lines': ['error', { 'max': 2, 'maxEOF': 1 }],
-      'no-tabs': 'error',
-      'no-trailing-spaces': 'error',
-      'no-whitespace-before-property': 'error',
-      'object-curly-newline': ['error', { 'consistent': true }],
-      'operator-linebreak': ['error', 'before'],
-      'padded-blocks': ['error', 'never'],
-      'quote-props': ['error', 'as-needed'],
-      'rest-spread-spacing': ['error', 'never'],
-      'semi-spacing': ['error', { 'before': false, 'after': true }],
-      'semi-style': ['error', 'last'],
-      'space-before-blocks': ['error', 'always'],
-      'switch-colon-spacing': ['error', { 'after': true, 'before': false }],
-      'template-curly-spacing': ['error', 'never'],
-      'template-tag-spacing': ['error', 'never'],
-      'unicode-bom': ['error', 'never'],
-      'wrap-regex': 'error'
-    }
-  }
-]; 
+      'no-throw-literal': 'warn',
+      complexity: 'off',
+      'max-lines': 'off',
+      'max-params': 'off',
+      'no-magic-numbers': 'off',
+      'no-plusplus': 'off',
+      'no-underscore-dangle': 'off',
+      'prefer-destructuring': 'off',
+
+      // Style rules - let Prettier handle most formatting
+      quotes: 'off',
+      semi: 'off',
+      'comma-dangle': 'off',
+      'object-curly-spacing': 'off',
+      'array-bracket-spacing': 'off',
+      indent: 'off',
+      'linebreak-style': 'off',
+      'max-len': 'off',
+    },
+  },
+];

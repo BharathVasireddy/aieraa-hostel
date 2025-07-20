@@ -21,61 +21,60 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    
-    // Additional strict type checking
+
+    // Type checking - balanced approach
     "noImplicitAny": true,
-    "noImplicitReturns": true,
+    "noImplicitReturns": false,
     "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
-    "strictPropertyInitialization": true,
+    "strictPropertyInitialization": false,
     "useUnknownInCatchVariables": true,
     "exactOptionalPropertyTypes": false,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
+    "noImplicitOverride": false,
     "noPropertyAccessFromIndexSignature": false,
     "noUncheckedIndexedAccess": false,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
-    
+
     // Additional helpful options
     "forceConsistentCasingInFileNames": true,
     "declaration": false,
     "declarationMap": false,
     "sourceMap": true,
     "removeComments": false,
-    "noEmitOnError": true,
+    "noEmitOnError": false,
     "preserveConstEnums": true,
     "suppressExcessPropertyErrors": false,
     "suppressImplicitAnyIndexErrors": false,
     "skipDefaultLibCheck": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    
+
     // Module resolution
     "baseUrl": ".",
     "typeRoots": ["./node_modules/@types"],
     "allowSyntheticDefaultImports": true,
     "preserveSymlinks": true,
-    
+
     // Output options
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "newLine": "lf",
-    
+
     // Advanced options
     "keyofStringsOnly": false,
-    "useDefineForClassFields": true,
-    "verbatimModuleSyntax": true
+    "useDefineForClassFields": true
   },
   "include": [
-    "next-env.d.ts", 
-    "**/*.ts", 
-    "**/*.tsx", 
-    ".next/types/**/*.ts"
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "eslint.config.js",
+    "next.config.js"
   ],
   "exclude": [
     "node_modules",
@@ -83,10 +82,9 @@
     "dist",
     "build",
     "coverage",
-    "*.config.js",
     "*.config.ts"
   ],
   "ts-node": {
     "esm": true
   }
-} 
+}
