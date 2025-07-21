@@ -22,6 +22,12 @@ export default [
       'eslint.config.js',
       'next.config.js',
       'tailwind.config.js',
+      // PWA auto-generated files
+      'public/sw.js',
+      'public/workbox-*.js',
+      'public/worker-*.js',
+      // Node.js scripts
+      'scripts/test-pwa-features.js',
     ],
   },
   {

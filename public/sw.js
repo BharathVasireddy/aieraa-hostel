@@ -1,1 +1,586 @@
-if(!self.define){let e,a={};const s=(s,i)=>(s=new URL(s+".js",i).href,a[s]||new Promise(a=>{if("document"in self){const e=document.createElement("script");e.src=s,e.onload=a,document.head.appendChild(e)}else e=s,importScripts(s),a()}).then(()=>{let e=a[s];if(!e)throw new Error(`Module ${s} didn’t register its module`);return e}));self.define=(i,t)=>{const n=e||("document"in self?document.currentScript.src:"")||location.href;if(a[n])return;let c={};const r=e=>s(e,n),u={module:{uri:n},exports:c,require:r};a[n]=Promise.all(i.map(e=>u[e]||r(e))).then(e=>(t(...e),c))}}define(["./workbox-fe792590"],function(e){"use strict";importScripts(),self.skipWaiting(),e.clientsClaim(),e.precacheAndRoute([{url:"/_next/app-build-manifest.json",revision:"4f5a520b818fb84681b907a3eb9db4f8"},{url:"/_next/static/chunks/app/_not-found/page-90f7cab673ddaff8.js",revision:"90f7cab673ddaff8"},{url:"/_next/static/chunks/app/admin/analytics/page-25f1d60389658e49.js",revision:"25f1d60389658e49"},{url:"/_next/static/chunks/app/admin/layout-1c9c06e59f37cbda.js",revision:"1c9c06e59f37cbda"},{url:"/_next/static/chunks/app/admin/menu/%5Bid%5D/edit/page-9db66fd6c6772b48.js",revision:"9db66fd6c6772b48"},{url:"/_next/static/chunks/app/admin/menu/new/page-1708247684151eee.js",revision:"1708247684151eee"},{url:"/_next/static/chunks/app/admin/menu/page-b820352ac41e1681.js",revision:"b820352ac41e1681"},{url:"/_next/static/chunks/app/admin/orders/%5Bid%5D/page-0496b1352845152a.js",revision:"0496b1352845152a"},{url:"/_next/static/chunks/app/admin/orders/page-cfc9da5d02eab3b5.js",revision:"cfc9da5d02eab3b5"},{url:"/_next/static/chunks/app/admin/page-1fa994b034cf9846.js",revision:"1fa994b034cf9846"},{url:"/_next/static/chunks/app/admin/profile/page-082050f25db3a013.js",revision:"082050f25db3a013"},{url:"/_next/static/chunks/app/admin/promotional-banners/new/page-67a04a037cd2655b.js",revision:"67a04a037cd2655b"},{url:"/_next/static/chunks/app/admin/promotional-banners/page-d616ba09af276f68.js",revision:"d616ba09af276f68"},{url:"/_next/static/chunks/app/admin/settings/homepage/page-83333622307cb404.js",revision:"83333622307cb404"},{url:"/_next/static/chunks/app/admin/settings/page-29e40ab77a265927.js",revision:"29e40ab77a265927"},{url:"/_next/static/chunks/app/admin/universities/%5Bid%5D/page-1c86d9f3fb717bd8.js",revision:"1c86d9f3fb717bd8"},{url:"/_next/static/chunks/app/admin/universities/%5Bid%5D/settings/page-6a5de75c215c18a7.js",revision:"6a5de75c215c18a7"},{url:"/_next/static/chunks/app/admin/universities/page-27d6ef3de8e9ab73.js",revision:"27d6ef3de8e9ab73"},{url:"/_next/static/chunks/app/admin/users/page-9ef883543603d644.js",revision:"9ef883543603d644"},{url:"/_next/static/chunks/app/api/admin/analytics/route-32fba6c90d4ea753.js",revision:"32fba6c90d4ea753"},{url:"/_next/static/chunks/app/api/admin/change-password/route-8a8f418afb58bbbb.js",revision:"8a8f418afb58bbbb"},{url:"/_next/static/chunks/app/api/admin/force-logout-students/route-21c09b251b4a05c7.js",revision:"21c09b251b4a05c7"},{url:"/_next/static/chunks/app/api/admin/menu/%5Bid%5D/route-be896dc4516774f7.js",revision:"be896dc4516774f7"},{url:"/_next/static/chunks/app/api/admin/menu/route-b3434a78d7c0cd54.js",revision:"b3434a78d7c0cd54"},{url:"/_next/static/chunks/app/api/admin/orders/%5Bid%5D/route-35ca32bfcbd84ef3.js",revision:"35ca32bfcbd84ef3"},{url:"/_next/static/chunks/app/api/admin/orders/%5Bid%5D/verify/route-13ca001146584996.js",revision:"13ca001146584996"},{url:"/_next/static/chunks/app/api/admin/orders/route-66eb0a2b7dfe4f15.js",revision:"66eb0a2b7dfe4f15"},{url:"/_next/static/chunks/app/api/admin/profile/route-0bfa8690042c3cc4.js",revision:"0bfa8690042c3cc4"},{url:"/_next/static/chunks/app/api/admin/promotional-banners/%5Bid%5D/reorder/route-3c3890d898619e30.js",revision:"3c3890d898619e30"},{url:"/_next/static/chunks/app/api/admin/promotional-banners/%5Bid%5D/route-0789582acce88031.js",revision:"0789582acce88031"},{url:"/_next/static/chunks/app/api/admin/promotional-banners/route-0b8af75e45485818.js",revision:"0b8af75e45485818"},{url:"/_next/static/chunks/app/api/admin/seed-universities/route-ef45eaf11aeda273.js",revision:"ef45eaf11aeda273"},{url:"/_next/static/chunks/app/api/admin/universities/%5Bid%5D/route-2ed2d16caae7fde7.js",revision:"2ed2d16caae7fde7"},{url:"/_next/static/chunks/app/api/admin/universities/%5Bid%5D/staff/route-a25c286feff916aa.js",revision:"a25c286feff916aa"},{url:"/_next/static/chunks/app/api/admin/universities/route-6e736fa3a437dcdc.js",revision:"6e736fa3a437dcdc"},{url:"/_next/static/chunks/app/api/admin/users/%5Bid%5D/route-c50d14b62cb555f4.js",revision:"c50d14b62cb555f4"},{url:"/_next/static/chunks/app/api/admin/users/route-100196e82345380d.js",revision:"100196e82345380d"},{url:"/_next/static/chunks/app/api/auth/%5B...nextauth%5D/route-e60892f3d8d15ff4.js",revision:"e60892f3d8d15ff4"},{url:"/_next/static/chunks/app/api/auth/signup/route-d11a94bc48db665b.js",revision:"d11a94bc48db665b"},{url:"/_next/static/chunks/app/api/cart/route-022b7b890bb33ffd.js",revision:"022b7b890bb33ffd"},{url:"/_next/static/chunks/app/api/caterer/orders/%5Bid%5D/serve/route-8e84343b77f2ad57.js",revision:"8e84343b77f2ad57"},{url:"/_next/static/chunks/app/api/caterer/orders/route-97ed4d17d3ece481.js",revision:"97ed4d17d3ece481"},{url:"/_next/static/chunks/app/api/caterer/stats/route-02089b88a07af636.js",revision:"02089b88a07af636"},{url:"/_next/static/chunks/app/api/health/route-8e9e2ce64f2ad334.js",revision:"8e9e2ce64f2ad334"},{url:"/_next/static/chunks/app/api/health/timezone/route-26809f84e245dd24.js",revision:"26809f84e245dd24"},{url:"/_next/static/chunks/app/api/manager/analytics/popular-items/route-e4a848d45708b679.js",revision:"e4a848d45708b679"},{url:"/_next/static/chunks/app/api/manager/analytics/stats/route-00acfc43ffebda57.js",revision:"00acfc43ffebda57"},{url:"/_next/static/chunks/app/api/manager/menu/%5Bid%5D/availability/route-6bce314945662d3f.js",revision:"6bce314945662d3f"},{url:"/_next/static/chunks/app/api/manager/menu/%5Bid%5D/route-58f505c66b01b991.js",revision:"58f505c66b01b991"},{url:"/_next/static/chunks/app/api/manager/menu/route-f5b438b24d31ba31.js",revision:"f5b438b24d31ba31"},{url:"/_next/static/chunks/app/api/manager/orders/%5Bid%5D/route-39727432db9c6f1c.js",revision:"39727432db9c6f1c"},{url:"/_next/static/chunks/app/api/manager/orders/recent/route-c5f3d45b1f45d7ba.js",revision:"c5f3d45b1f45d7ba"},{url:"/_next/static/chunks/app/api/manager/orders/route-850f285d877299a2.js",revision:"850f285d877299a2"},{url:"/_next/static/chunks/app/api/manager/users/%5Bid%5D/route-d4d82091a2933920.js",revision:"d4d82091a2933920"},{url:"/_next/static/chunks/app/api/manager/users/route-2131c1481bcfbfb8.js",revision:"2131c1481bcfbfb8"},{url:"/_next/static/chunks/app/api/menu/availability/route-5a0f334b4694504a.js",revision:"5a0f334b4694504a"},{url:"/_next/static/chunks/app/api/menu/clear-cache/route-3412d4f956eb12b0.js",revision:"3412d4f956eb12b0"},{url:"/_next/static/chunks/app/api/menu/route-3a4b2defaac9617c.js",revision:"3a4b2defaac9617c"},{url:"/_next/static/chunks/app/api/notifications/route-25414828eb3d668d.js",revision:"25414828eb3d668d"},{url:"/_next/static/chunks/app/api/orders/%5Bid%5D/route-4a593744c63739e5.js",revision:"4a593744c63739e5"},{url:"/_next/static/chunks/app/api/orders/by-number/%5BorderNumber%5D/route-8b0a8d0fa5f36354.js",revision:"8b0a8d0fa5f36354"},{url:"/_next/static/chunks/app/api/orders/route-338c008308eb778b.js",revision:"338c008308eb778b"},{url:"/_next/static/chunks/app/api/performance/dashboard/route-bd712e5a13e92ac3.js",revision:"bd712e5a13e92ac3"},{url:"/_next/static/chunks/app/api/public/universities/route-4246d5e8a1c2e69f.js",revision:"4246d5e8a1c2e69f"},{url:"/_next/static/chunks/app/api/push-notifications/send/route-d934200de1c19621.js",revision:"d934200de1c19621"},{url:"/_next/static/chunks/app/api/push-notifications/subscribe/route-7e36262159e74387.js",revision:"7e36262159e74387"},{url:"/_next/static/chunks/app/api/push-notifications/unsubscribe/route-0cd820be1b867546.js",revision:"0cd820be1b867546"},{url:"/_next/static/chunks/app/api/realtime/orders/route-5f004b23fefe7c87.js",revision:"5f004b23fefe7c87"},{url:"/_next/static/chunks/app/api/student/menu/route-1083a1f23b4c05ee.js",revision:"1083a1f23b4c05ee"},{url:"/_next/static/chunks/app/api/student/popular-dishes/route-18e19845d785aec8.js",revision:"18e19845d785aec8"},{url:"/_next/static/chunks/app/api/student/promotional-banners/route-470886322646fcd2.js",revision:"470886322646fcd2"},{url:"/_next/static/chunks/app/api/student/todays-specials/route-2743e80251514b2b.js",revision:"2743e80251514b2b"},{url:"/_next/static/chunks/app/api/test-order/%5Bid%5D/route-c59bdf915f4f85bb.js",revision:"c59bdf915f4f85bb"},{url:"/_next/static/chunks/app/api/test-session/route-a9eed7bacddc5800.js",revision:"a9eed7bacddc5800"},{url:"/_next/static/chunks/app/api/universities/route-8a640dcc4966153f.js",revision:"8a640dcc4966153f"},{url:"/_next/static/chunks/app/api/upload/image/route-3eeffffc947b7164.js",revision:"3eeffffc947b7164"},{url:"/_next/static/chunks/app/api/user/%5Bid%5D/route-49be26ca66f66492.js",revision:"49be26ca66f66492"},{url:"/_next/static/chunks/app/auth/forgot-password/page-cccb070461cb291d.js",revision:"cccb070461cb291d"},{url:"/_next/static/chunks/app/auth/signin/page-4c0ae748a8c31454.js",revision:"4c0ae748a8c31454"},{url:"/_next/static/chunks/app/auth/signup/page-f2556e755531f41e.js",revision:"f2556e755531f41e"},{url:"/_next/static/chunks/app/caterer/page-68f208ef0ea4a209.js",revision:"68f208ef0ea4a209"},{url:"/_next/static/chunks/app/layout-68f375f0d22cb0b1.js",revision:"68f375f0d22cb0b1"},{url:"/_next/static/chunks/app/manager/layout-20c847bf82a003d9.js",revision:"20c847bf82a003d9"},{url:"/_next/static/chunks/app/manager/menu/%5Bid%5D/edit/page-477ba59d23eef483.js",revision:"477ba59d23eef483"},{url:"/_next/static/chunks/app/manager/menu/%5Bid%5D/page-b9ac7e790dd0854a.js",revision:"b9ac7e790dd0854a"},{url:"/_next/static/chunks/app/manager/menu/new/page-950a51cd371ec891.js",revision:"950a51cd371ec891"},{url:"/_next/static/chunks/app/manager/menu/page-edeefc9f30fbf693.js",revision:"edeefc9f30fbf693"},{url:"/_next/static/chunks/app/manager/orders/%5Bid%5D/page-971d9d475027096c.js",revision:"971d9d475027096c"},{url:"/_next/static/chunks/app/manager/orders/page-d65d0cfe25b30e0d.js",revision:"d65d0cfe25b30e0d"},{url:"/_next/static/chunks/app/manager/page-6ae2bbd9e38ac957.js",revision:"6ae2bbd9e38ac957"},{url:"/_next/static/chunks/app/manager/students/page-5caca6f050194d74.js",revision:"5caca6f050194d74"},{url:"/_next/static/chunks/app/page-f6e88766c1da25b1.js",revision:"f6e88766c1da25b1"},{url:"/_next/static/chunks/app/student/checkout/page-91c001b3ee413e11.js",revision:"91c001b3ee413e11"},{url:"/_next/static/chunks/app/student/help-support/page-f8d4f5266a29de0a.js",revision:"f8d4f5266a29de0a"},{url:"/_next/static/chunks/app/student/menu/page-29b280e3c37de1b4.js",revision:"29b280e3c37de1b4"},{url:"/_next/static/chunks/app/student/order-success/page-cac336fce6e01264.js",revision:"cac336fce6e01264"},{url:"/_next/static/chunks/app/student/order/page-3c41245c6f50402c.js",revision:"3c41245c6f50402c"},{url:"/_next/static/chunks/app/student/orders/%5BorderNumber%5D/page-ba94b24df9b54d7b.js",revision:"ba94b24df9b54d7b"},{url:"/_next/static/chunks/app/student/orders/page-c9e5ba3d7ae58d2c.js",revision:"c9e5ba3d7ae58d2c"},{url:"/_next/static/chunks/app/student/page-e7ad1b479d163862.js",revision:"e7ad1b479d163862"},{url:"/_next/static/chunks/app/student/profile/page-c399e526021f762c.js",revision:"c399e526021f762c"},{url:"/_next/static/chunks/common-ead7c7934a6a88d3.js",revision:"ead7c7934a6a88d3"},{url:"/_next/static/chunks/lucide-6a5c812b61a53578.js",revision:"6a5c812b61a53578"},{url:"/_next/static/chunks/main-app-9037d66f9ff94a7f.js",revision:"9037d66f9ff94a7f"},{url:"/_next/static/chunks/main-f8099a5852b3d1a9.js",revision:"f8099a5852b3d1a9"},{url:"/_next/static/chunks/pages/_app-5b44fff6c142ca14.js",revision:"5b44fff6c142ca14"},{url:"/_next/static/chunks/pages/_error-b4b59695b44dd3b2.js",revision:"b4b59695b44dd3b2"},{url:"/_next/static/chunks/polyfills-42372ed130431b0a.js",revision:"846118c33b2c0e922d7b3a7676f81f6f"},{url:"/_next/static/chunks/vendors-1ea4bb3cca3ce48a.js",revision:"1ea4bb3cca3ce48a"},{url:"/_next/static/chunks/webpack-6c62e1ce1ecf5baa.js",revision:"6c62e1ce1ecf5baa"},{url:"/_next/static/css/b36e6db30849f538.css",revision:"b36e6db30849f538"},{url:"/_next/static/media/26a46d62cd723877-s.woff2",revision:"befd9c0fdfa3d8a645d5f95717ed6420"},{url:"/_next/static/media/55c55f0601d81cf3-s.woff2",revision:"43828e14271c77b87e3ed582dbff9f74"},{url:"/_next/static/media/581909926a08bbc8-s.woff2",revision:"f0b86e7c24f455280b8df606b89af891"},{url:"/_next/static/media/8e9860b6e62d6359-s.woff2",revision:"01ba6c2a184b8cba08b0d57167664d75"},{url:"/_next/static/media/97e0cb1ae144a2a9-s.woff2",revision:"e360c61c5bd8d90639fd4503c829c2dc"},{url:"/_next/static/media/df0a9ae256c0569c-s.woff2",revision:"d54db44de5ccb18886ece2fda72bdfe0"},{url:"/_next/static/media/e4af272ccee01ff0-s.p.woff2",revision:"65850a373e258f1c897a2b3d75eb74de"},{url:"/_next/static/ukjMokwVgU92SWJUkcjJu/_buildManifest.js",revision:"d351b366779b0738fbc43e328a8e56fd"},{url:"/_next/static/ukjMokwVgU92SWJUkcjJu/_ssgManifest.js",revision:"b6652df95db52feb4daf4eca35380933"},{url:"/favicon.ico",revision:"c0508dd67197c1ea3b22322f32851912"},{url:"/icons/icon-192x192.png",revision:"e8b5f141e515185f622e93d59bbc48e2"},{url:"/icons/icon-512x512.png",revision:"e8b5f141e515185f622e93d59bbc48e2"},{url:"/manifest.json",revision:"b751303dd3b0afbeabcfb3a41cee0f90"},{url:"/offline.html",revision:"a65be8d33f5c6c08a5e583ad4d4ea272"}],{ignoreURLParametersMatching:[]}),e.cleanupOutdatedCaches(),e.registerRoute("/",new e.NetworkFirst({cacheName:"start-url",plugins:[{cacheWillUpdate:async({request:e,response:a,event:s,state:i})=>a&&"opaqueredirect"===a.type?new Response(a.body,{status:200,statusText:"OK",headers:a.headers}):a}]}),"GET"),e.registerRoute(/^https?.*/,new e.NetworkFirst({cacheName:"offlineCache",plugins:[new e.ExpirationPlugin({maxEntries:200,maxAgeSeconds:86400})]}),"GET"),e.registerRoute(/^\/api\/.*/,new e.NetworkFirst({cacheName:"api-cache",plugins:[new e.ExpirationPlugin({maxEntries:100,maxAgeSeconds:300})]}),"GET"),e.registerRoute(/\.(?:js|css|woff2?|png|jpg|jpeg|gif|svg|ico)$/,new e.StaleWhileRevalidate({cacheName:"static-resources",plugins:[new e.ExpirationPlugin({maxEntries:200,maxAgeSeconds:604800})]}),"GET")});
+if (!self.define) {
+  let e,
+    a = {};
+  const s = (s, i) => (
+    (s = new URL(s + '.js', i).href),
+    a[s] ||
+      new Promise(a => {
+        if ('document' in self) {
+          const e = document.createElement('script');
+          ((e.src = s), (e.onload = a), document.head.appendChild(e));
+        } else ((e = s), importScripts(s), a());
+      }).then(() => {
+        let e = a[s];
+        if (!e) throw new Error(`Module ${s} didn’t register its module`);
+        return e;
+      })
+  );
+  self.define = (i, t) => {
+    const n =
+      e ||
+      ('document' in self ? document.currentScript.src : '') ||
+      location.href;
+    if (a[n]) return;
+    let c = {};
+    const r = e => s(e, n),
+      u = { module: { uri: n }, exports: c, require: r };
+    a[n] = Promise.all(i.map(e => u[e] || r(e))).then(e => (t(...e), c));
+  };
+}
+define(['./workbox-fe792590'], function (e) {
+  'use strict';
+  (importScripts(),
+    self.skipWaiting(),
+    e.clientsClaim(),
+    e.precacheAndRoute(
+      [
+        {
+          url: '/_next/app-build-manifest.json',
+          revision: '4f5a520b818fb84681b907a3eb9db4f8',
+        },
+        {
+          url: '/_next/static/chunks/app/_not-found/page-90f7cab673ddaff8.js',
+          revision: '90f7cab673ddaff8',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/analytics/page-25f1d60389658e49.js',
+          revision: '25f1d60389658e49',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/layout-1c9c06e59f37cbda.js',
+          revision: '1c9c06e59f37cbda',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/menu/%5Bid%5D/edit/page-9db66fd6c6772b48.js',
+          revision: '9db66fd6c6772b48',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/menu/new/page-1708247684151eee.js',
+          revision: '1708247684151eee',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/menu/page-b820352ac41e1681.js',
+          revision: 'b820352ac41e1681',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/orders/%5Bid%5D/page-0496b1352845152a.js',
+          revision: '0496b1352845152a',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/orders/page-cfc9da5d02eab3b5.js',
+          revision: 'cfc9da5d02eab3b5',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/page-1fa994b034cf9846.js',
+          revision: '1fa994b034cf9846',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/profile/page-082050f25db3a013.js',
+          revision: '082050f25db3a013',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/promotional-banners/new/page-67a04a037cd2655b.js',
+          revision: '67a04a037cd2655b',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/promotional-banners/page-d616ba09af276f68.js',
+          revision: 'd616ba09af276f68',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/settings/homepage/page-83333622307cb404.js',
+          revision: '83333622307cb404',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/settings/page-29e40ab77a265927.js',
+          revision: '29e40ab77a265927',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/universities/%5Bid%5D/page-1c86d9f3fb717bd8.js',
+          revision: '1c86d9f3fb717bd8',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/universities/%5Bid%5D/settings/page-6a5de75c215c18a7.js',
+          revision: '6a5de75c215c18a7',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/universities/page-27d6ef3de8e9ab73.js',
+          revision: '27d6ef3de8e9ab73',
+        },
+        {
+          url: '/_next/static/chunks/app/admin/users/page-9ef883543603d644.js',
+          revision: '9ef883543603d644',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/analytics/route-32fba6c90d4ea753.js',
+          revision: '32fba6c90d4ea753',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/change-password/route-8a8f418afb58bbbb.js',
+          revision: '8a8f418afb58bbbb',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/force-logout-students/route-21c09b251b4a05c7.js',
+          revision: '21c09b251b4a05c7',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/menu/%5Bid%5D/route-be896dc4516774f7.js',
+          revision: 'be896dc4516774f7',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/menu/route-b3434a78d7c0cd54.js',
+          revision: 'b3434a78d7c0cd54',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/orders/%5Bid%5D/route-35ca32bfcbd84ef3.js',
+          revision: '35ca32bfcbd84ef3',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/orders/%5Bid%5D/verify/route-13ca001146584996.js',
+          revision: '13ca001146584996',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/orders/route-66eb0a2b7dfe4f15.js',
+          revision: '66eb0a2b7dfe4f15',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/profile/route-0bfa8690042c3cc4.js',
+          revision: '0bfa8690042c3cc4',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/promotional-banners/%5Bid%5D/reorder/route-3c3890d898619e30.js',
+          revision: '3c3890d898619e30',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/promotional-banners/%5Bid%5D/route-0789582acce88031.js',
+          revision: '0789582acce88031',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/promotional-banners/route-0b8af75e45485818.js',
+          revision: '0b8af75e45485818',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/seed-universities/route-ef45eaf11aeda273.js',
+          revision: 'ef45eaf11aeda273',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/universities/%5Bid%5D/route-2ed2d16caae7fde7.js',
+          revision: '2ed2d16caae7fde7',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/universities/%5Bid%5D/staff/route-a25c286feff916aa.js',
+          revision: 'a25c286feff916aa',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/universities/route-6e736fa3a437dcdc.js',
+          revision: '6e736fa3a437dcdc',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/users/%5Bid%5D/route-c50d14b62cb555f4.js',
+          revision: 'c50d14b62cb555f4',
+        },
+        {
+          url: '/_next/static/chunks/app/api/admin/users/route-100196e82345380d.js',
+          revision: '100196e82345380d',
+        },
+        {
+          url: '/_next/static/chunks/app/api/auth/%5B...nextauth%5D/route-e60892f3d8d15ff4.js',
+          revision: 'e60892f3d8d15ff4',
+        },
+        {
+          url: '/_next/static/chunks/app/api/auth/signup/route-d11a94bc48db665b.js',
+          revision: 'd11a94bc48db665b',
+        },
+        {
+          url: '/_next/static/chunks/app/api/cart/route-022b7b890bb33ffd.js',
+          revision: '022b7b890bb33ffd',
+        },
+        {
+          url: '/_next/static/chunks/app/api/caterer/orders/%5Bid%5D/serve/route-8e84343b77f2ad57.js',
+          revision: '8e84343b77f2ad57',
+        },
+        {
+          url: '/_next/static/chunks/app/api/caterer/orders/route-97ed4d17d3ece481.js',
+          revision: '97ed4d17d3ece481',
+        },
+        {
+          url: '/_next/static/chunks/app/api/caterer/stats/route-02089b88a07af636.js',
+          revision: '02089b88a07af636',
+        },
+        {
+          url: '/_next/static/chunks/app/api/health/route-8e9e2ce64f2ad334.js',
+          revision: '8e9e2ce64f2ad334',
+        },
+        {
+          url: '/_next/static/chunks/app/api/health/timezone/route-26809f84e245dd24.js',
+          revision: '26809f84e245dd24',
+        },
+        {
+          url: '/_next/static/chunks/app/api/manager/analytics/popular-items/route-e4a848d45708b679.js',
+          revision: 'e4a848d45708b679',
+        },
+        {
+          url: '/_next/static/chunks/app/api/manager/analytics/stats/route-00acfc43ffebda57.js',
+          revision: '00acfc43ffebda57',
+        },
+        {
+          url: '/_next/static/chunks/app/api/manager/menu/%5Bid%5D/availability/route-6bce314945662d3f.js',
+          revision: '6bce314945662d3f',
+        },
+        {
+          url: '/_next/static/chunks/app/api/manager/menu/%5Bid%5D/route-58f505c66b01b991.js',
+          revision: '58f505c66b01b991',
+        },
+        {
+          url: '/_next/static/chunks/app/api/manager/menu/route-f5b438b24d31ba31.js',
+          revision: 'f5b438b24d31ba31',
+        },
+        {
+          url: '/_next/static/chunks/app/api/manager/orders/%5Bid%5D/route-39727432db9c6f1c.js',
+          revision: '39727432db9c6f1c',
+        },
+        {
+          url: '/_next/static/chunks/app/api/manager/orders/recent/route-c5f3d45b1f45d7ba.js',
+          revision: 'c5f3d45b1f45d7ba',
+        },
+        {
+          url: '/_next/static/chunks/app/api/manager/orders/route-850f285d877299a2.js',
+          revision: '850f285d877299a2',
+        },
+        {
+          url: '/_next/static/chunks/app/api/manager/users/%5Bid%5D/route-d4d82091a2933920.js',
+          revision: 'd4d82091a2933920',
+        },
+        {
+          url: '/_next/static/chunks/app/api/manager/users/route-2131c1481bcfbfb8.js',
+          revision: '2131c1481bcfbfb8',
+        },
+        {
+          url: '/_next/static/chunks/app/api/menu/availability/route-5a0f334b4694504a.js',
+          revision: '5a0f334b4694504a',
+        },
+        {
+          url: '/_next/static/chunks/app/api/menu/clear-cache/route-3412d4f956eb12b0.js',
+          revision: '3412d4f956eb12b0',
+        },
+        {
+          url: '/_next/static/chunks/app/api/menu/route-3a4b2defaac9617c.js',
+          revision: '3a4b2defaac9617c',
+        },
+        {
+          url: '/_next/static/chunks/app/api/notifications/route-25414828eb3d668d.js',
+          revision: '25414828eb3d668d',
+        },
+        {
+          url: '/_next/static/chunks/app/api/orders/%5Bid%5D/route-4a593744c63739e5.js',
+          revision: '4a593744c63739e5',
+        },
+        {
+          url: '/_next/static/chunks/app/api/orders/by-number/%5BorderNumber%5D/route-8b0a8d0fa5f36354.js',
+          revision: '8b0a8d0fa5f36354',
+        },
+        {
+          url: '/_next/static/chunks/app/api/orders/route-338c008308eb778b.js',
+          revision: '338c008308eb778b',
+        },
+        {
+          url: '/_next/static/chunks/app/api/performance/dashboard/route-bd712e5a13e92ac3.js',
+          revision: 'bd712e5a13e92ac3',
+        },
+        {
+          url: '/_next/static/chunks/app/api/public/universities/route-4246d5e8a1c2e69f.js',
+          revision: '4246d5e8a1c2e69f',
+        },
+        {
+          url: '/_next/static/chunks/app/api/push-notifications/send/route-d934200de1c19621.js',
+          revision: 'd934200de1c19621',
+        },
+        {
+          url: '/_next/static/chunks/app/api/push-notifications/subscribe/route-7e36262159e74387.js',
+          revision: '7e36262159e74387',
+        },
+        {
+          url: '/_next/static/chunks/app/api/push-notifications/unsubscribe/route-0cd820be1b867546.js',
+          revision: '0cd820be1b867546',
+        },
+        {
+          url: '/_next/static/chunks/app/api/realtime/orders/route-5f004b23fefe7c87.js',
+          revision: '5f004b23fefe7c87',
+        },
+        {
+          url: '/_next/static/chunks/app/api/student/menu/route-1083a1f23b4c05ee.js',
+          revision: '1083a1f23b4c05ee',
+        },
+        {
+          url: '/_next/static/chunks/app/api/student/popular-dishes/route-18e19845d785aec8.js',
+          revision: '18e19845d785aec8',
+        },
+        {
+          url: '/_next/static/chunks/app/api/student/promotional-banners/route-470886322646fcd2.js',
+          revision: '470886322646fcd2',
+        },
+        {
+          url: '/_next/static/chunks/app/api/student/todays-specials/route-2743e80251514b2b.js',
+          revision: '2743e80251514b2b',
+        },
+        {
+          url: '/_next/static/chunks/app/api/test-order/%5Bid%5D/route-c59bdf915f4f85bb.js',
+          revision: 'c59bdf915f4f85bb',
+        },
+        {
+          url: '/_next/static/chunks/app/api/test-session/route-a9eed7bacddc5800.js',
+          revision: 'a9eed7bacddc5800',
+        },
+        {
+          url: '/_next/static/chunks/app/api/universities/route-8a640dcc4966153f.js',
+          revision: '8a640dcc4966153f',
+        },
+        {
+          url: '/_next/static/chunks/app/api/upload/image/route-3eeffffc947b7164.js',
+          revision: '3eeffffc947b7164',
+        },
+        {
+          url: '/_next/static/chunks/app/api/user/%5Bid%5D/route-49be26ca66f66492.js',
+          revision: '49be26ca66f66492',
+        },
+        {
+          url: '/_next/static/chunks/app/auth/forgot-password/page-cccb070461cb291d.js',
+          revision: 'cccb070461cb291d',
+        },
+        {
+          url: '/_next/static/chunks/app/auth/signin/page-4c0ae748a8c31454.js',
+          revision: '4c0ae748a8c31454',
+        },
+        {
+          url: '/_next/static/chunks/app/auth/signup/page-f2556e755531f41e.js',
+          revision: 'f2556e755531f41e',
+        },
+        {
+          url: '/_next/static/chunks/app/caterer/page-68f208ef0ea4a209.js',
+          revision: '68f208ef0ea4a209',
+        },
+        {
+          url: '/_next/static/chunks/app/layout-68f375f0d22cb0b1.js',
+          revision: '68f375f0d22cb0b1',
+        },
+        {
+          url: '/_next/static/chunks/app/manager/layout-20c847bf82a003d9.js',
+          revision: '20c847bf82a003d9',
+        },
+        {
+          url: '/_next/static/chunks/app/manager/menu/%5Bid%5D/edit/page-477ba59d23eef483.js',
+          revision: '477ba59d23eef483',
+        },
+        {
+          url: '/_next/static/chunks/app/manager/menu/%5Bid%5D/page-b9ac7e790dd0854a.js',
+          revision: 'b9ac7e790dd0854a',
+        },
+        {
+          url: '/_next/static/chunks/app/manager/menu/new/page-950a51cd371ec891.js',
+          revision: '950a51cd371ec891',
+        },
+        {
+          url: '/_next/static/chunks/app/manager/menu/page-edeefc9f30fbf693.js',
+          revision: 'edeefc9f30fbf693',
+        },
+        {
+          url: '/_next/static/chunks/app/manager/orders/%5Bid%5D/page-971d9d475027096c.js',
+          revision: '971d9d475027096c',
+        },
+        {
+          url: '/_next/static/chunks/app/manager/orders/page-d65d0cfe25b30e0d.js',
+          revision: 'd65d0cfe25b30e0d',
+        },
+        {
+          url: '/_next/static/chunks/app/manager/page-6ae2bbd9e38ac957.js',
+          revision: '6ae2bbd9e38ac957',
+        },
+        {
+          url: '/_next/static/chunks/app/manager/students/page-5caca6f050194d74.js',
+          revision: '5caca6f050194d74',
+        },
+        {
+          url: '/_next/static/chunks/app/page-f6e88766c1da25b1.js',
+          revision: 'f6e88766c1da25b1',
+        },
+        {
+          url: '/_next/static/chunks/app/student/checkout/page-91c001b3ee413e11.js',
+          revision: '91c001b3ee413e11',
+        },
+        {
+          url: '/_next/static/chunks/app/student/help-support/page-f8d4f5266a29de0a.js',
+          revision: 'f8d4f5266a29de0a',
+        },
+        {
+          url: '/_next/static/chunks/app/student/menu/page-29b280e3c37de1b4.js',
+          revision: '29b280e3c37de1b4',
+        },
+        {
+          url: '/_next/static/chunks/app/student/order-success/page-cac336fce6e01264.js',
+          revision: 'cac336fce6e01264',
+        },
+        {
+          url: '/_next/static/chunks/app/student/order/page-3c41245c6f50402c.js',
+          revision: '3c41245c6f50402c',
+        },
+        {
+          url: '/_next/static/chunks/app/student/orders/%5BorderNumber%5D/page-ba94b24df9b54d7b.js',
+          revision: 'ba94b24df9b54d7b',
+        },
+        {
+          url: '/_next/static/chunks/app/student/orders/page-c9e5ba3d7ae58d2c.js',
+          revision: 'c9e5ba3d7ae58d2c',
+        },
+        {
+          url: '/_next/static/chunks/app/student/page-e7ad1b479d163862.js',
+          revision: 'e7ad1b479d163862',
+        },
+        {
+          url: '/_next/static/chunks/app/student/profile/page-c399e526021f762c.js',
+          revision: 'c399e526021f762c',
+        },
+        {
+          url: '/_next/static/chunks/common-ead7c7934a6a88d3.js',
+          revision: 'ead7c7934a6a88d3',
+        },
+        {
+          url: '/_next/static/chunks/lucide-6a5c812b61a53578.js',
+          revision: '6a5c812b61a53578',
+        },
+        {
+          url: '/_next/static/chunks/main-app-9037d66f9ff94a7f.js',
+          revision: '9037d66f9ff94a7f',
+        },
+        {
+          url: '/_next/static/chunks/main-f8099a5852b3d1a9.js',
+          revision: 'f8099a5852b3d1a9',
+        },
+        {
+          url: '/_next/static/chunks/pages/_app-5b44fff6c142ca14.js',
+          revision: '5b44fff6c142ca14',
+        },
+        {
+          url: '/_next/static/chunks/pages/_error-b4b59695b44dd3b2.js',
+          revision: 'b4b59695b44dd3b2',
+        },
+        {
+          url: '/_next/static/chunks/polyfills-42372ed130431b0a.js',
+          revision: '846118c33b2c0e922d7b3a7676f81f6f',
+        },
+        {
+          url: '/_next/static/chunks/vendors-1ea4bb3cca3ce48a.js',
+          revision: '1ea4bb3cca3ce48a',
+        },
+        {
+          url: '/_next/static/chunks/webpack-6c62e1ce1ecf5baa.js',
+          revision: '6c62e1ce1ecf5baa',
+        },
+        {
+          url: '/_next/static/css/b36e6db30849f538.css',
+          revision: 'b36e6db30849f538',
+        },
+        {
+          url: '/_next/static/media/26a46d62cd723877-s.woff2',
+          revision: 'befd9c0fdfa3d8a645d5f95717ed6420',
+        },
+        {
+          url: '/_next/static/media/55c55f0601d81cf3-s.woff2',
+          revision: '43828e14271c77b87e3ed582dbff9f74',
+        },
+        {
+          url: '/_next/static/media/581909926a08bbc8-s.woff2',
+          revision: 'f0b86e7c24f455280b8df606b89af891',
+        },
+        {
+          url: '/_next/static/media/8e9860b6e62d6359-s.woff2',
+          revision: '01ba6c2a184b8cba08b0d57167664d75',
+        },
+        {
+          url: '/_next/static/media/97e0cb1ae144a2a9-s.woff2',
+          revision: 'e360c61c5bd8d90639fd4503c829c2dc',
+        },
+        {
+          url: '/_next/static/media/df0a9ae256c0569c-s.woff2',
+          revision: 'd54db44de5ccb18886ece2fda72bdfe0',
+        },
+        {
+          url: '/_next/static/media/e4af272ccee01ff0-s.p.woff2',
+          revision: '65850a373e258f1c897a2b3d75eb74de',
+        },
+        {
+          url: '/_next/static/ukjMokwVgU92SWJUkcjJu/_buildManifest.js',
+          revision: 'd351b366779b0738fbc43e328a8e56fd',
+        },
+        {
+          url: '/_next/static/ukjMokwVgU92SWJUkcjJu/_ssgManifest.js',
+          revision: 'b6652df95db52feb4daf4eca35380933',
+        },
+        { url: '/favicon.ico', revision: 'c0508dd67197c1ea3b22322f32851912' },
+        {
+          url: '/icons/icon-192x192.png',
+          revision: 'e8b5f141e515185f622e93d59bbc48e2',
+        },
+        {
+          url: '/icons/icon-512x512.png',
+          revision: 'e8b5f141e515185f622e93d59bbc48e2',
+        },
+        { url: '/manifest.json', revision: 'b751303dd3b0afbeabcfb3a41cee0f90' },
+        { url: '/offline.html', revision: 'a65be8d33f5c6c08a5e583ad4d4ea272' },
+      ],
+      { ignoreURLParametersMatching: [] }
+    ),
+    e.cleanupOutdatedCaches(),
+    e.registerRoute(
+      '/',
+      new e.NetworkFirst({
+        cacheName: 'start-url',
+        plugins: [
+          {
+            cacheWillUpdate: async ({
+              request: e,
+              response: a,
+              event: s,
+              state: i,
+            }) =>
+              a && 'opaqueredirect' === a.type
+                ? new Response(a.body, {
+                    status: 200,
+                    statusText: 'OK',
+                    headers: a.headers,
+                  })
+                : a,
+          },
+        ],
+      }),
+      'GET'
+    ),
+    e.registerRoute(
+      /^https?.*/,
+      new e.NetworkFirst({
+        cacheName: 'offlineCache',
+        plugins: [
+          new e.ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 86400 }),
+        ],
+      }),
+      'GET'
+    ),
+    e.registerRoute(
+      /^\/api\/.*/,
+      new e.NetworkFirst({
+        cacheName: 'api-cache',
+        plugins: [
+          new e.ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 300 }),
+        ],
+      }),
+      'GET'
+    ),
+    e.registerRoute(
+      /\.(?:js|css|woff2?|png|jpg|jpeg|gif|svg|ico)$/,
+      new e.StaleWhileRevalidate({
+        cacheName: 'static-resources',
+        plugins: [
+          new e.ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 604800 }),
+        ],
+      }),
+      'GET'
+    ));
+});

@@ -1,22 +1,22 @@
-import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import SessionWrapper from '@/components/SessionWrapper'
-import { UserProvider } from '@/components/UserProvider'
-import { CartProvider } from '@/components/CartProvider'
-import { NotificationProvider } from '@/components/NotificationSystem'
-import PageTransition from '@/components/PageTransition'
-import PWAInstallPrompt from '@/components/PWAInstallPrompt'
-import PushNotifications from '@/components/PushNotifications'
-import PWAPerformanceMonitor from '@/components/PWAPerformanceMonitor'
+import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import SessionWrapper from '@/components/SessionWrapper';
+import { UserProvider } from '@/components/UserProvider';
+import { CartProvider } from '@/components/CartProvider';
+import { NotificationProvider } from '@/components/NotificationSystem';
+import PageTransition from '@/components/PageTransition';
+import PWAInstallPrompt from '@/components/PWAInstallPrompt';
+import PushNotifications from '@/components/PushNotifications';
+import PWAPerformanceMonitor from '@/components/PWAPerformanceMonitor';
 
 // Optimize font loading
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   preload: true,
-  variable: '--font-inter'
-})
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',
-    apple: '/icons/icon-192x192.png'
+    apple: '/icons/icon-192x192.png',
   },
   // Performance optimizations
   robots: 'index, follow',
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Aieraa Hostel'
+    title: 'Aieraa Hostel',
   },
   // Open Graph for social sharing
   openGraph: {
@@ -43,51 +43,61 @@ export const metadata: Metadata = {
     title: 'Aieraa Hostel - Food Ordering App',
     description: 'Pre-order your hostel meals easily and skip the queue',
     siteName: 'Aieraa Hostel',
-    images: '/icons/icon-512x512.png'
-  }
-}
+    images: '/icons/icon-512x512.png',
+  },
+};
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#16a34a'
-}
+  themeColor: '#16a34a',
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang='en' suppressHydrationWarning>
       <head>
         {/* Preload critical resources */}
-        <link rel="preload" href="/icons/icon-192x192.png" as="image" type="image/png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        
+        <link
+          rel='preload'
+          href='/icons/icon-192x192.png'
+          as='image'
+          type='image/png'
+        />
+        <link rel='preconnect' href='https://fonts.googleapis.com' />
+        <link
+          rel='preconnect'
+          href='https://fonts.gstatic.com'
+          crossOrigin='anonymous'
+        />
+
         {/* DNS prefetch for external domains */}
-        <link rel="dns-prefetch" href="//fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="//fonts.gstatic.com" />
-        
+        <link rel='dns-prefetch' href='//fonts.googleapis.com' />
+        <link rel='dns-prefetch' href='//fonts.gstatic.com' />
+
         {/* Optimize resource hints */}
-        <meta name="format-detection" content="telephone=no" />
-        <meta name="msapplication-tap-highlight" content="no" />
-        
+        <meta name='format-detection' content='telephone=no' />
+        <meta name='msapplication-tap-highlight' content='no' />
+
         {/* Critical CSS inlining hint */}
-        <meta name="optimize-css" content="true" />
+        <meta name='optimize-css' content='true' />
       </head>
-      <body className={`${inter.variable} font-sans`} suppressHydrationWarning={true}>
-        <div className="w-full min-h-full">
+      <body
+        className={`${inter.variable} font-sans`}
+        suppressHydrationWarning={true}
+      >
+        <div className='w-full min-h-full'>
           <SessionWrapper>
             <UserProvider>
               <NotificationProvider>
                 <CartProvider>
-                  <PageTransition>
-                    {children}
-                  </PageTransition>
+                  <PageTransition>{children}</PageTransition>
                   <PWAInstallPrompt />
                   <PushNotifications />
                   <PWAPerformanceMonitor />
@@ -96,7 +106,7 @@ export default function RootLayout({
             </UserProvider>
           </SessionWrapper>
         </div>
-        
+
         {/* Performance monitoring script (only in production) */}
         {process.env.NODE_ENV === 'production' && (
           <script
@@ -120,11 +130,11 @@ export default function RootLayout({
                     });
                   });
                 }
-              `
+              `,
             }}
           />
         )}
       </body>
     </html>
-  )
-} 
+  );
+}
