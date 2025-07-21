@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendNotificationToUser } from '@/lib/notifications'
 
 export async function POST(
   request: NextRequest,
@@ -86,6 +87,36 @@ export async function POST(
         }
       }
     })
+
+    // Send push notification to student
+    try {
+      const notificationResult = await sendNotificationToUser(updatedOrder.user.id, {
+        title: 'Your order has been served! ✅',
+        body: 'Your order has been served successfully. Thank you for using our service!',
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+        data: {
+          orderId: updatedOrder.id,
+          orderNumber: updatedOrder.orderNumber,
+          status: 'SERVED',
+          url: `/student/orders/${updatedOrder.orderNumber}`,
+          timestamp: Date.now()
+        }
+      })
+
+      console.log('📱 CATERER NOTIFICATION SENT:', {
+        orderId: updatedOrder.id,
+        orderNumber: updatedOrder.orderNumber,
+        studentName: updatedOrder.user.name,
+        status: 'SERVED',
+        sent: notificationResult.sent || 0,
+        total: notificationResult.total || 0,
+        success: notificationResult.success
+      })
+    } catch (notificationError) {
+      console.error('❌ Failed to send caterer notification:', notificationError)
+      // Don't fail the order update if notification fails
+    }
 
     return NextResponse.json({
       message: 'Order marked as served successfully',

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { sendNotificationToUser } from '@/lib/notifications';
 
 const UpdateOrderStatusSchema = z.object({
   status: z.enum(['APPROVED', 'PREPARING', 'READY', 'SERVED', 'CANCELLED']),
@@ -199,8 +200,55 @@ export async function PATCH(
       `Manager ${currentUser.name} updated order ${existingOrder.orderNumber} from ${currentStatus} to ${newStatus}`
     );
 
-    // TODO: Send notification to student about status change
-    // This could be implemented later with a notification service
+    // Send automated push notification to student
+    try {
+      const statusMessages = {
+        'APPROVED': 'Your order has been approved! 🎉',
+        'PREPARING': 'Your order is now being prepared 👨‍🍳',
+        'READY': 'Your order is ready for pickup! 🍽️',
+        'SERVED': 'Your order has been served. Thank you! ✅',
+        'CANCELLED': 'Your order has been cancelled'
+      }
+
+      const statusDescriptions = {
+        'APPROVED': 'Your order has been approved and will be prepared soon.',
+        'PREPARING': 'Your order is now being prepared in the kitchen.',
+        'READY': 'Your order is ready for pickup! Please collect it from the food counter.',
+        'SERVED': 'Your order has been served successfully. Thank you for using our service!',
+        'CANCELLED': 'Your order has been cancelled. If you have any questions, please contact support.'
+      }
+
+      const title = statusMessages[newStatus as keyof typeof statusMessages] || 'Order Status Update'
+      const body = statusDescriptions[newStatus as keyof typeof statusDescriptions] || 'Your order status has been updated.'
+
+      const notificationResult = await sendNotificationToUser(updatedOrder.user.id, {
+        title,
+        body,
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+        data: {
+          orderId: updatedOrder.id,
+          orderNumber: existingOrder.orderNumber,
+          status: newStatus,
+          url: `/student/orders/${existingOrder.orderNumber}`,
+          timestamp: Date.now()
+        }
+      })
+
+      console.log('📱 MANAGER NOTIFICATION SENT:', {
+        manager: currentUser.name,
+        orderId: updatedOrder.id,
+        orderNumber: existingOrder.orderNumber,
+        studentName: existingOrder.user.name,
+        statusChange: `${currentStatus} → ${newStatus}`,
+        sent: notificationResult.sent || 0,
+        total: notificationResult.total || 0,
+        success: notificationResult.success
+      })
+    } catch (notificationError) {
+      console.error('❌ Failed to send manager notification:', notificationError)
+      // Don't fail the order update if notification fails
+    }
 
     return NextResponse.json({
       success: true,

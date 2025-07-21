@@ -122,21 +122,5 @@
         }
       ]
     }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshots/mobile-dashboard.png",
-      "sizes": "640x1136",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Student Dashboard"
-    },
-    {
-      "src": "/screenshots/mobile-menu.png",
-      "sizes": "640x1136",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Browse Menu"
-    }
   ]
 } 

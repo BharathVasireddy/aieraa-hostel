@@ -3,37 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isValidOrderStatus } from '@/lib/validation'
-
-// Notification function for order status changes
-async function sendOrderStatusNotification(order: any, status: string, rejectionReason?: string) {
-  const statusMessages = {
-    'APPROVED': 'Your order has been approved and is being prepared.',
-    'PREPARING': 'Your order is now being prepared in the kitchen.',
-    'READY': 'Your order is ready for pickup!',
-    'SERVED': 'Your order has been served. Thank you!',
-    'REJECTED': `Your order has been rejected. ${rejectionReason ? `Reason: ${rejectionReason}` : ''}`,
-    'CANCELLED': 'Your order has been cancelled.'
-  }
-
-  const message = statusMessages[status as keyof typeof statusMessages] || 'Your order status has been updated.'
-
-  // Log notification (in production, integrate with email/SMS service)
-  console.log('📧 ORDER NOTIFICATION:', {
-    orderId: order.id,
-    studentName: order.user.name,
-    studentEmail: order.user.email,
-    status,
-    message,
-    timestamp: new Date().toISOString()
-  })
-
-  // TODO: Integrate with actual notification service (email, SMS, push notifications)
-  // Example integrations:
-  // - Send email via SendGrid/Mailgun
-  // - Send SMS via Twilio
-  // - Send push notification via Firebase
-  // - Store in database for in-app notifications
-}
+import { sendOrderStatusNotification } from '@/lib/notifications'
 
 export async function GET(
   request: NextRequest,
