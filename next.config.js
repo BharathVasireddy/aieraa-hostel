@@ -8,10 +8,18 @@ const nextConfig = {
   },
 
   // External packages for server components
-  serverExternalPackages: ['@prisma/client'],
+  serverExternalPackages: ['@prisma/client', '@prisma/engines'],
 
   // Code splitting and bundle optimization
   webpack: (config, { dev, isServer }) => {
+    // Prisma configuration for Vercel
+    if (isServer) {
+      config.externals.push({
+        '@prisma/client': '@prisma/client',
+        '@prisma/engines': '@prisma/engines',
+      });
+    }
+
     // Optimize bundle splitting
     if (!dev && !isServer) {
       config.optimization.splitChunks = {

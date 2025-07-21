@@ -21,7 +21,8 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   title: 'Aieraa Hostel - Food Ordering App',
-  description: 'Pre-order your hostel meals easily and skip the queue',
+  description:
+    'Order delicious meals from your hostel kitchen with Aieraa Overseas Studies. Pre-order, track orders, and enjoy hassle-free dining.',
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',

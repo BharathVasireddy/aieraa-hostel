@@ -15,16 +15,16 @@ if (!self.define) {
         return e;
       })
   );
-  self.define = (i, t) => {
+  self.define = (i, c) => {
     const n =
       e ||
       ('document' in self ? document.currentScript.src : '') ||
       location.href;
     if (a[n]) return;
-    let c = {};
+    let t = {};
     const r = e => s(e, n),
-      u = { module: { uri: n }, exports: c, require: r };
-    a[n] = Promise.all(i.map(e => u[e] || r(e))).then(e => (t(...e), c));
+      d = { module: { uri: n }, exports: t, require: r };
+    a[n] = Promise.all(i.map(e => d[e] || r(e))).then(e => (c(...e), t));
   };
 }
 define(['./workbox-fe792590'], function (e) {
@@ -36,7 +36,15 @@ define(['./workbox-fe792590'], function (e) {
       [
         {
           url: '/_next/app-build-manifest.json',
-          revision: '4f5a520b818fb84681b907a3eb9db4f8',
+          revision: '67dee66871cacd3f8963d0ab23ce2c5f',
+        },
+        {
+          url: '/_next/static/7j2lMl-QrcgGQoepr0_Vk/_buildManifest.js',
+          revision: 'd351b366779b0738fbc43e328a8e56fd',
+        },
+        {
+          url: '/_next/static/7j2lMl-QrcgGQoepr0_Vk/_ssgManifest.js',
+          revision: 'b6652df95db52feb4daf4eca35380933',
         },
         {
           url: '/_next/static/chunks/app/_not-found/page-90f7cab673ddaff8.js',
@@ -359,8 +367,8 @@ define(['./workbox-fe792590'], function (e) {
           revision: '68f208ef0ea4a209',
         },
         {
-          url: '/_next/static/chunks/app/layout-68f375f0d22cb0b1.js',
-          revision: '68f375f0d22cb0b1',
+          url: '/_next/static/chunks/app/layout-08dd64684bb307c1.js',
+          revision: '08dd64684bb307c1',
         },
         {
           url: '/_next/static/chunks/app/manager/layout-20c847bf82a003d9.js',
@@ -506,24 +514,68 @@ define(['./workbox-fe792590'], function (e) {
           url: '/_next/static/media/e4af272ccee01ff0-s.p.woff2',
           revision: '65850a373e258f1c897a2b3d75eb74de',
         },
+        { url: '/favicon.ico', revision: '9674dc4173f6a8f2e26605f2bc017506' },
         {
-          url: '/_next/static/ukjMokwVgU92SWJUkcjJu/_buildManifest.js',
-          revision: 'd351b366779b0738fbc43e328a8e56fd',
+          url: '/icons/aieraa-logo-original.png',
+          revision: '4590729762b3d5f0d203764403cfd333',
         },
         {
-          url: '/_next/static/ukjMokwVgU92SWJUkcjJu/_ssgManifest.js',
-          revision: 'b6652df95db52feb4daf4eca35380933',
+          url: '/icons/cart-shortcut.png',
+          revision: '2bae4721f6ffc86d82688b2237b93d02',
         },
-        { url: '/favicon.ico', revision: 'c0508dd67197c1ea3b22322f32851912' },
+        {
+          url: '/icons/favicon-32x32.png',
+          revision: '8c4768b0ebf5b06b835b66227b82f994',
+        },
+        {
+          url: '/icons/icon-128x128.png',
+          revision: 'f5a7e824ac41a39324741ad227e3e0b7',
+        },
+        {
+          url: '/icons/icon-144x144.png',
+          revision: 'c4b7bf25098a0d57f9dfb1e9810b5b64',
+        },
+        {
+          url: '/icons/icon-152x152.png',
+          revision: '8fc95d68f075571cb948faa288ea4078',
+        },
+        {
+          url: '/icons/icon-192x192-maskable.png',
+          revision: '4919c48269365fc90ebc291539704fe5',
+        },
         {
           url: '/icons/icon-192x192.png',
-          revision: 'e8b5f141e515185f622e93d59bbc48e2',
+          revision: '4919c48269365fc90ebc291539704fe5',
+        },
+        {
+          url: '/icons/icon-384x384.png',
+          revision: '2602dbcd05074182d95a877caeeac6da',
+        },
+        {
+          url: '/icons/icon-512x512-maskable.png',
+          revision: '59f8abbc227ccba0dd73e388e31fc67f',
         },
         {
           url: '/icons/icon-512x512.png',
-          revision: 'e8b5f141e515185f622e93d59bbc48e2',
+          revision: '59f8abbc227ccba0dd73e388e31fc67f',
         },
-        { url: '/manifest.json', revision: 'b751303dd3b0afbeabcfb3a41cee0f90' },
+        {
+          url: '/icons/icon-72x72.png',
+          revision: 'c7e7a8551d89ad2a213a58cda9ee55e2',
+        },
+        {
+          url: '/icons/icon-96x96.png',
+          revision: '2bae4721f6ffc86d82688b2237b93d02',
+        },
+        {
+          url: '/icons/menu-shortcut.png',
+          revision: '2bae4721f6ffc86d82688b2237b93d02',
+        },
+        {
+          url: '/icons/orders-shortcut.png',
+          revision: '2bae4721f6ffc86d82688b2237b93d02',
+        },
+        { url: '/manifest.json', revision: '57f2f5709c6fc3c89b5bccca106dca26' },
         { url: '/offline.html', revision: 'a65be8d33f5c6c08a5e583ad4d4ea272' },
       ],
       { ignoreURLParametersMatching: [] }
