@@ -8,7 +8,6 @@ import PromotionalSlider from '@/components/PromotionalSlider';
 
 // Dashboard Components
 import WelcomeSection from '@/components/student/WelcomeSection';
-import OrderingCountdown from '@/components/student/OrderingCountdown';
 
 export default function StudentDashboard() {
   const { user } = useUser();
@@ -53,8 +52,8 @@ export default function StudentDashboard() {
     <StudentLayout>
       <div className='bg-gray-50 min-h-screen'>
         <div className='px-4 py-4 pb-24 space-y-6'>
-          {/* Welcome Section - Shows immediately */}
-          <WelcomeSection userName={user?.name} />
+          {/* Welcome Section with Order Deadline - Shows immediately */}
+          <WelcomeSection userName={user?.name} selectedDate={selectedDate} />
 
           {/* Promotional Slider - Shows immediately */}
           {user?.universityId && (
@@ -62,9 +61,6 @@ export default function StudentDashboard() {
               <PromotionalSlider universityId={user.universityId} />
             </div>
           )}
-
-          {/* Ordering Countdown - Shows immediately */}
-          <OrderingCountdown selectedDate={selectedDate} />
         </div>
       </div>
     </StudentLayout>
