@@ -1,7 +1,7 @@
 'use client'
 
-import { Check, CheckCircle, Clock, Home, Package, User, X } from 'lucide-react'
-import { format } from 'date-fns'
+import { CheckCircle, Clock, Home, Package, User, X } from 'lucide-react'
+import { formatVietnamDateTime } from '@/lib/timezone'
 
 interface OrderForServing {
   id: string
@@ -85,7 +85,7 @@ export default function ScannedOrderModal({
               )}
               <p className="text-sm text-gray-600 flex items-center">
                 <Clock className="w-4 h-4 mr-1" />
-                Ordered: {format(new Date(order.createdAt), 'h:mm a')}
+                Ordered: {formatVietnamDateTime(new Date(order.createdAt), 'h:mm a')}
               </p>
             </div>
           </div>

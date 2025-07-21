@@ -173,6 +173,15 @@ export function formatVietnamDate(date?: Date): string {
 }
 
 /**
+ * Format Vietnam date and time for display
+ * Shows both date and time in Vietnam timezone
+ */
+export function formatVietnamDateTime(date: Date, pattern = 'MMM dd, yyyy h:mm a'): string {
+  const vietnamTime = toVietnamTime(date)
+  return format(vietnamTime, pattern) + ' Vietnam time'
+}
+
+/**
  * Format date for API/database operations (ISO string in UTC)
  * Best practice: ISO strings for API communication
  */
@@ -259,20 +268,23 @@ export function validateTimezoneImplementation(): boolean {
     const formattingValid =
       typeof formattedTime === 'string' && formattedTime.length > 0;
 
-    console.log('🔍 Timezone Validation Results:', {
-      offsetValid,
-      conversionValid,
-      offsetDiffValid,
-      businessHoursWorking,
-      formattingValid,
-      testDetails: {
-        expectedOffset,
-        actualOffset,
-        timeDiff,
-        actualDiff,
-        expectedDiff,
-      },
-    });
+    // Debug logging for timezone validation in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Timezone Validation Results:', {
+        offsetValid,
+        conversionValid,
+        offsetDiffValid,
+        businessHoursWorking,
+        formattingValid,
+        testDetails: {
+          expectedOffset,
+          actualOffset,
+          timeDiff,
+          actualDiff,
+          expectedDiff,
+        },
+      });
+    }
 
     return (
       offsetValid &&

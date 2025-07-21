@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { ArrowLeft, Check, CheckCircle, Clock, Download, IndianRupee, Package, QrCode, Share2, Star } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, Download, IndianRupee, Package, QrCode, Share2, Star } from 'lucide-react'
 import { format } from 'date-fns'
-import { useRouter } from 'next/navigation'
+
 import Link from 'next/link'
 import Image from 'next/image'
 import QRCodeComponent from 'react-qr-code'
 import MobileHeader from '@/components/MobileHeader'
 import BottomNavigation from '@/components/BottomNavigation'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
+import { formatVietnamDateTime } from '@/lib/timezone'
 // Cache imports removed - caching disabled
 
 interface OrderDetail {
@@ -288,7 +289,7 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
           {order.completedAt && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-sm text-gray-600">
-                Completed: {format(new Date(order.completedAt), 'MMM dd, yyyy h:mm a')}
+                Completed: {formatVietnamDateTime(new Date(order.completedAt))}
               </p>
             </div>
           )}
@@ -420,7 +421,7 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
               </div>
               <div>
                 <p className="font-medium text-gray-900">Order Placed</p>
-                <p className="text-sm text-gray-600">{format(new Date(order.createdAt), 'MMM dd, yyyy h:mm a')}</p>
+                <p className="text-sm text-gray-600">{formatVietnamDateTime(new Date(order.createdAt))}</p>
               </div>
             </div>
             
@@ -443,7 +444,7 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
                 </div>
                 <div>
                   <p className="font-medium text-gray-900">Order Completed</p>
-                  <p className="text-sm text-gray-600">{format(new Date(order.completedAt), 'MMM dd, yyyy h:mm a')}</p>
+                  <p className="text-sm text-gray-600">{formatVietnamDateTime(new Date(order.completedAt))}</p>
                 </div>
               </div>
             )}
