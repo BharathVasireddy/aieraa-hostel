@@ -2,6 +2,7 @@
   "name": "Aieraa Hostel Food Ordering",
   "short_name": "Aieraa Hostel",
   "description": "Order delicious meals from your hostel kitchen with Aieraa Overseas Studies. Pre-order, track orders, and enjoy hassle-free dining experience.",
+  "version": "2.1.0",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
