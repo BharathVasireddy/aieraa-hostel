@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import type { JWT } from 'next-auth/jwt'
 import { prisma, ensureConnection } from './prisma'
-import { UserRole, UserStatus } from '../generated/prisma'
+import { UserRole, UserStatus } from '@prisma/client'
 
 // Generate a stable secret for development
 const getAuthSecret = () => {

@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { MenuCategory, OrderStatus } from '../generated/prisma';
+import { MenuCategory, OrderStatus } from '@prisma/client';
 
 // Request deduplication for lightning-fast responses
 const pendingRequests = new Map<string, Promise<any>>();

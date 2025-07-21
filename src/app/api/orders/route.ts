@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import Razorpay from 'razorpay';
 import { getFastUserOrders } from '@/lib/db-optimized';
-import { OrderStatus } from '@/generated/prisma';
+import { OrderStatus } from '@prisma/client';
 import { toOrderStatus } from '@/lib/validation';
 
 interface OrderItem {

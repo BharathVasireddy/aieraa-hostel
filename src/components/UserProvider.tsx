@@ -10,7 +10,7 @@ import {
   useMemo,
 } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import type { User, University, UniversitySettings } from '@/generated/prisma';
+import type { User, University, UniversitySettings } from '@prisma/client';
 
 // Custom type that includes university relationship
 interface UserWithUniversity extends User {

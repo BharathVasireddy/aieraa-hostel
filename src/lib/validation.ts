@@ -1,4 +1,4 @@
-import { OrderStatus } from '@/generated/prisma'
+import { OrderStatus } from '@prisma/client'
 
 // Valid OrderStatus enum values
 export const VALID_ORDER_STATUSES: OrderStatus[] = [

@@ -7,7 +7,7 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react'],
   },
 
-  // External packages for server components
+  // External packages for server components (Next.js 15+)
   serverExternalPackages: ['@prisma/client', '@prisma/engines'],
 
   // Code splitting and bundle optimization
