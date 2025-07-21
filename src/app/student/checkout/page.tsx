@@ -7,35 +7,20 @@ import { format, addDays, startOfToday } from 'date-fns'
 import StudentLayout from '@/components/StudentLayout'
 import { getVietnamTime, getOrderingCountdown } from '@/lib/timezone'
 import { useUser } from '@/components/UserProvider'
-
-interface CartItem {
-  id: string
-  name: string
-  price: number
-  quantity: number
-  isVegetarian?: boolean
-  image?: string
-}
-
-interface OrderCartData {
-  items: { [key: string]: number }
-  orderDate: string
-  totalAmount: number
-}
+import { useCart } from '@/components/CartProvider'
 
 export default function CheckoutPage() {
   const router = useRouter()
-    const { user } = useUser()
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const { user } = useUser()
+  const { items: cartItems, updateQuantity, removeItem, getTotalItems, getTotalPrice, clearCart } = useCart()
   const [loading, setLoading] = useState(false)
     const [currentTime, setCurrentTime] = useState(getVietnamTime())
     const [specialInstructions, setSpecialInstructions] = useState('')
-  const [menuItems, setMenuItems] = useState<{ [key: string]: any }>({})
   
   // Get selected date from localStorage  
   const [selectedDate, setSelectedDate] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('selectedOrderDate')
+      const saved = localStorage.getItem('checkoutDate') || localStorage.getItem('selectedOrderDate')
       if (saved) return saved
     }
     const tomorrow = addDays(startOfToday(), 1)
@@ -55,68 +40,16 @@ export default function CheckoutPage() {
     return getOrderingCountdown(selectedDate)
   }, [selectedDate])
 
-  // Load cart from localStorage
+  // Check if cart is empty and redirect to menu
   useEffect(() => {
-    const loadCart = async () => {
-      if (typeof window === 'undefined') return
-      
-      const savedCart = localStorage.getItem('orderCart')
-      if (!savedCart) {
-        // If no cart, redirect to menu
-        router.push('/student/menu')
-        return
-      }
-
-      try {
-        const orderCart: OrderCartData = JSON.parse(savedCart)
-        
-        // Update selected date from cart
-        if (orderCart.orderDate) {
-          setSelectedDate(orderCart.orderDate)
-        }
-
-        // Fetch menu items to get full item details
-        const response = await fetch(`/api/student/menu?date=${orderCart.orderDate}`)
-        if (response.ok) {
-          const menuData = await response.json()
-          
-          // Create a lookup map for menu items
-          const menuItemsMap: { [key: string]: any } = {}
-          menuData.menuItems?.forEach((item: any) => {
-            menuItemsMap[item.id] = item
-          })
-          setMenuItems(menuItemsMap)
-
-          // Convert cart items to CartItem format
-          const cartItemsArray: CartItem[] = []
-          Object.entries(orderCart.items).forEach(([itemId, quantity]) => {
-            const menuItem = menuItemsMap[itemId]
-            if (menuItem) {
-              cartItemsArray.push({
-                id: itemId,
-                name: menuItem.name,
-                price: menuItem.offerPrice || menuItem.price,
-                quantity: quantity as number,
-                isVegetarian: menuItem.isVegetarian,
-                image: menuItem.image
-              })
-            }
-          })
-          
-          setCartItems(cartItemsArray)
-        }
-      } catch (error) {
-    console.error(error)
-        router.push('/student/menu')
-      }
+    if (cartItems.length === 0) {
+      router.push('/student/menu')
     }
-
-    loadCart()
-  }, [router])
+  }, [cartItems.length, router])
 
   // Calculate totals
   const totals = useMemo(() => {
-    const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const subtotal = getTotalPrice()
     const deliveryFee = 0 // Free delivery for hostel
     const tax = Math.round(subtotal * 0.05) // 5% tax
     const total = subtotal + deliveryFee + tax
@@ -126,24 +59,18 @@ export default function CheckoutPage() {
       deliveryFee,
       tax,
       total,
-      itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0)
+      itemCount: getTotalItems()
     }
-  }, [cartItems])
+  }, [getTotalPrice, getTotalItems])
 
-  // Cart management functions
-  const updateQuantity = useCallback((itemId: string, newQuantity: number) => {
-    if (newQuantity === 0) {
-      setCartItems(prev => prev.filter(item => item.id !== itemId))
-    } else {
-      setCartItems(prev => prev.map(item =>
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      ))
-    }
-  }, [])
+  // Cart management functions using CartProvider
+  const handleUpdateQuantity = useCallback(async (itemId: string, newQuantity: number) => {
+    await updateQuantity(itemId, newQuantity)
+  }, [updateQuantity])
 
-  const removeItem = useCallback((itemId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId))
-  }, [])
+  const handleRemoveItem = useCallback(async (itemId: string) => {
+    await removeItem(itemId)
+  }, [removeItem])
 
   // Simplified validation - only check if cart has items and not past cutoff
   const isValidForm = useMemo(() => {
@@ -179,9 +106,8 @@ export default function CheckoutPage() {
         const result = await response.json()
         
         // Clear cart
-        setCartItems([])
-        localStorage.removeItem('tempCart')
-        localStorage.removeItem('orderCart')
+        await clearCart()
+        localStorage.removeItem('checkoutDate')
         
         // Redirect to order success page
         router.push(`/student/order-success?orderId=${result.order.id}&orderNumber=${result.order.orderNumber}`)
@@ -321,20 +247,20 @@ export default function CheckoutPage() {
                 
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                     className="p-1 rounded-full hover:bg-neutral-200 transition-colors"
                   >
                     <Minus className="w-4 h-4 text-neutral-600" />
                   </button>
                   <span className="w-8 text-center font-medium text-neutral-900">{item.quantity}</span>
                   <button
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                    onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                     className="p-1 rounded-full hover:bg-neutral-200 transition-colors"
                   >
                     <Plus className="w-4 h-4 text-neutral-600" />
                   </button>
                   <button
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => handleRemoveItem(item.id)}
                     className="p-1 rounded-full hover:bg-red-100 transition-colors ml-2"
                   >
                     <Trash2 className="w-4 h-4 text-red-600" />

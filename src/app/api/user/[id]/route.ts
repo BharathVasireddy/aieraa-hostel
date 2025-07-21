@@ -38,6 +38,7 @@ export async function GET(
         dietaryPreferences: true,
         createdAt: true,
         lastLoginAt: true,
+        universityId: true, // Add this missing field
         university: {
           select: {
             id: true,
@@ -124,6 +125,7 @@ export async function PATCH(
         dietaryPreferences: true,
         createdAt: true,
         lastLoginAt: true,
+        universityId: true, // Add this missing field
         university: {
           select: {
             id: true,

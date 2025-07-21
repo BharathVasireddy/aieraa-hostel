@@ -81,7 +81,7 @@ export default function StudentHeader({
           {/* Left: University Info */}
           <div className="flex items-center space-x-3">
             <div>
-              <h1 className="text-sm font-semibold text-gray-900">{user.university}</h1>
+              <h1 className="text-sm font-semibold text-gray-900">{user.university || 'University'}</h1>
               <p className="text-xs text-gray-600">Room {user.roomNumber}</p>
             </div>
           </div>

@@ -1,27 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { AlertCircle, Calendar, Check, CheckCircle, ChefHat, Clock, Eye, Filter, IndianRupee, Package, RefreshCw, X, XCircle } from 'lucide-react'
+import { CheckCircle, Clock, Eye, Package, RefreshCw, ChevronRight, Calendar, IndianRupee } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import StudentLayout from '@/components/StudentLayout'
-
-// Helper function to safely format dates
-const formatDate = (dateString: string | undefined | null, formatString: string, fallback: string) => {
-  try {
-    if (!dateString || dateString === 'Invalid Date' || dateString === 'null' || dateString === 'undefined') {
-      return fallback;
-    }
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return fallback;
-    }
-    return format(date, formatString);
-  } catch (error) {
-    console.error('Date formatting error:', error);
-    return fallback;
-  }
-};
 
 interface OrderItem {
   id: string
@@ -30,7 +13,6 @@ interface OrderItem {
   menuItem: {
     id: string
     name: string
-    category: string
   }
 }
 
@@ -41,46 +23,33 @@ interface Order {
   status: string
   paymentStatus: string
   totalAmount: number
-  taxAmount: number
-  specialInstructions?: string
   createdAt: string
   orderItems: OrderItem[]
 }
 
-type FilterStatus = 'all' | 'upcoming' | 'PENDING' | 'APPROVED' | 'PREPARING' | 'READY' | 'SERVED'
+type FilterStatus = 'active' | 'completed'
 
 export default function StudentOrders() {
   const router = useRouter()
-    const [orders, setOrders] = useState<Order[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [filter, setFilter] = useState<FilterStatus>('upcoming')
-  const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<FilterStatus>('active')
 
-  // Fetch orders from API
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true)
-      setError(null)
+      const response = await fetch('/api/orders', { cache: 'no-store' })
       
-      const response = await fetch('/api/orders')
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders')
-      }
+      if (!response.ok) throw new Error('Failed to fetch orders')
       
       const data = await response.json()
-      
-      // Process orders with proper sorting (most recent first)
       const processedOrders = (data.orders || data || [])
         .sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       
       setOrders(processedOrders)
-      
     } catch (error) {
-    console.error(error)
-      setError('Failed to load orders')
-      setOrders([])
+      console.error('Failed to load orders:', error)
     } finally {
       setLoading(false)
     }
@@ -96,267 +65,239 @@ export default function StudentOrders() {
     setRefreshing(false)
   }
 
-  const getStatusIcon = (status: string) => {
+  const getStatusInfo = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return <AlertCircle className="w-4 h-4 text-orange-600" />
+        return { icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50', text: 'Pending' }
       case 'APPROVED':
-        return <CheckCircle className="w-4 h-4 text-blue-600" />
+        return { icon: CheckCircle, color: 'text-blue-600', bg: 'bg-blue-50', text: 'Approved' }
       case 'PREPARING':
-        return <ChefHat className="w-4 h-4 text-purple-600" />
+        return { icon: Package, color: 'text-purple-600', bg: 'bg-purple-50', text: 'Preparing' }
       case 'READY':
-        return <Package className="w-4 h-4 text-green-600" />
+        return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', text: 'Ready' }
       case 'SERVED':
-        return <CheckCircle className="w-4 h-4 text-emerald-600" />
-      case 'CANCELLED':
-        return <XCircle className="w-4 h-4 text-red-600" />
+        return { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', text: 'Completed' }
       default:
-        return <Clock className="w-4 h-4 text-gray-600" />
+        return { icon: Clock, color: 'text-gray-600', bg: 'bg-gray-50', text: status }
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PENDING': return 'text-orange-800 bg-orange-100 border-orange-300'
-      case 'APPROVED': return 'text-blue-800 bg-blue-100 border-blue-300'
-      case 'PREPARING': return 'text-purple-800 bg-purple-100 border-purple-300'
-      case 'READY': return 'text-green-800 bg-green-100 border-green-300'
-      case 'SERVED': return 'text-emerald-800 bg-emerald-100 border-emerald-300'
-      case 'CANCELLED': return 'text-red-800 bg-red-100 border-red-300'
-      default: return 'text-gray-800 bg-gray-100 border-gray-300'
+  const filteredOrders = orders.filter(order => {
+    if (filter === 'active') {
+      return ['PENDING', 'APPROVED', 'PREPARING', 'READY'].includes(order.status)
+    }
+    return ['SERVED', 'CANCELLED'].includes(order.status)
+  })
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM dd, h:mm a')
+    } catch {
+      return 'Invalid date'
     }
   }
 
-  const getStatusBgColor = (status: string) => {
-    switch (status) {
-      case 'PENDING': return 'bg-gradient-to-r from-orange-50 to-orange-100'
-      case 'APPROVED': return 'bg-gradient-to-r from-blue-50 to-blue-100'
-      case 'PREPARING': return 'bg-gradient-to-r from-purple-50 to-purple-100'
-      case 'READY': return 'bg-gradient-to-r from-green-50 to-green-100'
-      case 'SERVED': return 'bg-gradient-to-r from-emerald-50 to-emerald-100'
-      case 'CANCELLED': return 'bg-gradient-to-r from-red-50 to-red-100'
-      default: return 'bg-gradient-to-r from-gray-50 to-gray-100'
+  const formatOrderDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM dd')
+    } catch {
+      return 'N/A'
     }
   }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'PENDING': return 'Pending for Approval'
-      case 'APPROVED': return 'Approved'
-      case 'PREPARING': return 'Preparing'
-      case 'READY': return 'Ready to Collect'
-      case 'SERVED': return 'Served'
-      case 'CANCELLED': return 'Cancelled'
-      default: return status
-    }
-  }
-
-  const viewOrderDetails = (orderId: string, orderNumber: string) => {
-    router.push(`/student/orders/${orderId}?orderNumber=${orderNumber}`)
-  }
-
-  // Filter orders based on selected filter
-  const getFilteredOrders = () => {
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    
-    switch (filter) {
-      case 'upcoming':
-        return orders.filter(order => {
-          const orderDate = new Date(order.orderDate)
-          return orderDate >= today || ['PENDING', 'APPROVED', 'PREPARING', 'READY'].includes(order.status)
-        })
-      case 'all':
-        return orders
-      default:
-        return orders.filter(order => order.status === filter)
-    }
-  }
-
-  const filteredOrders = getFilteredOrders()
-
-  const filterOptions: { key: FilterStatus; label: string }[] = [
-    { key: 'upcoming', label: 'Upcoming' },
-    { key: 'all', label: 'All Orders' },
-    { key: 'PENDING', label: 'Pending' },
-    { key: 'APPROVED', label: 'Approved' },
-    { key: 'PREPARING', label: 'Preparing' },
-    { key: 'READY', label: 'Ready' },
-    { key: 'SERVED', label: 'Served' }
-  ]
 
   return (
-    <StudentLayout showDatePicker={false} className="bg-gradient-to-br from-green-50 via-white to-blue-50">
-      {/* Header */}
-      <div className="bg-white/90 backdrop-blur-sm border-b border-green-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Package className="w-5 h-5 text-gray-700" />
+    <StudentLayout showDatePicker={false}>
+      <div className="bg-white min-h-screen">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-4 z-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Package className="w-6 h-6 text-gray-700" />
+              <h1 className="text-xl font-bold text-gray-900">My Orders</h1>
             </div>
-            <h1 className="text-lg font-bold text-gray-900">My Orders</h1>
-          </div>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="p-2 text-gray-600 hover:text-green-600 disabled:opacity-50 rounded-full hover:bg-green-50 transition-all duration-200"
-          >
-            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </div>
-
-      <div className="px-4 py-4">
-        {/* Filter Options */}
-        <div className="mb-4">
-          <div className="flex space-x-2 overflow-x-auto pb-2">
-            {filterOptions.map(option => (
-              <button
-                key={option.key}
-                onClick={() => setFilter(option.key)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
-                  filter === option.key
-                    ? 'bg-green-600 text-white border-green-600'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-green-50 hover:border-green-300'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Orders List */}
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="bg-white rounded-2xl p-3 animate-pulse border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                    <div>
-                      <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
-                      <div className="h-2 bg-gray-200 rounded w-12"></div>
-                    </div>
-                  </div>
-                  <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                </div>
-                <div className="h-2 bg-gray-200 rounded w-2/3 mb-2"></div>
-                <div className="flex items-center justify-between">
-                  <div className="h-5 bg-gray-200 rounded w-12"></div>
-                  <div className="h-3 bg-gray-200 rounded w-10"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <XCircle className="w-8 h-8 text-red-600" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load orders</h3>
-            <p className="text-sm text-gray-600 mb-6">{error}</p>
-            <button 
+            <button
               onClick={handleRefresh}
-              className="px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white text-sm font-medium rounded-xl hover:from-green-600 hover:to-blue-600 transition-all duration-200 shadow-md"
+              disabled={refreshing}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              Try Again
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
-        ) : filteredOrders.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Package className="w-8 h-8 text-gray-600" />
+
+          {/* Filter Tabs */}
+          <div className="flex mt-4 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setFilter('active')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                filter === 'active'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Active Orders
+            </button>
+            <button
+              onClick={() => setFilter('completed')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                filter === 'completed'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Order History
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-4 py-4">
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 animate-pulse">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-gray-200 rounded"></div>
+                      <div>
+                        <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-16"></div>
+                      </div>
+                    </div>
+                    <div className="h-6 bg-gray-200 rounded w-16"></div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {filter === 'upcoming' ? 'No upcoming orders' : filter === 'all' ? 'No orders yet' : `No ${filter.toLowerCase()} orders`}
-            </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              {filter === 'upcoming' 
-                ? 'You don\'t have any upcoming orders. Place an order to get started!'
-                : filter === 'all'
-                ? 'Your order history will appear here once you place your first order'
-                : `You don't have any ${filter.toLowerCase()} orders at the moment`
-              }
-            </p>
-            <button 
-              onClick={() => router.push('/student/menu')}
-              className="px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white text-sm font-medium rounded-xl hover:from-green-600 hover:to-blue-600 transition-all duration-200 shadow-md"
-            >
-              Browse Menu
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredOrders.map((order) => (
-              <div
-                key={order.id}
-                className={`${getStatusBgColor(order.status)} rounded-2xl p-3 border border-white/50 hover:shadow-md transition-all duration-200 backdrop-blur-sm`}
-              >
-                {/* Order Header */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    {getStatusIcon(order.status)}
-                    <div>
-                      <h3 className="font-semibold text-gray-900 text-sm">#{order.orderNumber}</h3>
-                      <p className="text-xs text-gray-600">
-                        {order.orderItems.length} item{order.orderItems.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center text-lg font-bold text-gray-900">
-                      <IndianRupee className="w-4 h-4 mr-1" />
-                      <span>₹{order.totalAmount.toFixed(0)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Order Status & Date */}
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${getStatusColor(order.status)}`}>
-                    {getStatusText(order.status)}
-                  </span>
-                  <div className="flex items-center text-xs text-gray-500">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    <span>For {formatDate(order.orderDate, 'MMM dd', 'N/A')}</span>
-                  </div>
-                </div>
-
-                {/* Order Items Preview */}
-                <div className="mb-2">
-                  <div className="text-xs text-gray-700">
-                    {order.orderItems.slice(0, 2).map((item) => (
-                      <div key={item.id} className="flex items-center justify-between py-0.5">
-                        <span>{item.quantity}x {item.menuItem.name}</span>
-                        <span className="text-gray-500 font-medium">₹{(item.price * item.quantity).toFixed(0)}</span>
-                      </div>
-                    ))}
-                    {order.orderItems.length > 2 && (
-                      <div className="text-xs text-gray-500 pt-0.5">
-                        +{order.orderItems.length - 2} more items
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Order Actions */}
-                <div className="flex items-center justify-between pt-2 border-t border-white/70">
-                  <div className="text-xs text-gray-500">
-                    {formatDate(order.createdAt, 'MMM dd, h:mm a', 'N/A')}
-                  </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="text-center py-16">
+              <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {filter === 'active' ? 'No active orders' : 'No order history'}
+              </h3>
+              <p className="text-gray-500 mb-6">
+                {filter === 'active' 
+                  ? 'Place your first order to get started!' 
+                  : 'Your completed orders will appear here'
+                }
+              </p>
+              {filter === 'active' && (
+                <button 
+                  onClick={() => router.push('/student/menu')}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Browse Menu
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredOrders.map((order) => {
+                const statusInfo = getStatusInfo(order.status)
+                const StatusIcon = statusInfo.icon
+                
+                return (
                   <button
-                    onClick={() => viewOrderDetails(order.id, order.orderNumber)}
-                    className="flex items-center space-x-1 px-3 py-1.5 bg-white/80 hover:bg-white text-gray-700 text-xs font-medium rounded-lg transition-colors border border-white/50"
+                    key={order.id}
+                    onClick={() => router.push(`/student/orders/${order.orderNumber}`)}
+                    className="w-full bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-gray-300 hover:shadow-lg transition-all duration-300 text-left group"
                   >
-                    <Eye className="w-3 h-3" />
-                    <span>View</span>
+                    {/* Top Section - Order Number & Amount */}
+                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-4 border-b border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900 mb-1">#{order.orderNumber}</h3>
+                          <div className="flex items-center space-x-3 text-sm text-gray-600">
+                            <span>{order.orderItems.length} items</span>
+                            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>{formatOrderDate(order.orderDate)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center text-2xl font-bold text-gray-900 mb-1">
+                            <IndianRupee className="w-6 h-6" />
+                            <span>{order.totalAmount.toFixed(0)}</span>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {formatDate(order.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Content Section - Items */}
+                    <div className="p-5">
+                      {order.orderItems.length > 0 && (
+                        <div className="mb-4">
+                          {order.orderItems.length <= 3 ? (
+                            /* Show all items if 3 or fewer */
+                            <div className="grid gap-2">
+                              {order.orderItems.map((item) => (
+                                <div key={item.id} className="bg-gray-50 rounded-xl p-3 flex items-center justify-between">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-gray-200">
+                                      <span className="text-sm font-bold text-gray-700">{item.quantity}</span>
+                                    </div>
+                                    <span className="font-medium text-gray-900">{item.menuItem.name}</span>
+                                  </div>
+                                  <span className="font-bold text-gray-900 flex items-center">
+                                    <IndianRupee className="w-4 h-4" />
+                                    {(item.price * item.quantity).toFixed(0)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            /* Show first 2 items + summary for 4+ items */
+                            <div className="grid gap-2">
+                              {order.orderItems.slice(0, 2).map((item) => (
+                                <div key={item.id} className="bg-gray-50 rounded-xl p-3 flex items-center justify-between">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-gray-200">
+                                      <span className="text-sm font-bold text-gray-700">{item.quantity}</span>
+                                    </div>
+                                    <span className="font-medium text-gray-900">{item.menuItem.name}</span>
+                                  </div>
+                                  <span className="font-bold text-gray-900 flex items-center">
+                                    <IndianRupee className="w-4 h-4" />
+                                    {(item.price * item.quantity).toFixed(0)}
+                                  </span>
+                                </div>
+                              ))}
+                              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center justify-between">
+                                <span className="font-medium text-blue-700">
+                                  View {order.orderItems.length - 2} more items
+                                </span>
+                                <ChevronRight className="w-4 h-4 text-blue-500" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Status Section */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-10 h-10 ${statusInfo.bg} rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-200`}>
+                            <StatusIcon className={`w-5 h-5 ${statusInfo.color}`} />
+                          </div>
+                          <div>
+                            <span className={`px-3 py-1 ${statusInfo.bg} ${statusInfo.color} text-sm font-semibold rounded-full`}>
+                              {statusInfo.text}
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-6 h-6 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all duration-200" />
+                      </div>
+                    </div>
                   </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </StudentLayout>
   )

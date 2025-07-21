@@ -31,9 +31,10 @@ export default function LandingPage() {
       }
       
       // Delay preload by 1 second to not block initial page load
-      setTimeout(preloadUniversities, 1000)
+      const timer = setTimeout(preloadUniversities, 1000)
+      return () => clearTimeout(timer)
     }
-  }, [status])
+  }, [status]) // Keep only status dependency
 
   // Show loading while checking authentication or during SSR
   if (!isMounted || status === 'loading') {

@@ -88,8 +88,8 @@ function OrderSuccessContent() {
         const response = await fetch(`/api/orders/${orderId}`)
         const data = await response.json()
 
-        if (response.ok && data.success) {
-          setOrder(data.order)
+        if (response.ok && data && data.id) {
+          setOrder(data)
         } else {
           setError(data.error || 'Failed to fetch order details')
         }

@@ -102,6 +102,23 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // For admin role, get additional system-wide stats
+    let totalUniversities = 0
+    let activeManagers = 0
+    
+    if (currentUser.role === 'ADMIN') {
+      totalUniversities = await prisma.university.count({
+        where: { isActive: true }
+      })
+      
+      activeManagers = await prisma.user.count({
+        where: {
+          role: 'MANAGER',
+          status: 'APPROVED'
+        }
+      })
+    }
+
     // Generate simple daily data
     const dailyData = []
     const days = period === 'day' ? 1 : period === 'week' ? 7 : 30
@@ -175,7 +192,9 @@ export async function GET(request: NextRequest) {
         avgOrderValue,
         activeStudents: uniqueUsers,
         totalStudents,
-        orderSuccessRate
+        orderSuccessRate,
+        totalUniversities,
+        activeManagers
       },
       dailyData,
       popularItems,

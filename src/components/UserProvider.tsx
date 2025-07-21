@@ -1,7 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import type { ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import type { User, University, UniversitySettings } from '@/generated/prisma'
 
@@ -29,17 +28,37 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isMounted, setIsMounted] = useState(false)
+  const [lastFetchedUserId, setLastFetchedUserId] = useState<string | null>(null)
 
   // Set mounted state to prevent SSR hydration issues
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
+  // Memoize session user info to prevent unnecessary re-renders
+  const sessionUserInfo = useMemo(() => {
+    if (!session?.user) return null
+    return {
+      id: session.user.id,
+      role: session.user.role,
+      email: session.user.email,
+      name: session.user.name,
+      universityId: session.user.universityId
+    }
+  }, [session?.user?.id, session?.user?.role, session?.user?.email, session?.user?.name, session?.user?.universityId])
+
   const fetchUserData = useCallback(async () => {
-    if (!session?.user?.id) {
+    if (!sessionUserInfo?.id) {
       setUser(null)
       setLoading(false)
       setError(null)
+      setLastFetchedUserId(null)
+      return
+    }
+
+    // Prevent refetching the same user data
+    if (lastFetchedUserId === sessionUserInfo.id && user?.id === sessionUserInfo.id) {
+      setLoading(false)
       return
     }
 
@@ -47,11 +66,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/user/${session.user.id}`, {
+      const response = await fetch(`/api/user/${sessionUserInfo.id}`, {
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
+        // Prevent aggressive caching that might cause issues
+        cache: 'no-store'
       })
       
       if (!response.ok) {
@@ -75,18 +96,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
       
       if (data.user) {
         setUser(data.user)
+        setLastFetchedUserId(sessionUserInfo.id)
         setError(null)
       } else {
         throw new Error('User data not found in response')
       }
     } catch (err: any) {
+      console.error('UserProvider fetch error:', err)
       setError('Unable to load user data. Please try refreshing the page.')
     } finally {
       setLoading(false)
     }
-  }, [session?.user?.id])
+  }, [sessionUserInfo?.id, user?.id, lastFetchedUserId])
 
-  // Main effect to handle session changes
+  // Main effect to handle session changes - optimized to reduce unnecessary calls
   useEffect(() => {
     if (!isMounted) return
 
@@ -99,47 +122,57 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setLoading(false)
       setError(null)
+      setLastFetchedUserId(null)
       return
     }
 
-    if (status === 'authenticated' && session?.user?.id) {
-      // Check if session has required data
-      if (!session.user.role) {
-        setError('Loading user session...')
-        setLoading(true)
+    if (status === 'authenticated' && sessionUserInfo?.id) {
+      // Only fetch if we don't have user data or if the user ID changed
+      if (!user || user.id !== sessionUserInfo.id || lastFetchedUserId !== sessionUserInfo.id) {
+        // Check if session has required data
+        if (!sessionUserInfo.role) {
+          setError('Loading user session...')
+          setLoading(true)
+          
+          // Wait a bit for session to be fully loaded
+          const timer = setTimeout(() => {
+            if (sessionUserInfo?.role) {
+              fetchUserData()
+            } else {
+              setError('Session incomplete. Please try logging in again.')
+              setLoading(false)
+            }
+          }, 2000)
+          
+          return () => clearTimeout(timer)
+        }
         
-        // Wait a bit for session to be fully loaded
-        const timer = setTimeout(() => {
-          if (session?.user?.role) {
-            fetchUserData()
-          } else {
-            setError('Session incomplete. Please try logging in again.')
-            setLoading(false)
-          }
-        }, 2000)
-        
-        return () => clearTimeout(timer)
+        fetchUserData()
+      } else {
+        // User data already matches session, just ensure loading is false
+        setLoading(false)
+        setError(null)
       }
-      
-      fetchUserData()
     }
-  }, [session, status, isMounted, fetchUserData])
+  }, [sessionUserInfo, status, isMounted, user?.id, lastFetchedUserId, fetchUserData])
 
   const clearCacheAndRefetch = useCallback(async () => {
-    // Cache disabled - just refetch user data
+    // Reset state and force refetch
     setUser(null)
     setError(null)
+    setLastFetchedUserId(null)
     await fetchUserData()
   }, [fetchUserData])
 
-  const value = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     user,
     loading: loading || status === 'loading' || !isMounted,
     error,
     refetch: fetchUserData,
     clearCacheAndRefetch,
     isMounted
-  }
+  }), [user, loading, status, isMounted, error, fetchUserData, clearCacheAndRefetch])
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>
 }

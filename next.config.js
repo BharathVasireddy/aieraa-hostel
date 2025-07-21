@@ -55,6 +55,14 @@ const nextConfig = {
     minimumCacheTTL: 0, // No image caching
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        port: '',
+        pathname: '/aieraa-hostel/**',
+      },
+    ],
   },
 
   // Compression

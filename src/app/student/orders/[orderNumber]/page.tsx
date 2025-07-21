@@ -12,7 +12,6 @@ import MobileHeader from '@/components/MobileHeader'
 import BottomNavigation from '@/components/BottomNavigation'
 import NotificationSystem, { useNotifications } from '@/components/NotificationSystem'
 import { formatVietnamDateTime } from '@/lib/timezone'
-// Cache imports removed - caching disabled
 
 interface OrderDetail {
   id: string
@@ -42,35 +41,38 @@ interface OrderDetail {
   }>
 }
 
-export default function StudentOrderDetail({ params }: { params: Promise<{ id: string }> }) {
+export default function StudentOrderDetail({ params }: { params: Promise<{ orderNumber: string }> }) {
   const { data: session } = useSession()
-    const [order, setOrder] = useState<OrderDetail | null>(null)
+  const [order, setOrder] = useState<OrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [showQR, setShowQR] = useState(false)
   const [qrCodeData, setQrCodeData] = useState('')
-  const [orderId, setOrderId] = useState<string>('')
+  const [orderNumber, setOrderNumber] = useState<string>('')
   const { notifications, addNotification, removeNotification } = useNotifications()
 
   useEffect(() => {
-    const getOrderId = async () => {
+    const getOrderNumber = async () => {
       const resolvedParams = await params
-      setOrderId(resolvedParams.id)
+      setOrderNumber(resolvedParams.orderNumber)
     }
-    getOrderId()
+    getOrderNumber()
   }, [params])
 
   useEffect(() => {
-    if (session?.user && orderId) {
+    // Only fetch when session user ID and order number are available
+    if (session?.user?.id && orderNumber && !order) {
       fetchOrderDetail()
     }
-  }, [session, orderId])
+  }, [session?.user?.id, orderNumber])
 
   const fetchOrderDetail = async () => {
     try {
       setLoading(true)
       
+      console.log('Fetching order details for order number:', orderNumber, 'User ID:', session?.user?.id)
+      
       // Always fetch fresh data - no caching
-      const response = await fetch(`/api/orders/${orderId}`, {
+      const response = await fetch(`/api/orders/by-number/${orderNumber}`, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache'
@@ -78,9 +80,12 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
         cache: 'no-store'
       })
       
+      console.log('API Response status:', response.status)
+      
       if (!response.ok) {
         if (response.status === 404) {
-          setOrder(null) // Clear order if not found
+          console.log('Order not found (404)')
+          setOrder(null)
           setLoading(false)
           return
         }
@@ -88,16 +93,20 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
       }
       
       const data = await response.json()
+      console.log('API Response data:', data)
       
-      if (data.success) {
-        setOrder(data.order)
+      // API returns order data directly
+      if (data && data.id) {
+        console.log('Order found successfully:', data.orderNumber)
+        setOrder(data)
+        generateQRCode(data)
       } else {
-        setOrder(null) // Clear order on error
+        console.log('Invalid order data received:', data)
+        setOrder(null)
       }
-      generateQRCode(data.order)
       
     } catch (error) {
-    console.error(error)
+      console.error('Error fetching order details:', error)
       addNotification({
         type: 'error',
         title: 'Error',
@@ -109,6 +118,12 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
   }
 
   const generateQRCode = (orderData: OrderDetail) => {
+    // Safety check to ensure orderData exists
+    if (!orderData || !orderData.id) {
+      console.error('Cannot generate QR code: Invalid order data')
+      return
+    }
+
     // Generate QR code data containing order information for caterer scanning
     const qrData = {
       orderId: orderData.id,
@@ -117,11 +132,11 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
       totalAmount: orderData.totalAmount,
       status: orderData.status,
       timestamp: new Date().toISOString(),
-      items: orderData.items.map(item => ({
+      items: orderData.items?.map(item => ({
         name: item.name,
         quantity: item.quantity,
         variant: item.variant?.name
-      }))
+      })) || []
     }
     setQrCodeData(JSON.stringify(qrData))
   }
@@ -460,7 +475,6 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Show this QR Code</h3>
               <p className="text-sm text-gray-600 mb-6">Present this QR code to the counter staff to collect your order</p>
               
-              {/* QR Code Placeholder - In a real app, you'd use a QR code library */}
               <div className="w-48 h-48 mx-auto bg-white rounded-lg flex items-center justify-center mb-6 p-4">
                 <QRCodeComponent 
                   value={qrCodeData} 
@@ -483,7 +497,6 @@ export default function StudentOrderDetail({ params }: { params: Promise<{ id: s
                 </button>
                 <button
                   onClick={() => {
-                    // TODO: Implement QR code download functionality
                     addNotification({
                       type: 'info',
                       title: 'Feature Coming Soon',

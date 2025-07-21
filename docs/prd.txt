@@ -1,0 +1,996 @@
+# Aieraa Overseas Studies - Food Ordering App
+## Product Requirements Document (PRD)
+
+---
+
+## 1. Product Overview
+
+### 1.1 Product Name
+**Aieraa Food** - Hostel Food Ordering System
+
+### 1.2 Product Vision
+A comprehensive food ordering Progressive Web Application (PWA) for Aieraa Overseas Studies hostels across Vietnamese universities, enabling seamless food ordering without delivery services.
+
+### 1.3 Target Users
+- **Primary**: Hostel students studying in Vietnamese universities
+- **Secondary**: Hostel managers, food servers, system administrators
+
+### 1.4 Business Context
+- Company: Aieraa Overseas Studies (India-based)
+- Operation: Multiple hostels across Vietnamese universities
+- Structure: Boys/Girls hostels per university (2+ hostels per gender possible)
+- Geography: Vietnam
+- Service Model: No delivery - pickup only from hostel food counters
+
+---
+
+## 2. Technical Specifications
+
+### 2.1 Technology Stack
+- **Frontend**: Next.js 14 (App Router) + TypeScript + Tailwind CSS
+- **Backend**: Next.js API Routes + Supabase
+- **Database**: PostgreSQL (via Supabase)
+- **Authentication**: Supabase Auth
+- **State Management**: Zustand
+- **UI Components**: shadcn/ui + Radix UI
+- **Deployment**: Vercel
+- **Type**: Progressive Web App (PWA)
+
+### 2.2 Design System
+- **Primary Color**: #16803C (Forest Green)
+- **Font**: Plus Jakarta Sans
+- **Design Philosophy**: Native app feel, compact UI, bottom navigation
+- **Timezone**: Vietnam Time (Asia/Ho_Chi_Minh)
+
+### 2.3 Performance Requirements
+- **First Load**: < 3 seconds
+- **Page Transitions**: < 500ms
+- **Offline Support**: Menu browsing, order history
+- **Mobile-First**: Responsive design, touch-optimized
+- **PWA Features**: Install prompt, push notifications, offline caching
+
+---
+
+## 3. User Roles & Permissions
+
+### 3.1 Student
+**Registration Fields Required:**
+- University selection (dropdown)
+- Full name
+- Email address
+- Phone number
+- Student block/building
+- Student room number
+- Student university ID
+- Password
+
+**Core Capabilities:**
+- Browse university-specific menus
+- Add items to cart with quantity selection
+- Place orders for specific future dates (one date per order)
+- Make payments (online or cash to manager)
+- View order status and history
+- Display QR codes for order pickup
+- Receive email and push notifications
+
+### 3.2 Manager
+**Assignment**: One manager per university
+**Core Capabilities:**
+- Approve/reject student registrations
+- Create and manage university-specific menus
+- Set daily availability limits for menu items
+- Approve orders (bulk or individual)
+- Cancel individual items within orders
+- Mark cash payments as received
+- Export orders for kitchen preparation (PDF/Excel)
+- Suspend/activate student accounts
+- Set daily cutoff times for next-day orders
+- Generate various reports and analytics
+
+### 3.3 Server
+**Assignment**: One or more servers per university (scalable)
+**Core Capabilities:**
+- Scan QR codes for order verification
+- View today's ready-to-serve orders only
+- Mark orders as "served" after pickup
+- Simple, scan-focused interface
+
+### 3.4 Admin
+**Assignment**: System-wide administrator
+**Core Capabilities:**
+- Create/manage universities
+- Assign/change/delete managers and servers
+- Access all university menus and modify them
+- View all student data across universities
+- System-wide analytics and reporting
+- Manage promotional notifications
+
+---
+
+## 4. Detailed Feature Specifications
+
+### 4.1 Authentication System
+
+#### Student Registration Flow
+1. **Form Fields:**
+   - University (auto-populated dropdown from admin-created list)
+   - Full name (required, min 2 words)
+   - Email (required, unique, validation)
+   - Phone (required, format validation)
+   - Student block (required, text input)
+   - Room number (required, alphanumeric)
+   - University student ID (required, unique per university)
+   - Password (required, min 8 chars, 1 uppercase, 1 number)
+
+2. **Validation Rules:**
+   - Email uniqueness across entire system
+   - Student ID uniqueness within university
+   - Phone number format: Vietnamese standards
+   - All fields mandatory
+
+3. **Approval Process:**
+   - Registration creates "pending" user account
+   - Manager receives notification of new registration
+   - Manager reviews and approves/rejects
+   - Student receives email notification of approval status
+   - Only approved students can login
+
+#### Login System
+- **Methods**: Email + Password
+- **Additional**: Biometric login (fingerprint/face ID) after first login
+- **Session**: JWT tokens with refresh mechanism
+- **Security**: Failed attempt lockout (5 attempts, 15-minute lockout)
+
+### 4.2 Menu Management System
+
+#### Menu Item Structure
+```typescript
+MenuItem {
+  id: string
+  university_id: string
+  name: string
+  description: string
+  price: number (Vietnamese Dong)
+  image_url?: string
+  category: string
+  is_veg: boolean // true for veg, false for non-veg
+  daily_availability: DailyAvailability[]
+  is_active: boolean
+  created_by: string (manager_id)
+  created_at: timestamp
+  updated_at: timestamp
+}
+
+DailyAvailability {
+  date: string (YYYY-MM-DD)
+  available_quantity: number
+  remaining_quantity: number
+}
+```
+
+#### Manager Menu Features
+- **CRUD Operations**: Create, read, update, delete menu items
+- **Bulk Upload**: CSV/Excel import for multiple items
+- **Image Management**: Upload and manage food images
+- **Daily Availability**: Set quantity limits for each item per date
+- **Categories**: Organize items (Breakfast, Lunch, Dinner, Snacks, Beverages)
+- **Veg/Non-Veg**: Mandatory classification
+- **Pricing**: Support for Vietnamese Dong currency
+- **Preview**: See menu as students would see it
+
+### 4.3 Order Management System
+
+#### Order Structure
+```typescript
+Order {
+  id: string
+  student_id: string
+  university_id: string
+  order_date: timestamp (when order was placed)
+  delivery_date: string (YYYY-MM-DD) // date for pickup
+  items: OrderItem[]
+  total_amount: number
+  payment_method: 'online' | 'cash'
+  payment_status: 'pending' | 'paid' | 'failed'
+  order_status: 'pending' | 'approved' | 'cancelled' | 'ready' | 'served'
+  qr_code: string
+  approved_by?: string (manager_id)
+  approved_at?: timestamp
+  served_by?: string (server_id)
+  served_at?: timestamp
+  special_instructions?: string
+  created_at: timestamp
+}
+
+OrderItem {
+  id: string
+  order_id: string
+  menu_item_id: string
+  menu_item_name: string // snapshot
+  quantity: number
+  unit_price: number // snapshot
+  total_price: number
+  status: 'active' | 'cancelled' // individual item can be cancelled
+}
+```
+
+#### Student Order Flow
+1. **Date Selection**: Choose delivery date (tomorrow onwards, within cutoff time)
+2. **Menu Browsing**: View available items for selected date
+3. **Cart Management**: Add/remove items, adjust quantities
+4. **Order Review**: Confirm items, quantities, total amount
+5. **Payment Selection**: Choose online payment or cash to manager
+6. **Order Confirmation**: Receive order ID and estimated timeline
+
+#### Manager Order Management
+1. **Order Dashboard**: View all pending orders with filters
+2. **Order Details**: Complete order information including:
+   - Student details (name, room, block)
+   - Order items and quantities
+   - Order timing (placed when, for which date)
+   - Payment method and status
+   - Special instructions
+3. **Bulk Actions**: Select multiple orders for approval
+4. **Individual Actions**: Approve/cancel entire orders or individual items
+5. **Payment Management**: Mark cash payments as received
+6. **Status Updates**: Change order status (approved → ready → served)
+
+#### Cutoff Time Logic
+- **Configuration**: Manager sets cutoff time per university (e.g., 10 PM)
+- **Validation**: Students cannot place orders after cutoff for next day
+- **Display**: Show remaining time until cutoff
+- **Timezone**: All times in Vietnam timezone
+
+### 4.4 Payment System
+
+#### Payment Methods
+1. **Online Payment**
+   - Integration with Vietnamese payment gateways
+   - Support for major local payment methods
+   - Real-time payment status updates
+   - Automatic order approval after successful payment
+
+2. **Cash Payment**
+   - Order marked as "payment pending"
+   - Manager interface to mark payments as received
+   - Cash collection tracking for managers
+
+#### Payment Flow
+```
+Online: Place Order → Payment Gateway → Success/Failure → Auto-approve if success
+Cash: Place Order → Manager Review → Approve → Cash Collection → Mark as Paid
+```
+
+### 4.5 QR Code System
+
+#### QR Code Generation
+- **Unique Code**: Generated per order using order ID + security hash
+- **Content**: Encrypted order details (order_id, student_id, date, amount)
+- **Display**: Prominently shown in order details screen
+- **Refresh**: New QR for each order, non-reusable
+
+#### Server Scanning Process
+1. **Scanner Interface**: Camera-based QR scanner
+2. **Validation**: Verify QR code authenticity and order status
+3. **Order Display**: Show order details after successful scan
+4. **Status Update**: Mark order as "served" with timestamp
+5. **Confirmation**: Visual/audio confirmation of successful scanning
+
+### 4.6 Notification System
+
+#### Student Notifications
+**Email Notifications:**
+- Registration approval/rejection
+- Order confirmation
+- Order status updates (approved, ready, served)
+- Payment confirmations
+- Promotional offers
+
+**Push Notifications:**
+- Order status changes
+- Cutoff time reminders
+- Menu updates
+- Promotional notifications
+
+#### Manager Notifications
+- New student registrations
+- New orders requiring approval
+- Payment confirmations
+- System alerts
+
+#### Admin Notifications
+- System-wide metrics
+- University-specific issues
+- Manager activities summary
+
+### 4.7 Reporting System
+
+#### Manager Reports
+1. **Order Reports**
+   - Date-wise order export (PDF/Excel choice)
+   - Bulk order export with filters
+   - Kitchen preparation lists with quantities
+   - Revenue reports by date range
+
+2. **Student Reports**
+   - Individual student order history
+   - Student activity summary
+   - Payment status reports
+
+3. **Inventory Reports**
+   - Popular items analysis
+   - Daily consumption patterns
+   - Waste reduction insights
+
+#### Admin Reports
+- Cross-university analytics
+- Manager performance metrics
+- Student engagement statistics
+- Revenue consolidation
+- System usage patterns
+
+#### Export Options
+- **PDF**: Formatted reports for printing/sharing
+- **Excel**: Data manipulation and further analysis
+- **Email**: Direct sending of reports
+- **Scheduled**: Automated daily/weekly reports
+
+---
+
+## 5. Database Schema
+
+### 5.1 Core Tables
+
+```sql
+-- Universities
+CREATE TABLE universities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    location TEXT,
+    cutoff_time TIME DEFAULT '22:00:00',
+    timezone VARCHAR(50) DEFAULT 'Asia/Ho_Chi_Minh',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Users (all roles)
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role user_role NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    university_id UUID REFERENCES universities(id),
+    
+    -- Student specific fields
+    student_block VARCHAR(50),
+    room_number VARCHAR(20),
+    university_student_id VARCHAR(100),
+    
+    -- Status
+    account_status user_status DEFAULT 'pending',
+    approved_by UUID REFERENCES users(id),
+    approved_at TIMESTAMP,
+    
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    
+    -- Constraints
+    CONSTRAINT unique_student_id_per_university 
+        UNIQUE(university_student_id, university_id)
+);
+
+-- Enums
+CREATE TYPE user_role AS ENUM ('student', 'manager', 'server', 'admin');
+CREATE TYPE user_status AS ENUM ('pending', 'active', 'suspended', 'inactive');
+
+-- Hostels
+CREATE TABLE hostels (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    university_id UUID REFERENCES universities(id),
+    name VARCHAR(255) NOT NULL,
+    hostel_type hostel_type NOT NULL,
+    warden_id UUID REFERENCES users(id),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TYPE hostel_type AS ENUM ('boys', 'girls');
+
+-- Menu Items
+CREATE TABLE menu_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    university_id UUID REFERENCES universities(id),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    image_url TEXT,
+    category VARCHAR(100) NOT NULL,
+    is_veg BOOLEAN NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Daily Availability
+CREATE TABLE menu_item_availability (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    menu_item_id UUID REFERENCES menu_items(id),
+    available_date DATE NOT NULL,
+    available_quantity INTEGER NOT NULL DEFAULT 0,
+    remaining_quantity INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW(),
+    
+    CONSTRAINT unique_item_date UNIQUE(menu_item_id, available_date)
+);
+
+-- Orders
+CREATE TABLE orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_number VARCHAR(50) UNIQUE NOT NULL, -- Human readable order number
+    student_id UUID REFERENCES users(id),
+    university_id UUID REFERENCES universities(id),
+    
+    -- Timing
+    order_date TIMESTAMP DEFAULT NOW(),
+    delivery_date DATE NOT NULL,
+    
+    -- Pricing
+    subtotal DECIMAL(10,2) NOT NULL DEFAULT 0,
+    tax_amount DECIMAL(10,2) DEFAULT 0,
+    total_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    
+    -- Payment
+    payment_method payment_method NOT NULL,
+    payment_status payment_status DEFAULT 'pending',
+    payment_reference VARCHAR(255),
+    
+    -- Order Status
+    order_status order_status DEFAULT 'pending',
+    
+    -- QR Code
+    qr_code TEXT UNIQUE NOT NULL,
+    
+    -- Approval
+    approved_by UUID REFERENCES users(id),
+    approved_at TIMESTAMP,
+    
+    -- Serving
+    served_by UUID REFERENCES users(id),
+    served_at TIMESTAMP,
+    
+    -- Additional
+    special_instructions TEXT,
+    cancellation_reason TEXT,
+    
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Enums for Orders
+CREATE TYPE payment_method AS ENUM ('online', 'cash');
+CREATE TYPE payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');
+CREATE TYPE order_status AS ENUM ('pending', 'approved', 'cancelled', 'ready', 'served');
+
+-- Order Items
+CREATE TABLE order_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID REFERENCES orders(id),
+    menu_item_id UUID REFERENCES menu_items(id),
+    
+    -- Snapshot data (in case menu item changes)
+    menu_item_name VARCHAR(255) NOT NULL,
+    menu_item_description TEXT,
+    unit_price DECIMAL(10,2) NOT NULL,
+    
+    -- Order specific
+    quantity INTEGER NOT NULL DEFAULT 1,
+    total_price DECIMAL(10,2) NOT NULL,
+    item_status item_status DEFAULT 'active',
+    
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    
+    CONSTRAINT positive_quantity CHECK (quantity > 0)
+);
+
+CREATE TYPE item_status AS ENUM ('active', 'cancelled');
+
+-- User University Assignments (for servers and managers)
+CREATE TABLE user_university_assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    university_id UUID REFERENCES universities(id),
+    assigned_by UUID REFERENCES users(id),
+    assigned_at TIMESTAMP DEFAULT NOW(),
+    is_active BOOLEAN DEFAULT true,
+    
+    CONSTRAINT unique_user_university UNIQUE(user_id, university_id)
+);
+
+-- Notifications
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    notification_type notification_type NOT NULL,
+    is_read BOOLEAN DEFAULT false,
+    data JSONB, -- Additional data payload
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TYPE notification_type AS ENUM (
+    'order_status', 'payment_status', 'registration_status', 
+    'promotional', 'system_alert', 'reminder'
+);
+```
+
+### 5.2 Indexes for Performance
+
+```sql
+-- User indexes
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role_university ON users(role, university_id);
+CREATE INDEX idx_users_status ON users(account_status);
+
+-- Order indexes
+CREATE INDEX idx_orders_student_date ON orders(student_id, delivery_date);
+CREATE INDEX idx_orders_university_status ON orders(university_id, order_status);
+CREATE INDEX idx_orders_delivery_date ON orders(delivery_date);
+CREATE INDEX idx_orders_qr_code ON orders(qr_code);
+
+-- Menu item indexes
+CREATE INDEX idx_menu_items_university ON menu_items(university_id, is_active);
+CREATE INDEX idx_menu_availability_date ON menu_item_availability(available_date);
+
+-- Notification indexes
+CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read);
+```
+
+---
+
+## 6. API Endpoints Structure
+
+### 6.1 Authentication Endpoints
+```typescript
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/logout
+POST /api/auth/refresh
+GET /api/auth/profile
+PUT /api/auth/profile
+```
+
+### 6.2 User Management
+```typescript
+// Student Management
+GET /api/students
+GET /api/students/pending // For manager approval
+PUT /api/students/:id/approve
+PUT /api/students/:id/suspend
+PUT /api/students/:id/activate
+
+// Manager Operations
+GET /api/managers
+POST /api/managers
+PUT /api/managers/:id
+DELETE /api/managers/:id
+
+// Server Operations  
+GET /api/servers
+POST /api/servers
+PUT /api/servers/:id
+DELETE /api/servers/:id
+```
+
+### 6.3 University Management
+```typescript
+GET /api/universities
+POST /api/universities
+PUT /api/universities/:id
+DELETE /api/universities/:id
+GET /api/universities/:id/hostels
+```
+
+### 6.4 Menu Management
+```typescript
+GET /api/menu
+POST /api/menu
+PUT /api/menu/:id
+DELETE /api/menu/:id
+GET /api/menu/availability/:date
+PUT /api/menu/:id/availability
+POST /api/menu/bulk-upload
+```
+
+### 6.5 Order Management
+```typescript
+GET /api/orders
+POST /api/orders
+GET /api/orders/:id
+PUT /api/orders/:id/status
+DELETE /api/orders/:id
+GET /api/orders/history
+POST /api/orders/bulk-approve
+```
+
+### 6.6 Payment Endpoints
+```typescript
+POST /api/payments/process
+GET /api/payments/status/:orderId
+PUT /api/payments/mark-cash-received
+```
+
+### 6.7 Reports & Analytics
+```typescript
+GET /api/reports/orders
+GET /api/reports/students
+GET /api/reports/revenue
+POST /api/reports/export
+GET /api/analytics/dashboard
+```
+
+---
+
+## 7. User Interface Specifications
+
+### 7.1 Design System
+
+#### Color Palette
+```css
+:root {
+  --primary: #16803C;
+  --primary-light: #4CAF50;
+  --primary-dark: #0F5132;
+  --secondary: #FFC107;
+  --error: #F44336;
+  --warning: #FF9800;
+  --success: #4CAF50;
+  --background: #F8F9FA;
+  --surface: #FFFFFF;
+  --text-primary: #212121;
+  --text-secondary: #757575;
+}
+```
+
+#### Typography
+```css
+.font-heading-1 { font-size: 32px; font-weight: 700; }
+.font-heading-2 { font-size: 28px; font-weight: 700; }
+.font-heading-3 { font-size: 24px; font-weight: 600; }
+.font-body-large { font-size: 18px; font-weight: 400; }
+.font-body { font-size: 16px; font-weight: 400; }
+.font-body-small { font-size: 14px; font-weight: 400; }
+.font-caption { font-size: 12px; font-weight: 500; }
+```
+
+### 7.2 Navigation Structure
+
+#### Student Bottom Navigation
+1. **Home** (Dashboard/Menu browsing)
+2. **Cart** (Current cart items)
+3. **Orders** (Order history and status)
+4. **Profile** (Account settings)
+
+#### Manager Bottom Navigation
+1. **Dashboard** (Overview and statistics)
+2. **Orders** (Pending and active orders)
+3. **Menu** (Menu management)
+4. **Students** (Student approvals and management)
+5. **Reports** (Analytics and exports)
+
+#### Server Interface
+- **Single Screen**: QR Scanner with today's order list
+- **Minimal UI**: Focus on scanning and serving orders
+
+#### Admin Interface
+- **Full Dashboard**: Multi-university overview
+- **Deep Navigation**: University management, user management
+- **System Settings**: Global configuration
+
+### 7.3 Key Screens Specification
+
+#### Student Registration Screen
+```typescript
+interface RegistrationForm {
+  university: string // Dropdown from API
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  studentBlock: string
+  roomNumber: string
+  universityStudentId: string
+  password: string
+  confirmPassword: string
+}
+```
+
+**Validation Rules:**
+- All fields required
+- Email format validation
+- Phone number Vietnamese format
+- Password strength requirements
+- Real-time validation feedback
+
+#### Menu Browsing Screen
+**Components:**
+- Date selector (tomorrow onwards)
+- Category filters (tabs)
+- Menu item cards with:
+  - Food image placeholder
+  - Name and description
+  - Veg/Non-veg indicator
+  - Price in VND
+  - Add to cart button
+  - Availability indicator
+
+#### Cart Screen
+**Features:**
+- Item list with quantity controls
+- Price calculations (subtotal, tax, total)
+- Date confirmation
+- Payment method selection
+- Special instructions text area
+- Place order button
+
+#### Order Details Screen
+**Information Display:**
+- Order number and status
+- Ordered items with quantities
+- Delivery date
+- Payment information
+- QR code (prominent display)
+- Status timeline
+- Cancel/modify options (if applicable)
+
+#### Manager Dashboard
+**Metrics Cards:**
+- Today's orders count
+- Pending approvals
+- Revenue (daily/weekly)
+- Active students
+
+**Quick Actions:**
+- Approve pending orders
+- View kitchen preparation list
+- Update menu availability
+- Send notifications
+
+### 7.4 Responsive Design Breakpoints
+```css
+/* Mobile First */
+.mobile { max-width: 767px; }
+.tablet { min-width: 768px; max-width: 1023px; }
+.desktop { min-width: 1024px; }
+```
+
+---
+
+## 8. Business Rules & Validations
+
+### 8.1 Order Placement Rules
+1. **Timing**: Orders only accepted before daily cutoff time
+2. **Date Range**: Orders for tomorrow to maximum 7 days ahead
+3. **Quantity Limits**: Cannot exceed available quantity per item
+4. **Single Date**: One order per date (separate orders for different dates)
+5. **Minimum Order**: No minimum order value requirement
+6. **Maximum Order**: Optional maximum order value per student
+
+### 8.2 Payment Rules
+1. **Online Payment**: Immediate order approval after successful payment
+2. **Cash Payment**: Requires manager approval + cash collection
+3. **Refunds**: Only for cancelled orders (if paid online)
+4. **Currency**: All prices in Vietnamese Dong (VND)
+
+### 8.3 Approval Workflow
+```
+Student Order → Manager Review → Approved → Kitchen Preparation → Ready → Served
+```
+
+**Cancellation Points:**
+- Student: Before manager approval
+- Manager: At any time before "Ready" status
+- System: Automatically after 2 hours of "Ready" status
+
+### 8.4 Data Validation Rules
+1. **Email**: Valid format + unique across system
+2. **Phone**: Vietnamese phone number format
+3. **Student ID**: Unique within university
+4. **Room Number**: Alphanumeric, university-specific format
+5. **Prices**: Positive numbers with 2 decimal places
+6. **Quantities**: Positive integers only
+
+---
+
+## 9. Security Requirements
+
+### 9.1 Authentication Security
+- **Password Policy**: Minimum 8 characters, 1 uppercase, 1 number, 1 special character
+- **Session Management**: JWT tokens with 24-hour expiry
+- **Failed Login Protection**: 5 attempts lockout for 15 minutes
+- **Password Reset**: Email-based secure reset flow
+
+### 9.2 Data Protection
+- **Encryption**: All passwords hashed using bcrypt
+- **HTTPS**: Enforce SSL/TLS for all communications
+- **Input Sanitization**: Prevent SQL injection and XSS attacks
+- **File Uploads**: Validate file types and sizes for menu images
+
+### 9.3 Role-Based Access Control
+- **Student**: Access only own university menu and orders
+- **Manager**: Access only assigned university data
+- **Server**: Access only today's ready orders for assigned universities
+- **Admin**: Full system access with audit logging
+
+### 9.4 QR Code Security
+- **Encryption**: QR codes contain encrypted order information
+- **Expiry**: QR codes expire after order completion or 24 hours
+- **Uniqueness**: Each QR code is single-use and order-specific
+
+---
+
+## 10. Performance Requirements
+
+### 10.1 Response Time Targets
+- **Page Load**: < 3 seconds on 3G connection
+- **API Response**: < 500ms for most operations
+- **Search/Filter**: < 200ms for menu filtering
+- **QR Scan**: < 2 seconds for recognition and validation
+
+### 10.2 Scalability Requirements
+- **Concurrent Users**: Support 1000+ simultaneous users
+- **Database**: Handle 10,000+ orders per day
+- **File Storage**: Support for menu images and reports
+- **Auto-Scaling**: Horizontal scaling based on demand
+
+### 10.3 Availability Requirements
+- **Uptime**: 99.9% availability target
+- **Maintenance Windows**: Scheduled during low-traffic periods
+- **Backup**: Daily automated backups with point-in-time recovery
+- **Monitoring**: Real-time health checks and alerting
+
+---
+
+## 11. Integration Requirements
+
+### 11.1 Payment Gateway Integration
+**Vietnamese Payment Methods:**
+- Banking integration (local banks)
+- Digital wallets (MoMo, ZaloPay, ViettelPay)
+- QR code payments
+- Credit/Debit card processing
+
+### 11.2 Email Service Integration
+- **Service**: SendGrid or similar
+- **Email Types**: Transactional, promotional, notifications
+- **Templates**: HTML email templates with branding
+
+### 11.3 Push Notification Service
+- **Service**: Firebase Cloud Messaging (FCM)
+- **Triggers**: Order status changes, promotions, reminders
+- **Personalization**: User-specific notifications
+
+### 11.4 SMS Integration (Optional)
+- **Service**: Vietnamese SMS provider
+- **Use Cases**: OTP verification, critical order updates
+- **Rate Limiting**: Prevent spam and abuse
+
+---
+
+## 12. Testing Requirements
+
+### 12.1 Unit Testing
+- **Coverage**: Minimum 80% code coverage
+- **Framework**: Jest for JavaScript/TypeScript
+- **Components**: Test all business logic functions
+- **API**: Test all endpoints with various scenarios
+
+### 12.2 Integration Testing
+- **Database**: Test all CRUD operations
+- **API**: End-to-end API testing
+- **Authentication**: Test all auth flows
+- **Payment**: Mock payment gateway testing
+
+### 12.3 User Acceptance Testing
+- **Roles**: Test with actual users from each role
+- **Scenarios**: Complete user journeys
+- **Devices**: Test on various mobile devices and browsers
+- **Performance**: Load testing with expected user volumes
+
+### 12.4 Security Testing
+- **Penetration Testing**: Third-party security audit
+- **Vulnerability Scanning**: Automated security scans
+- **Data Privacy**: GDPR compliance testing
+- **Authentication**: Test auth bypass attempts
+
+---
+
+## 13. Deployment & DevOps
+
+### 13.1 Environment Strategy
+- **Development**: Local development with hot reload
+- **Staging**: Mirror of production for testing
+- **Production**: Vercel deployment with CDN
+
+### 13.2 CI/CD Pipeline
+```yaml
+# GitHub Actions workflow
+1. Code Push → GitHub
+2. Automated Tests → Jest + Cypress
+3. Build → Next.js build process
+4. Deploy → Vercel (staging/production)
+5. Notify → Team notification
+```
+
+### 13.3 Monitoring & Analytics
+- **Application Monitoring**: Vercel Analytics
+- **Error Tracking**: Sentry integration
+- **User Analytics**: Privacy-focused analytics
+- **Performance**: Core Web Vitals monitoring
+
+### 13.4 Backup & Recovery
+- **Database**: Daily automated Supabase backups
+- **Files**: S3 bucket with versioning
+- **Recovery Time**: < 4 hours for complete restoration
+- **Testing**: Monthly backup recovery testing
+
+---
+
+## 14. Launch Plan
+
+### 14.1 Phase 1: MVP Launch (Weeks 1-6)
+**Core Features:**
+- User registration and authentication
+- Basic menu browsing and ordering
+- Manager order approval
+- QR code generation and scanning
+- Essential notifications
+
+### 14.2 Phase 2: Enhanced Features (Weeks 7-10)
+**Advanced Features:**
+- Payment gateway integration
+- Advanced reporting and analytics
+- Bulk operations for managers
+- Enhanced notifications
+- Performance optimizations
+
+### 14.3 Phase 3: Scale & Polish (Weeks 11-12)
+**Final Polish:**
+- Load testing and optimization
+- Security audit and fixes
+- User feedback implementation
+- Documentation and training
+- Go-live preparation
+
+---
+
+## 15. Success Metrics
+
+### 15.1 User Adoption Metrics
+- **Student Registration Rate**: Target 80% of hostel students
+- **Daily Active Users**: Target 60% of registered students
+- **Order Completion Rate**: Target 95% of started orders
+- **User Retention**: Target 90% monthly retention
+
+### 15.2 Operational Metrics
+- **Order Processing Time**: Average < 15 minutes from placement to approval
+- **Payment Success Rate**: Target 99% for online payments
+- **System Uptime**: Target 99.9% availability
+- **Customer Satisfaction**: Target 4.5/5 rating
+
+### 15.3 Business Metrics
+- **Order Volume**: Track daily/weekly/monthly trends
+- **Revenue Growth**: Month-over-month growth tracking
+- **Cost Reduction**: Measure operational efficiency gains
+- **Time Savings**: Quantify time saved in food ordering process
+
+---
+
+This PRD provides comprehensive specifications for building the Aieraa Food Ordering PWA. Each section contains detailed requirements that can guide development decisions and ensure all stakeholders understand the system's functionality and constraints.

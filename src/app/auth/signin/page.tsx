@@ -40,9 +40,10 @@ function SignInForm() {
         }
       }
       
-      router.push(redirectUrl)
+      // Use replace to prevent back navigation to login page
+      router.replace(redirectUrl)
     }
-  }, [session, status, router, callbackUrl])
+  }, [session?.user?.role, status, router, callbackUrl]) // Reduced dependencies
 
   // Show loading while checking session
   if (status === 'loading') {

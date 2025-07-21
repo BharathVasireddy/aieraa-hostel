@@ -60,15 +60,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const transformedItems = menuItems.map(item => ({
       id: item.id,
       name: item.name,
-      description: item.description,
+      description: item.description || '',
       basePrice: item.basePrice,
       price: item.variants.find(v => v.isDefault)?.price || item.basePrice,
       offerPrice: item.offerPrice,
-      categories: item.categories,
+      category: item.categories[0] || 'SNACKS', // Single category for UI
+      categories: item.categories, // Keep array for filtering
       isVegetarian: item.isVegetarian,
       isVegan: item.isVegan,
       isFeatured: item.isFeatured,
       image: item.image,
+      isAvailable: true, // Already filtered for available items
+      rating: item.isFeatured ? 4.5 : 4.2, // Mock rating for featured items
+      orderCount: item.isFeatured ? 50 : 25, // Mock order count
+      calories: item.calories,
+      preparationTime: '15-25 min', // Mock preparation time
       variants: item.variants,
       availability: item.availability[0],
     }));

@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
 
     const formattedItems = menuItems
       .filter(item => {
-        // If no availability record exists, show item as available (default)
-        if (item.availability.length === 0) return true
+        // If no availability record exists, item is NOT available for this date
+        if (item.availability.length === 0) return false
         // If availability record exists, check if it's available
         return item.availability[0].isAvailable
       })
@@ -66,8 +66,8 @@ export async function GET(request: NextRequest) {
           allergens: item.allergens,
           university: item.university.name,
           image: item.image,
-          isAvailable: availability?.isAvailable ?? true,
-          maxQuantity: availability?.maxQuantity ?? 50,
+          isAvailable: availability?.isAvailable ?? false,
+          maxQuantity: availability?.maxQuantity ?? 0,
           currentQuantity: availability?.currentQuantity ?? 0
         }
       })

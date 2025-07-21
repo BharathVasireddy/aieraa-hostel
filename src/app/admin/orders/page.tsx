@@ -197,14 +197,15 @@ export default function AdminOrders() {
     setRefreshing(false)
   }, [fetchOrders, fetchCurrentUser, fetchUniversities])
 
-  // useEffect to fetch data when session is available
+  // useEffect to fetch data when session is available - optimized
   useEffect(() => {
-    if (session?.user) {
+    // Only run when session is first available and we haven't fetched yet
+    if (session?.user?.id && !currentUserData) {
       fetchCurrentUser()
       fetchOrders()
       fetchUniversities()
     }
-  }, [session, fetchCurrentUser, fetchOrders, fetchUniversities])
+  }, [session?.user?.id]) // Only depend on user ID, not entire session object
 
   const updateOrderStatus = async (orderId: string, newStatus: string, rejectionReason?: string) => {
     try {

@@ -129,8 +129,7 @@ export async function getFastMenuItems(
             currentQuantity: true
           },
           where: {
-            date: new Date(date),
-            isAvailable: true
+            date: new Date(date)
           },
           take: 1
         }
@@ -142,7 +141,19 @@ export async function getFastMenuItems(
       take: options?.limit || 50
     })
 
-    return items
+    // Filter items based on availability for the requested date
+    const availableItems = items.filter(item => {
+      // If no availability records exist, item is NOT available for this date
+      if (item.availability.length === 0) {
+        return false
+      }
+      
+      // If availability record exists, check if it's marked as available
+      const availabilityRecord = item.availability[0]
+      return availabilityRecord.isAvailable === true
+    })
+
+    return availableItems
   }, 10 * 60 * 1000) // 10 minute cache for menu items
 }
 

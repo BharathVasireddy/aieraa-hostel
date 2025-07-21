@@ -68,13 +68,14 @@ export default function AdminProfile() {
   const [notification, setNotification] = useState<{type: 'success' | 'error' | 'warning', message: string} | null>(null)
 
   useEffect(() => {
-    if (session?.user) {
+    // Only fetch once when session user is available
+    if (session?.user?.id && !profileData) {
       fetchProfileData()
     }
-  }, [session])
+  }, [session?.user?.id]) // Removed redundant session dependency
 
   useEffect(() => {
-    // Handle tab parameter from URL
+    // Handle tab parameter from URL - only run once
     const urlParams = new URLSearchParams(window.location.search)
     const tab = urlParams.get('tab')
     if (tab && ['profile', 'security', 'activity'].includes(tab)) {
@@ -83,7 +84,7 @@ export default function AdminProfile() {
         setShowPasswordForm(true)
       }
     }
-  }, [])
+  }, []) // No dependencies needed for URL parameter check
 
   const fetchProfileData = async () => {
     try {

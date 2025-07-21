@@ -5,6 +5,7 @@ import { format, addDays, startOfToday } from 'date-fns'
 import StudentHeader from './StudentHeader'
 import BottomNavigation from './BottomNavigation'
 import { useUser } from './UserProvider'
+import FloatingCartButton from './FloatingCartButton'
 
 interface StudentLayoutProps {
   children: React.ReactNode
@@ -102,6 +103,9 @@ export default function StudentLayout({
       <main className="pb-20">
         {children}
       </main>
+
+      {/* Floating Cart - Above Bottom Navigation */}
+      <FloatingCartButton />
 
       {/* Sticky Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 z-50">

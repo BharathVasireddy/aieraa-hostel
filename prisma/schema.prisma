@@ -120,6 +120,7 @@ model User {
   orders       Order[]
   accounts     Account[]
   sessions     Session[]
+  cart         Cart?
 
   @@map("users")
 }
@@ -207,6 +208,7 @@ model MenuItem {
   university        University          @relation(fields: [universityId], references: [id])
   availability      MenuItemAvailability[]
   orderItems        OrderItem[]
+  cartItems         CartItem[]
 
   // Lightning-fast composite indexes
   @@index([universityId, isActive, createdAt])
@@ -235,6 +237,7 @@ model MenuItemVariant {
   // Relations
   menuItem   MenuItem    @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
+  cartItems  CartItem[]
 
   @@map("menu_item_variants")
 }
@@ -358,6 +361,42 @@ model PushNotificationToken {
   updatedAt DateTime @updatedAt
 
   @@map("push_notification_tokens")
+}
+
+// Cart model for persistent cart storage
+model Cart {
+  id       String @id @default(cuid())
+  userId   String @unique
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+// Cart items model
+model CartItem {
+  id         String  @id @default(cuid())
+  cartId     String
+  menuItemId String
+  variantId  String? // Optional variant selection
+  quantity   Int     @default(1)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  cart     Cart             @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  menuItem MenuItem         @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  variant  MenuItemVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  // Ensure unique menu item + variant per cart
+  @@unique([cartId, menuItemId, variantId])
+  @@map("cart_items")
 }
 
 // Promotional banners for student dashboard slider

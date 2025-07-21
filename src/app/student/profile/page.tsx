@@ -32,12 +32,14 @@ export default function StudentProfile() {
   const [showPrivacySecurity, setShowPrivacySecurity] = useState(false)
     
   useEffect(() => {
-    if (session?.user?.id) {
+    // Only fetch when session user ID is available and we haven't fetched yet
+    if (session?.user?.id && !userData) {
       fetchUserData()
     }
-  }, [session])
+  }, [session?.user?.id]) // Reduced dependencies
 
   useEffect(() => {
+    // User data loaded from provider - no action needed
     if (userFromProvider) {
       // User data loaded from provider
     }

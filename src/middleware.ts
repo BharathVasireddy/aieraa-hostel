@@ -20,8 +20,10 @@ export default withAuth(
         
         switch (userRole) {
           case 'ADMIN':
-          case 'MANAGER':
             redirectUrl = '/admin'
+            break
+          case 'MANAGER':
+            redirectUrl = '/manager'
             break
           case 'STUDENT':
             redirectUrl = '/student'
@@ -53,15 +55,38 @@ export default withAuth(
       return NextResponse.redirect(signInUrl)
     }
     
-    // Role-based access control
+    // Role-based access control with new structure
     const userRole = token.role as string
     
-    if (pathname.startsWith('/admin') && userRole !== 'ADMIN' && userRole !== 'MANAGER') {
+    // Super Admin (ADMIN) routes - only /admin paths
+    if (pathname.startsWith('/admin') && userRole !== 'ADMIN') {
+      // Redirect MANAGER to their dedicated route
+      if (userRole === 'MANAGER') {
+        return NextResponse.redirect(new URL('/manager', req.url))
+      }
+      // Redirect others to student dashboard
       return NextResponse.redirect(new URL('/student', req.url))
     }
     
+    // Manager routes - only /manager paths
+    if (pathname.startsWith('/manager') && userRole !== 'MANAGER') {
+      // Redirect ADMIN to their dedicated route
+      if (userRole === 'ADMIN') {
+        return NextResponse.redirect(new URL('/admin', req.url))
+      }
+      // Redirect others to student dashboard
+      return NextResponse.redirect(new URL('/student', req.url))
+    }
+    
+    // Student routes
     if (pathname.startsWith('/student') && userRole !== 'STUDENT') {
-      return NextResponse.redirect(new URL('/admin', req.url))
+      // Redirect ADMIN and MANAGER to their respective dashboards
+      if (userRole === 'ADMIN') {
+        return NextResponse.redirect(new URL('/admin', req.url))
+      }
+      if (userRole === 'MANAGER') {
+        return NextResponse.redirect(new URL('/manager', req.url))
+      }
     }
     
     return NextResponse.next()
@@ -90,6 +115,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|icons|manifest.json).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 } 

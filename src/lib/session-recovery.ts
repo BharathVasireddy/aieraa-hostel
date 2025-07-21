@@ -17,11 +17,13 @@ class SessionRecovery {
   
   private readonly MAX_RETRIES = 3
   private readonly RETRY_DELAY = 1000
-  private readonly SESSION_CHECK_INTERVAL = 30000 // 30 seconds
+  private readonly SESSION_CHECK_INTERVAL = 300000 // 5 minutes instead of 30 seconds
   private readonly RECOVERY_TIMEOUT = 10000 // 10 seconds
+  private readonly VISIBILITY_CHECK_DELAY = 5000 // 5 second delay before checking on visibility change
   
   private sessionCheckInterval: NodeJS.Timeout | null = null
   private recoveryPromise: Promise<boolean> | null = null
+  private visibilityTimeout: NodeJS.Timeout | null = null
   
   constructor() {
     this.startSessionMonitoring()
@@ -30,24 +32,46 @@ class SessionRecovery {
   private startSessionMonitoring() {
     if (typeof window === 'undefined') return
     
-    // Check session validity every 30 seconds
+    // Reduce frequency of automatic session checks
     this.sessionCheckInterval = setInterval(() => {
       this.validateSession()
     }, this.SESSION_CHECK_INTERVAL)
     
-    // Check on page visibility change
+    // Only check on visibility change if tab was hidden for more than 5 minutes
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        this.validateSession()
+        // Clear any pending timeout
+        if (this.visibilityTimeout) {
+          clearTimeout(this.visibilityTimeout)
+          this.visibilityTimeout = null
+        }
+        
+        // Only validate if the last check was more than 5 minutes ago
+        const now = Date.now()
+        const lastCheck = this.state.lastAttempt || 0
+        const timeSinceLastCheck = now - lastCheck
+        
+        if (timeSinceLastCheck > 300000) { // 5 minutes
+          // Add a delay to prevent immediate validation on tab switch
+          this.visibilityTimeout = setTimeout(() => {
+            this.validateSession()
+          }, this.VISIBILITY_CHECK_DELAY)
+        }
+      } else {
+        // Clear timeout if tab becomes hidden
+        if (this.visibilityTimeout) {
+          clearTimeout(this.visibilityTimeout)
+          this.visibilityTimeout = null
+        }
       }
     })
     
-    // Check on storage events (for cross-tab communication)
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'session-recovery' && e.newValue === 'trigger') {
-        this.validateSession()
-      }
-    })
+    // Remove storage event listener as it can cause cross-tab issues
+    // window.addEventListener('storage', (e) => {
+    //   if (e.key === 'session-recovery' && e.newValue === 'trigger') {
+    //     this.validateSession()
+    //   }
+    // })
   }
   
   async recoverSession(): Promise<boolean> {
@@ -123,6 +147,9 @@ class SessionRecovery {
   
   private async validateSession(): Promise<void> {
     try {
+      // Update last attempt timestamp
+      this.state.lastAttempt = Date.now()
+      
       const session = await getSession()
       
       if (!session?.user?.id) {
@@ -147,12 +174,13 @@ class SessionRecovery {
     }
   }
   
-  // Trigger recovery from other tabs
+  // Disable cross-tab recovery to prevent issues
   triggerCrossTabRecovery() {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('session-recovery', 'trigger')
-      localStorage.removeItem('session-recovery')
-    }
+    // Disabled to prevent cross-tab session validation issues
+    // if (typeof window !== 'undefined') {
+    //   localStorage.setItem('session-recovery', 'trigger')
+    //   localStorage.removeItem('session-recovery')
+    // }
   }
   
   // Get current session state
@@ -170,6 +198,11 @@ class SessionRecovery {
     if (this.sessionCheckInterval) {
       clearInterval(this.sessionCheckInterval)
       this.sessionCheckInterval = null
+    }
+    
+    if (this.visibilityTimeout) {
+      clearTimeout(this.visibilityTimeout)
+      this.visibilityTimeout = null
     }
   }
 }

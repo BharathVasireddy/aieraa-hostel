@@ -1,11 +1,11 @@
 'use client'
 
 import { Activity, AlertTriangle, Award, BarChart3, Bell, Building, CheckCircle, ChefHat, Clock, Crown, DollarSign, Download, Eye, RefreshCw, Settings, ShoppingCart, Target, TrendingUp, UserPlus, Users, Utensils, UtensilsCrossed, Zap } from 'lucide-react'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { useUser } from '@/components/UserProvider'
-// Cache imports removed - caching disabled
+import { DashboardSkeleton } from '@/components/ui/SkeletonLoaders'
 
 interface DashboardStats {
   totalUsers: number
@@ -16,6 +16,8 @@ interface DashboardStats {
   completedOrders: number
   monthlyGrowth: number
   averageOrderValue: number
+  totalUniversities: number
+  activeManagers: number
 }
 
 interface RecentOrder {
@@ -24,9 +26,10 @@ interface RecentOrder {
   studentName: string
   items: number
   total: number
-  status: 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'SERVED' | 'CANCELLED'
+  status: string
   orderDate: string
   deliveryTime?: string
+  universityName: string
 }
 
 interface PopularItem {
@@ -37,6 +40,7 @@ interface PopularItem {
   revenue: number
   isVegetarian: boolean
   trend: 'up' | 'down' | 'stable'
+  universityName: string
 }
 
 export default function AdminDashboard() {
@@ -50,29 +54,25 @@ export default function AdminDashboard() {
     pendingOrders: 0,
     completedOrders: 0,
     monthlyGrowth: 0,
-    averageOrderValue: 0
+    averageOrderValue: 0,
+    totalUniversities: 0,
+    activeManagers: 0
   })
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([])
   const [popularItems, setPopularItems] = useState<PopularItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
+  const [loadingStats, setLoadingStats] = useState(true)
+  const [loadingOrders, setLoadingOrders] = useState(true)
+  const [loadingItems, setLoadingItems] = useState(true)
   const [selectedDateRange, setSelectedDateRange] = useState('today')
   const [showNotifications, setShowNotifications] = useState(false)
 
-  // Fetch dashboard data with lightning caching
-  const fetchDashboardData = useCallback(async () => {
-    if (loading) return
-    
+  // Progressive loading - fetch critical stats first
+  const fetchStats = useCallback(async () => {
     try {
-      setLoading(true)
-      
-      // Always fetch fresh data - no caching
       const response = await fetch('/api/admin/analytics?period=week', {
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
-        cache: 'no-store'
+          'Cache-Control': 'max-age=60' // 1 minute cache
+        }
       })
       
       if (!response.ok) {
@@ -81,35 +81,68 @@ export default function AdminDashboard() {
       
       const data = await response.json()
 
-      // Transform analytics data
-      const analyticsData = data.data
-      const transformedStats: DashboardStats = {
-        totalUsers: analyticsData.totalStudents || 0,
-        activeOrders: analyticsData.activeOrders || 0,
-        todaysRevenue: analyticsData.todaysRevenue || 0,
-        menuItems: analyticsData.totalMenuItems || 0,
-        pendingOrders: analyticsData.pendingOrders || 0,
-        completedOrders: analyticsData.completedOrders || 0,
-        monthlyGrowth: analyticsData.monthlyGrowth || 0,
-        averageOrderValue: analyticsData.averageOrderValue || 0
+      // Add safety checks for data structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid API response structure')
       }
-
-      // Transform recent orders
-      const ordersResponse = await fetch('/api/admin/orders?limit=10', {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
-        cache: 'no-store'
+      
+      // API returns data directly, not wrapped in data.data
+      // Structure: { keyMetrics: { ... }, dailyData: [...], etc. }
+      const keyMetrics = data.keyMetrics || {}
+      const orderStatusStats = data.orderStatusStats || []
+      const popularItems = data.popularItems || []
+      
+      setStats({
+        totalUsers: keyMetrics.totalStudents || 0,
+        activeOrders: keyMetrics.totalOrders || 0,
+        todaysRevenue: keyMetrics.totalRevenue || 0,
+        menuItems: popularItems.length || 0,
+        pendingOrders: orderStatusStats.find((s: any) => s.status === 'PENDING')?._count?.id || 0,
+        completedOrders: orderStatusStats.find((s: any) => s.status === 'SERVED')?._count?.id || 0,
+        monthlyGrowth: keyMetrics.revenueGrowth || 0,
+        averageOrderValue: keyMetrics.avgOrderValue || 0,
+        totalUniversities: keyMetrics.totalUniversities || 0,
+        activeManagers: keyMetrics.activeManagers || 0
       })
+    } catch (error) {
+      console.error('Failed to fetch admin stats:', error)
+      // Set default values on error to prevent UI crashes
+      setStats({
+        totalUsers: 0,
+        activeOrders: 0,
+        todaysRevenue: 0,
+        menuItems: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        monthlyGrowth: 0,
+        averageOrderValue: 0,
+        totalUniversities: 0,
+        activeManagers: 0
+      })
+    } finally {
+      setLoadingStats(false)
+    }
+  }, [])
 
-      if (!ordersResponse.ok) {
-        throw new Error(`HTTP error: ${ordersResponse.status}`)
+  // Fetch recent orders (less critical, can load after stats)
+  const fetchRecentOrders = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/orders?limit=5', {
+        headers: {
+          'Cache-Control': 'max-age=30' // 30 second cache
+        }
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`)
       }
-
-      const ordersData = await ordersResponse.json()
-
-      const transformedOrders: RecentOrder[] = ordersData.orders?.map((order: any) => ({
+      
+      const ordersData = await response.json()
+      
+      // Handle the actual API response structure
+      const orders = Array.isArray(ordersData) ? ordersData : ordersData.orders || []
+      
+      const transformedOrders: RecentOrder[] = orders.map((order: any) => ({
         id: order.id,
         orderNumber: order.orderNumber || `ORD-${order.id.slice(-6)}`,
         studentName: order.user?.name || 'Student',
@@ -117,107 +150,144 @@ export default function AdminDashboard() {
         total: order.totalAmount || 0,
         status: order.status || 'PENDING',
         orderDate: order.orderDate || order.createdAt,
-        deliveryTime: order.deliveryTime
-      })) || []
+        deliveryTime: order.deliveryTime,
+        universityName: order.university?.name || 'Unknown University'
+      }))
+      
+      setRecentOrders(transformedOrders)
+    } catch (error) {
+      console.error('Failed to fetch recent orders:', error)
+    } finally {
+      setLoadingOrders(false)
+    }
+  }, [])
 
-      // Mock popular items (enhance with real data)
+  // Fetch popular items (least critical, load last)
+  const fetchPopularItems = useCallback(async () => {
+    try {
+      // Mock popular items across all universities
       const mockPopularItems: PopularItem[] = [
         {
           id: '1',
           name: 'Butter Chicken Rice',
           category: 'lunch',
-          ordersCount: 45,
-          revenue: 8100,
+          ordersCount: 145,
+          revenue: 21800,
           isVegetarian: false,
-          trend: 'up'
+          trend: 'up',
+          universityName: 'University A'
         },
         {
           id: '2', 
           name: 'Paneer Tikka Masala',
           category: 'lunch',
-          ordersCount: 38,
-          revenue: 5700,
+          ordersCount: 98,
+          revenue: 14700,
           isVegetarian: true,
-          trend: 'up'
+          trend: 'up',
+          universityName: 'University B'
         },
         {
           id: '3',
           name: 'Chicken Biryani',
           category: 'dinner',
-          ordersCount: 32,
-          revenue: 6400,
+          ordersCount: 87,
+          revenue: 17400,
           isVegetarian: false,
-          trend: 'stable'
+          trend: 'stable',
+          universityName: 'University C'
         },
         {
           id: '4',
           name: 'Masala Dosa',
           category: 'breakfast',
-          ordersCount: 28,
-          revenue: 2800,
+          ordersCount: 76,
+          revenue: 7600,
           isVegetarian: true,
-          trend: 'down'
+          trend: 'down',
+          universityName: 'University A'
         }
       ]
-
-      setStats(transformedStats)
-      setRecentOrders(transformedOrders)
       setPopularItems(mockPopularItems)
-
     } catch (error) {
-      // Handle error silently
+      console.error('Failed to fetch popular items:', error)
     } finally {
-      setLoading(false)
-      setRefreshing(false)
+      setLoadingItems(false)
     }
-  }, [loading])
+  }, [])
 
-  // Initial data fetch
+  // Progressive loading strategy
   useEffect(() => {
-    fetchDashboardData()
-  }, [fetchDashboardData])
+    if (user?.role === 'ADMIN') {
+      // Load critical stats first
+      fetchStats()
+      
+      // Load secondary data after a short delay
+      setTimeout(() => {
+        fetchRecentOrders()
+      }, 100)
+      
+      // Load tertiary data after stats are likely loaded
+      setTimeout(() => {
+        fetchPopularItems()
+      }, 300)
+    }
+  }, [user?.role, fetchStats, fetchRecentOrders, fetchPopularItems])
 
-  // Calculate percentage changes and trends
-  const statsWithTrends = useMemo(() => [
+  const handleRefresh = useCallback(async () => {
+    setLoadingStats(true)
+    setLoadingOrders(true)
+    setLoadingItems(true)
+    
+    // Refresh all data in parallel
+    await Promise.all([
+      fetchStats(),
+      fetchRecentOrders(),
+      fetchPopularItems()
+    ])
+  }, [fetchStats, fetchRecentOrders, fetchPopularItems])
+
+  // Super Admin specific stats with trends
+  const superAdminStats = useMemo(() => [
     {
-      title: 'Total Students',
+      title: 'Total Universities',
+      value: stats.totalUniversities,
+      icon: Building,
+      color: 'purple',
+      trend: '+3%',
+      description: 'Active universities in system'
+    },
+    {
+      title: 'All Students',
       value: stats.totalUsers,
       icon: Users,
       color: 'blue',
       trend: '+12%',
-      description: 'Active students this month'
+      description: 'Students across all universities'
     },
     {
-      title: 'Active Orders',
-      value: stats.activeOrders,
-      icon: ShoppingCart,
-      color: 'orange',
-      trend: '+8%',
-      description: 'Orders in progress'
-    },
-    {
-      title: "Today's Revenue",
+      title: 'System Revenue',
       value: `₹${stats.todaysRevenue.toLocaleString()}`,
       icon: DollarSign,
       color: 'green',
       trend: '+15%',
-      description: 'Revenue generated today'
+      description: 'Revenue from all universities'
     },
     {
-      title: 'Menu Items',
-      value: stats.menuItems,
-      icon: UtensilsCrossed,
-      color: 'purple',
+      title: 'Active Managers',
+      value: stats.activeManagers,
+      icon: Crown,
+      color: 'orange',
       trend: '+2%',
-      description: 'Active menu items'
+      description: 'University managers online'
     }
   ], [stats])
 
-  // Status color mapping
+  // Status helpers
   const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'PENDING': return 'bg-amber-100 text-amber-800'
-      case 'CONFIRMED': return 'bg-blue-100 text-blue-800'
+      case 'APPROVED': return 'bg-blue-100 text-blue-800'
       case 'PREPARING': return 'bg-purple-100 text-purple-800'
       case 'READY': return 'bg-green-100 text-green-800'
       case 'SERVED': return 'bg-emerald-100 text-emerald-800'
@@ -229,7 +299,7 @@ export default function AdminDashboard() {
   const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case 'PENDING': return Clock
-      case 'CONFIRMED': return CheckCircle
+      case 'APPROVED': return CheckCircle
       case 'PREPARING': return Activity
       case 'READY': return Award
       case 'SERVED': return Target
@@ -238,61 +308,23 @@ export default function AdminDashboard() {
     }
   }, [])
 
-  // Loading state
-  if (!user || loading) {
-    return (
-      <div className="min-h-screen bg-neutral-50">
-        {/* Loading Header */}
-        <div className="bg-white border-b border-neutral-100 px-6 py-4">
-          <div className="skeleton h-8 w-48 mb-2"></div>
-          <div className="skeleton h-4 w-64"></div>
-        </div>
-        
-        {/* Loading Stats */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-white rounded-xl border border-neutral-200 p-6">
-                <div className="skeleton h-4 w-24 mb-4"></div>
-                <div className="skeleton h-8 w-16 mb-2"></div>
-                <div className="skeleton h-3 w-32"></div>
-              </div>
-            ))}
-          </div>
-          
-          {/* Loading Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-neutral-200 p-6">
-              <div className="skeleton h-6 w-32 mb-4"></div>
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="skeleton h-16 w-full"></div>
-                ))}
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-neutral-200 p-6">
-              <div className="skeleton h-6 w-32 mb-4"></div>
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="skeleton h-12 w-full"></div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+  // Redirect non-admin users
+  if (!user || user.role !== 'ADMIN') {
+    return <DashboardSkeleton />
   }
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      {/* Enhanced Header */}
-      <div className="bg-white border-b border-neutral-100 px-6 py-4">
+      {/* Enhanced Super Admin Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-6 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-neutral-800">Admin Dashboard</h1>
-            <p className="text-neutral-600 mt-1">
-              Welcome back, {user.name.split(' ')[0]}! Here&apos;s your hostel overview.
+            <div className="flex items-center space-x-2 mb-2">
+              <Crown className="w-6 h-6" />
+              <h1 className="text-2xl font-bold">Super Admin Dashboard</h1>
+            </div>
+            <p className="text-purple-100">
+              System-wide oversight • {stats.totalUniversities} Universities • {stats.totalUsers} Students
             </p>
           </div>
           
@@ -301,7 +333,7 @@ export default function AdminDashboard() {
             <select
               value={selectedDateRange}
               onChange={(e) => setSelectedDateRange(e.target.value)}
-              className="input-field text-sm py-2"
+              className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
             >
               <option value="today">Today</option>
               <option value="week">This Week</option>
@@ -311,92 +343,86 @@ export default function AdminDashboard() {
             
             {/* Refresh Button */}
             <button
-              onClick={() => fetchDashboardData()}
-              disabled={refreshing}
-              className="btn-outline p-2"
+              onClick={handleRefresh}
+              disabled={loadingStats}
+              className="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-5 h-5 ${loadingStats ? 'animate-spin' : ''}`} />
             </button>
             
             {/* Notifications */}
           <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative btn-outline p-2"
+              className="relative p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors"
             >
-              <Bell className="w-4 h-4" />
+              <Bell className="w-5 h-5" />
               {stats.pendingOrders > 0 && (
                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
                   <span className="text-xs font-bold text-white">{stats.pendingOrders}</span>
                 </div>
             )}
-          </button>
-            
-            {/* Settings */}
-            <button
-              onClick={() => router.push('/admin/settings')}
-              className="btn-outline p-2"
-            >
-              <Settings className="w-4 h-4" />
             </button>
           </div>
         </div>
       </div>
 
-      <div className="p-6 space-y-8">
-        {/* Enhanced Stats Grid */}
-        <section>
+      <div className="p-6 space-y-6">
+        {/* Super Admin Stats Grid */}
+        <Suspense fallback={<DashboardSkeleton />}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {statsWithTrends.map((stat) => {
-              const IconComponent = stat.icon
+            {superAdminStats.map((stat, index) => {
+              const Icon = stat.icon
               return (
-                <div key={stat.title} className="card-interactive bg-white rounded-xl border border-neutral-200 p-6 hover:shadow-card-hover transition-all duration-200">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`icon-container-primary bg-${stat.color}-100`}>
-                      <IconComponent className={`w-6 h-6 text-${stat.color}-600`} />
+                <div key={index} className="bg-white rounded-xl border border-neutral-200 p-6 hover:shadow-md transition-shadow">
+                  {loadingStats ? (
+                    <div className="animate-pulse">
+                      <div className="w-8 h-8 bg-gray-200 rounded-lg mb-4"></div>
+                      <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                      <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-20"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center bg-${stat.color}-600`}>
+                          <Icon className="w-6 h-6 text-white" />
               </div>
                     <div className="flex items-center space-x-1 text-sm">
                       <TrendingUp className="w-3 h-3 text-green-600" />
-                      <span className="font-medium text-green-600">{stat.trend}</span>
+                          <span className="text-green-600 font-medium">{stat.trend}</span>
             </div>
           </div>
 
               <div>
-                    <h3 className="text-2xl font-bold text-neutral-800 mb-1">
-                      {stat.value}
-                    </h3>
-                    <p className="text-sm font-medium text-neutral-700 mb-1">{stat.title}</p>
-                    <p className="text-xs text-neutral-500">{stat.description}</p>
+                        <p className="text-neutral-600 text-sm font-medium mb-1">{stat.title}</p>
+                        <p className="text-2xl font-bold text-neutral-900">{stat.value}</p>
+                        <p className="text-xs text-neutral-500 mt-1">{stat.description}</p>
               </div>
+                    </>
+                  )}
             </div>
               )
             })}
           </div>
-        </section>
+        </Suspense>
 
-        {/* Enhanced Quick Actions - Role-based */}
+        {/* Super Admin Quick Actions */}
         <section>
-          <h2 className="text-lg font-semibold text-neutral-800 mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold text-neutral-800 mb-4">Super Admin Controls</h2>
           
-          {/* Super Admin Section - University Management */}
-          {user.role === 'ADMIN' && (
-            <div className="mb-6">
-              <div className="flex items-center space-x-2 mb-3">
-                <Crown className="w-5 h-5 text-purple-600" />
-                <h3 className="text-sm font-semibold text-purple-800 uppercase tracking-wide">Super Admin Controls</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <button
                   onClick={() => router.push('/admin/universities')}
                   className="card-interactive bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-xl p-6 text-left hover:shadow-lg transition-all duration-200"
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="icon-container-primary bg-purple-200">
-                      <Building className="w-6 h-6 text-purple-700" />
+                <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
+                  <Building className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-purple-900 text-lg">University Management</h4>
-                      <p className="text-sm text-purple-700">Create & manage universities</p>
-                      <p className="text-xs text-purple-600 mt-1">🏛️ Multi-university control</p>
+                  <h4 className="font-bold text-purple-900 text-lg">Universities</h4>
+                  <p className="text-sm text-purple-700">Manage all universities</p>
+                  <p className="text-xs text-purple-600 mt-1">🏛️ {stats.totalUniversities} active</p>
                     </div>
                   </div>
                 </button>
@@ -406,55 +432,46 @@ export default function AdminDashboard() {
                   className="card-interactive bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-6 text-left hover:shadow-lg transition-all duration-200"
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="icon-container-primary bg-blue-200">
-                      <UserPlus className="w-6 h-6 text-blue-700" />
+                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <UserPlus className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-blue-900 text-lg">All Students</h4>
+                  <h4 className="font-bold text-blue-900 text-lg">All Users</h4>
                       <p className="text-sm text-blue-700">Cross-university management</p>
-                      <p className="text-xs text-blue-600 mt-1">👥 {stats.totalUsers} total students</p>
+                  <p className="text-xs text-blue-600 mt-1">👥 {stats.totalUsers} students</p>
                     </div>
                   </div>
                 </button>
 
                 <button
                   onClick={() => router.push('/admin/analytics')}
-                  className="card-interactive bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-xl p-6 text-left hover:shadow-lg transition-all duration-200"
+              className="card-interactive bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-6 text-left hover:shadow-lg transition-all duration-200"
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="icon-container-primary bg-orange-200">
-                      <BarChart3 className="w-6 h-6 text-orange-700" />
+                <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-orange-900 text-lg">Global Analytics</h4>
-                      <p className="text-sm text-orange-700">System-wide reports</p>
-                      <p className="text-xs text-orange-600 mt-1">📊 Multi-university insights</p>
+                  <h4 className="font-bold text-green-900 text-lg">System Analytics</h4>
+                  <p className="text-sm text-green-700">Global insights & reports</p>
+                  <p className="text-xs text-green-600 mt-1">📊 Real-time data</p>
                     </div>
                   </div>
                 </button>
               </div>
-            </div>
-          )}
 
-          {/* Regular Admin/Manager Actions */}
-          <div className="mb-4">
-            <div className="flex items-center space-x-2 mb-3">
-              <Utensils className="w-5 h-5 text-green-600" />
-              <h3 className="text-sm font-semibold text-green-800 uppercase tracking-wide">
-                {user.role === 'ADMIN' ? 'Daily Operations' : 'University Management'}
-              </h3>
-            </div>
+          {/* Standard Admin Actions */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <button
                 onClick={() => router.push('/admin/orders')}
-                className="card-interactive bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
+              className="bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="icon-container-primary bg-blue-100">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                     <Eye className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-blue-900">Orders</h4>
+                  <h4 className="font-semibold text-blue-900">All Orders</h4>
                     <p className="text-xs text-blue-700">{stats.activeOrders} active</p>
                   </div>
                 </div>
@@ -462,81 +479,40 @@ export default function AdminDashboard() {
 
               <button
                 onClick={() => router.push('/admin/menu')}
-                className="card-interactive bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
+              className="bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="icon-container-primary bg-purple-100">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                     <UtensilsCrossed className="w-5 h-5 text-purple-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-purple-900">Menu</h4>
+                  <h4 className="font-semibold text-purple-900">All Menus</h4>
                     <p className="text-xs text-purple-700">{stats.menuItems} items</p>
                   </div>
                 </div>
               </button>
 
-              {user.role === 'MANAGER' && (
-                <button 
-                  onClick={() => router.push('/admin/users')}
-                  className="card-interactive bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="icon-container-primary bg-green-100">
-                      <Users className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-green-900">Students</h4>
-                      <p className="text-xs text-green-700">{stats.totalUsers} students</p>
-                    </div>
-                  </div>
-                </button>
-              )}
-
               <button
                 onClick={() => router.push('/admin/settings')}
-                className="card-interactive bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
+              className="bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="icon-container-primary bg-gray-100">
+                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                     <Settings className="w-5 h-5 text-gray-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">Settings</h4>
-                    <p className="text-xs text-gray-700">Configuration</p>
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Additional Admin Tools */}
-          <div>
-            <div className="flex items-center space-x-2 mb-3">
-              <ChefHat className="w-5 h-5 text-indigo-600" />
-              <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">Admin Tools</h3>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button
-                onClick={() => router.push('/admin/analytics')}
-                className="card-interactive bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="icon-container-primary bg-orange-100">
-                    <BarChart3 className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-orange-900">Analytics</h4>
-                    <p className="text-xs text-orange-700">Reports & insights</p>
+                  <h4 className="font-semibold text-gray-900">System Settings</h4>
+                  <p className="text-xs text-gray-700">Global config</p>
                   </div>
                 </div>
               </button>
 
               <button
                 onClick={() => router.push('/admin/profile')}
-                className="card-interactive bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
+              className="bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="icon-container-primary bg-indigo-100">
+                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
                     <Users className="w-5 h-5 text-indigo-600" />
                   </div>
                   <div>
@@ -545,58 +521,44 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </button>
-
-              <button
-                onClick={() => alert('Export functionality: Generate CSV/PDF reports for orders, revenue, and student data. Coming soon!')}
-                className="card-interactive bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="icon-container-primary bg-emerald-100">
-                    <Download className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-emerald-900">Export</h4>
-                    <p className="text-xs text-emerald-700">Download reports</p>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => router.push('/admin/settings')}
-                className="card-interactive bg-white rounded-xl border border-neutral-200 p-4 text-left hover:shadow-md transition-all duration-200"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="icon-container-primary bg-red-100">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-red-900">Emergency</h4>
-                    <p className="text-xs text-red-700">Force logout & more</p>
-                  </div>
-                </div>
-              </button>
-            </div>
           </div>
         </section>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Orders */}
-          <section className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+        {/* Cross-University Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Orders Across All Universities */}
+          <Suspense fallback={<div className="h-64 bg-white rounded-xl animate-pulse" />}>
+            <section className="bg-white rounded-xl shadow-sm border border-neutral-200">
             <div className="p-6 border-b border-neutral-100">
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-neutral-800">Recent Orders</h2>
+                  <h3 className="font-semibold text-neutral-900">Recent Orders (All Universities)</h3>
               <button 
                 onClick={() => router.push('/admin/orders')}
-                  className="text-sm text-primary-600 font-medium hover:text-primary-700 transition-colors"
+                    className="text-sm text-purple-600 hover:text-purple-700 font-medium"
               >
                 View All
               </button>
             </div>
+                <p className="text-sm text-neutral-600 mt-1">Latest orders from all universities</p>
           </div>
 
             <div className="divide-y divide-neutral-100">
-              {recentOrders.slice(0, 5).map((order) => {
+                {loadingOrders ? (
+                  <div className="p-6">
+                    <div className="animate-pulse space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center space-x-3">
+                          <div className="w-4 h-4 bg-gray-200 rounded"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-32"></div>
+                            <div className="h-3 bg-gray-200 rounded w-24"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : recentOrders.length > 0 ? (
+                  recentOrders.map((order) => {
                 const StatusIcon = getStatusIcon(order.status)
                 return (
                   <div key={order.id} className="p-4 hover:bg-neutral-50 transition-colors cursor-pointer"
@@ -620,141 +582,102 @@ export default function AdminDashboard() {
                         
                         <div className="flex items-center justify-between text-sm text-neutral-600">
                           <span>{order.studentName} • {order.items} items</span>
-                          <span>{format(new Date(order.orderDate), 'MMM d, h:mm a')}</span>
-                        </div>
-                      </div>
+                              <span className="text-xs text-purple-600">{order.universityName}</span>
+                            </div>
+                            
+                            <p className="text-xs text-neutral-500 mt-1">
+                              {format(new Date(order.orderDate), 'MMM d, h:mm a')}
+                            </p>
+                          </div>
                     </div>
                   </div>
                 )
-              })}
-            </div>
-
-            {recentOrders.length === 0 && (
+                  })
+                ) : (
               <div className="p-8 text-center">
                 <ShoppingCart className="w-12 h-12 text-neutral-400 mx-auto mb-3" />
                 <p className="text-neutral-600">No recent orders</p>
               </div>
             )}
+              </div>
           </section>
+          </Suspense>
 
-          {/* Popular Menu Items */}
-          <section className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+          {/* Popular Items Across All Universities */}
+          <Suspense fallback={<div className="h-64 bg-white rounded-xl animate-pulse" />}>
+            <section className="bg-white rounded-xl shadow-sm border border-neutral-200">
             <div className="p-6 border-b border-neutral-100">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-neutral-800">Popular Items</h2>
+                  <h3 className="font-semibold text-neutral-900">Popular Items (System-wide)</h3>
                 <button
-                  onClick={() => router.push('/admin/menu')}
-                  className="text-sm text-primary-600 font-medium hover:text-primary-700 transition-colors"
+                    onClick={() => router.push('/admin/analytics')}
+                    className="text-sm text-purple-600 hover:text-purple-700 font-medium"
                 >
-                  Manage Menu
+                    View Analytics
                 </button>
-              </div>
+                </div>
+                <p className="text-sm text-neutral-600 mt-1">Top performing items across all universities</p>
             </div>
 
             <div className="divide-y divide-neutral-100">
-              {popularItems.map((item, index) => (
-                <div key={item.id} className="p-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-primary-600">#{index + 1}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="font-medium text-neutral-800">{item.name}</h4>
-                          <div className={item.isVegetarian ? 'food-veg-indicator' : 'food-non-veg-indicator'}>
-                            <div className={item.isVegetarian ? 'food-veg-dot' : 'food-non-veg-dot'} />
+                {loadingItems ? (
+                  <div className="p-6">
+                    <div className="animate-pulse space-y-3">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-32"></div>
+                            <div className="h-3 bg-gray-200 rounded w-24"></div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          {item.trend === 'up' && <TrendingUp className="w-4 h-4 text-green-600" />}
-                          {item.trend === 'down' && <TrendingUp className="w-4 h-4 text-red-600 rotate-180" />}
-                          {item.trend === 'stable' && <Zap className="w-4 h-4 text-neutral-400" />}
+                      ))}
+                    </div>
+                  </div>
+                ) : popularItems.length > 0 ? (
+                  popularItems.map((item, index) => (
+                    <div key={item.id} className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          index === 0 ? 'bg-yellow-500 text-white' :
+                          index === 1 ? 'bg-gray-400 text-white' :
+                          index === 2 ? 'bg-amber-600 text-white' :
+                          'bg-gray-200 text-gray-700'
+                        }`}>
+                          {index + 1}
                         </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h4 className="font-medium text-neutral-800 truncate">{item.name}</h4>
+                            {item.isVegetarian && (
+                              <div className="w-3 h-3 bg-green-100 border border-green-500 rounded-sm"></div>
+                            )}
                       </div>
                       
                       <div className="flex items-center justify-between text-sm text-neutral-600">
-                        <span className={`category-${item.category}`}>{item.category}</span>
-                        <div className="flex items-center space-x-3">
-                          <span>{item.ordersCount} orders</span>
-                          <span className="font-semibold text-neutral-800">₹{item.revenue.toLocaleString()}</span>
+                            <span>{item.ordersCount} orders • ₹{item.revenue.toLocaleString()}</span>
+                            <span className="text-xs text-purple-600">{item.universityName}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-1 text-green-600">
+                          <TrendingUp className="w-4 h-4" />
                         </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="p-8 text-center">
+                    <Utensils className="w-12 h-12 text-neutral-400 mx-auto mb-3" />
+                    <p className="text-neutral-600">No popular items data</p>
                   </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        {/* Performance Summary */}
-        <section className="bg-white rounded-xl border border-neutral-200 p-6">
-          <h2 className="text-lg font-semibold text-neutral-800 mb-4">Performance Summary</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-neutral-800 mb-1">{stats.completedOrders}</h3>
-              <p className="text-sm text-neutral-600">Orders Completed</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <DollarSign className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-neutral-800 mb-1">₹{stats.averageOrderValue}</h3>
-              <p className="text-sm text-neutral-600">Average Order Value</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <TrendingUp className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-neutral-800 mb-1">{stats.monthlyGrowth}%</h3>
-              <p className="text-sm text-neutral-600">Monthly Growth</p>
-            </div>
+                )}
           </div>
         </section>
-      </div>
-
-      {/* Notifications Panel */}
-      {showNotifications && (
-        <div className="fixed inset-0 z-modal-backdrop bg-black/50" onClick={() => setShowNotifications(false)}>
-          <div className="fixed top-20 right-6 w-80 bg-white rounded-xl border border-neutral-200 shadow-xl animate-scale-in z-modal">
-            <div className="p-4 border-b border-neutral-100">
-              <h3 className="font-semibold text-neutral-800">Notifications</h3>
-        </div>
-
-            <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
-              {stats.pendingOrders > 0 && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-600" />
-                    <span className="text-sm font-medium text-amber-800">
-                      {stats.pendingOrders} orders need attention
-                </span>
-                  </div>
-                </div>
-              )}
-              
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <TrendingUp className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">
-                    Revenue is up 15% from yesterday
-                  </span>
-                </div>
-              </div>
-            </div>
+          </Suspense>
         </div>
         </div>
-      )}
     </div>
   )
 } 
