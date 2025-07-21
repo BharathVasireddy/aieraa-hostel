@@ -4,6 +4,7 @@
 import { prisma } from './prisma';
 import {
   getCurrentUtc,
+  getVietnamTime,
   vietnamTimeToUtc,
   toVietnamTime,
   VIETNAM_TIMEZONE,
@@ -212,15 +213,32 @@ export function formatDbTimeForUser(utcTime: Date): {
  */
 export function validateServerTimezone(): boolean {
   try {
-    const vietnamTime = toVietnamTime(new Date());
-    const utcTime = getCurrentUtc();
+    // Test basic UTC to Vietnam conversion
+    const utcNow = getCurrentUtc();
+    const vietnamNow = getVietnamTime();
 
-    // Validate that our timezone functions work correctly
-    const converted = vietnamTimeToUtc(vietnamTime);
-    const timeDiff = Math.abs(converted.getTime() - utcTime.getTime());
+    // Vietnam should be exactly 7 hours ahead of UTC
+    const expectedDiff = 7 * 60 * 60 * 1000; // 7 hours in milliseconds
+    const actualDiff = vietnamNow.getTime() - utcNow.getTime();
+    const diffIsCorrect = Math.abs(actualDiff - expectedDiff) < 60000; // Within 1 minute
 
-    // Should be within 1 minute difference (relaxed for server environments)
-    return timeDiff < 60000;
+    // Test round-trip conversion
+    const testVietnam = toVietnamTime(utcNow);
+    const backToUtc = vietnamTimeToUtc(testVietnam);
+    const roundTripDiff = Math.abs(utcNow.getTime() - backToUtc.getTime());
+    const roundTripValid = roundTripDiff < 60000; // Within 1 minute
+
+    console.log('🔍 Server timezone validation:', {
+      utcNow: utcNow.toISOString(),
+      vietnamNow: vietnamNow.toISOString(),
+      expectedDiff,
+      actualDiff,
+      diffIsCorrect,
+      roundTripDiff,
+      roundTripValid,
+    });
+
+    return diffIsCorrect && roundTripValid;
   } catch (error) {
     console.error('❌ Timezone validation failed:', error);
     return false;

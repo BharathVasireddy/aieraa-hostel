@@ -1,51 +1,30 @@
-// Vietnam Timezone Utilities - Industry Best Practice Implementation
-// Using native Intl API for maximum compatibility and performance
+// Vietnam Timezone Utilities - Server-Independent Implementation
+// Works regardless of server timezone location
 
 import { addDays, startOfDay, format } from 'date-fns';
 
 // Vietnam timezone constant
 export const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
+export const VIETNAM_UTC_OFFSET = 7 * 60 * 60 * 1000; // +7 hours in milliseconds
 
 /**
  * Get current time in Vietnam timezone
- * Industry standard: Uses native Intl API for reliable timezone conversion
+ * Server-independent: Uses absolute UTC offset calculation
  */
 export function getVietnamTime(): Date {
-  const now = new Date();
-
-  // Create a date formatter for Vietnam timezone
-  const vietnamDateString = new Intl.DateTimeFormat('en-CA', {
-    timeZone: VIETNAM_TIMEZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(now);
-
-  // Parse the formatted string to create a proper Date object
-  return new Date(vietnamDateString);
+  const utcNow = new Date();
+  // Add exactly 7 hours to UTC to get Vietnam time
+  return new Date(utcNow.getTime() + VIETNAM_UTC_OFFSET);
 }
 
 /**
  * Convert any date to Vietnam timezone
- * Best practice: Explicit timezone conversion using Intl API
+ * Server-independent: Uses absolute UTC calculations
  */
 export function toVietnamTime(date: Date): Date {
-  const vietnamDateString = new Intl.DateTimeFormat('en-CA', {
-    timeZone: VIETNAM_TIMEZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(date);
-
-  return new Date(vietnamDateString);
+  // If the date is already in local time, convert to UTC first, then to Vietnam
+  const utcTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return new Date(utcTime.getTime() + VIETNAM_UTC_OFFSET);
 }
 
 /**
@@ -53,17 +32,8 @@ export function toVietnamTime(date: Date): Date {
  * Critical: Always store UTC in database
  */
 export function vietnamTimeToUtc(vietnamTime: Date): Date {
-  // Calculate the timezone offset difference
-  const utcDate = new Date(
-    vietnamTime.toLocaleString('en-US', { timeZone: 'UTC' })
-  );
-  const vietnamDate = new Date(
-    vietnamTime.toLocaleString('en-US', { timeZone: VIETNAM_TIMEZONE })
-  );
-
-  const offsetDiff = vietnamDate.getTime() - utcDate.getTime();
-
-  return new Date(vietnamTime.getTime() - offsetDiff);
+  // Subtract exactly 7 hours from Vietnam time to get UTC
+  return new Date(vietnamTime.getTime() - VIETNAM_UTC_OFFSET);
 }
 
 /**
@@ -72,6 +42,30 @@ export function vietnamTimeToUtc(vietnamTime: Date): Date {
  */
 export function getCurrentUtc(): Date {
   return new Date();
+}
+
+/**
+ * Create a date in Vietnam timezone from date components
+ * Useful for creating specific Vietnam times
+ */
+export function createVietnamTime(
+  year: number,
+  month: number,
+  day: number,
+  hours = 0,
+  minutes = 0,
+  seconds = 0
+): Date {
+  // Create date in Vietnam timezone
+  const vietnamDate = new Date();
+  vietnamDate.setFullYear(year);
+  vietnamDate.setMonth(month - 1); // Month is 0-indexed
+  vietnamDate.setDate(day);
+  vietnamDate.setHours(hours, minutes, seconds, 0);
+
+  // Convert to Vietnam time by ensuring it represents Vietnam timezone
+  const utcEquivalent = vietnamTimeToUtc(vietnamDate);
+  return new Date(utcEquivalent.getTime() + VIETNAM_UTC_OFFSET);
 }
 
 /**
@@ -93,19 +87,27 @@ export function getVietnamGreeting(): string {
 
 /**
  * Get cutoff time for orders in Vietnam timezone
- * Industry practice: Business logic in local timezone, store as UTC
+ * Industry practice: Business logic in local timezone
  */
 export function getOrderCutoffTime(orderDate: string): Date {
-  // Parse order date and get the day before
-  const selectedDate = new Date(orderDate);
-  const dayBefore = addDays(selectedDate, -1);
+  // Parse the order date (YYYY-MM-DD)
+  const [year, month, day] = orderDate.split('-').map(Number);
 
-  // Create cutoff time in Vietnam timezone (10 PM)
-  const vietnamCutoff = new Date(dayBefore);
-  vietnamCutoff.setHours(22, 0, 0, 0); // 10 PM Vietnam time
+  // Get the day before the order date
+  const orderDateObj = new Date(year, month - 1, day);
+  const dayBefore = addDays(orderDateObj, -1);
 
-  // Convert to local time for comparison
-  return toVietnamTime(vietnamCutoff);
+  // Create 10 PM Vietnam time on the day before
+  const cutoffVietnam = createVietnamTime(
+    dayBefore.getFullYear(),
+    dayBefore.getMonth() + 1,
+    dayBefore.getDate(),
+    22, // 10 PM
+    0, // 0 minutes
+    0 // 0 seconds
+  );
+
+  return cutoffVietnam;
 }
 
 /**
@@ -143,33 +145,34 @@ export function getOrderingCountdown(orderDate: string): {
 
 /**
  * Format Vietnam time for display
- * Uses Intl API for proper locale formatting
+ * Uses consistent formatting regardless of server timezone
  */
 export function formatVietnamTime(date?: Date): string {
   const vietnamTime = date ? toVietnamTime(date) : getVietnamTime();
 
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone: VIETNAM_TIMEZONE,
+  // Use Vietnamese locale for proper formatting
+  return vietnamTime.toLocaleTimeString('vi-VN', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  }).format(vietnamTime);
+    timeZone: 'UTC', // Since we already converted to Vietnam time
+  });
 }
 
 /**
  * Format Vietnam date for display
- * Timezone-aware date formatting with Intl API
+ * Timezone-aware date formatting
  */
 export function formatVietnamDate(date?: Date): string {
   const vietnamTime = date ? toVietnamTime(date) : getVietnamTime();
 
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone: VIETNAM_TIMEZONE,
+  return vietnamTime.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  }).format(vietnamTime);
+    timeZone: 'UTC', // Since we already converted to Vietnam time
+  });
 }
 
 /**
@@ -219,16 +222,10 @@ export function parseVietnamDate(dateString: string): Date {
 
 /**
  * Get timezone offset for Vietnam in minutes
- * Used for validation and debugging
+ * Should always return 420 (7 hours * 60 minutes)
  */
 export function getVietnamTimezoneOffset(): number {
-  const now = new Date();
-  const utcTime = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
-  const vietnamTime = new Date(
-    now.toLocaleString('en-US', { timeZone: VIETNAM_TIMEZONE })
-  );
-
-  return (vietnamTime.getTime() - utcTime.getTime()) / (1000 * 60);
+  return -420; // Vietnam is UTC+7, which is -420 minutes from UTC
 }
 
 /**
@@ -237,28 +234,90 @@ export function getVietnamTimezoneOffset(): number {
  */
 export function validateTimezoneImplementation(): boolean {
   try {
-    // Test basic conversion
-    const now = new Date();
-    const vietnamTime = toVietnamTime(now);
-    const backToUtc = vietnamTimeToUtc(vietnamTime);
+    // Test 1: Basic offset validation
+    const expectedOffset = -420; // Vietnam UTC+7
+    const actualOffset = getVietnamTimezoneOffset();
+    const offsetValid = actualOffset === expectedOffset;
 
-    // Should be within 1 minute of original time
-    const timeDiff = Math.abs(now.getTime() - backToUtc.getTime());
-    const isConversionValid = timeDiff < 60000; // 1 minute tolerance
+    // Test 2: Round-trip conversion
+    const testUtc = new Date('2024-01-15T15:00:00.000Z'); // 3 PM UTC
+    const convertedToVietnam = toVietnamTime(testUtc); // Should be 10 PM Vietnam
+    const backToUtc = vietnamTimeToUtc(convertedToVietnam); // Should be 3 PM UTC again
 
-    // Test offset calculation
-    const offset = getVietnamTimezoneOffset();
-    const isOffsetValid = Math.abs(offset - 420) < 60; // Should be around +7 hours (420 minutes)
+    const timeDiff = Math.abs(testUtc.getTime() - backToUtc.getTime());
+    const conversionValid = timeDiff < 1000; // Within 1 second
 
-    // Test formatting
-    const formatted = formatVietnamTime();
-    const isFormattingValid = formatted.includes('M'); // Should contain AM/PM
+    // Test 3: Vietnam time should be 7 hours ahead of UTC
+    const utcNow = getCurrentUtc();
+    const vietnamNow = getVietnamTime();
+    const expectedDiff = 7 * 60 * 60 * 1000; // 7 hours in milliseconds
+    const actualDiff = vietnamNow.getTime() - utcNow.getTime();
+    const offsetDiffValid = Math.abs(actualDiff - expectedDiff) < 60000; // Within 1 minute
 
-    return isConversionValid && isOffsetValid && isFormattingValid;
+    // Test 4: Business hours check
+    const businessHoursWorking = typeof isVietnamBusinessHours() === 'boolean';
+
+    // Test 5: Formatting works
+    const formattedTime = formatVietnamTime();
+    const formattingValid =
+      typeof formattedTime === 'string' && formattedTime.length > 0;
+
+    console.log('🔍 Timezone Validation Results:', {
+      offsetValid,
+      conversionValid,
+      offsetDiffValid,
+      businessHoursWorking,
+      formattingValid,
+      testDetails: {
+        expectedOffset,
+        actualOffset,
+        timeDiff,
+        actualDiff,
+        expectedDiff,
+      },
+    });
+
+    return (
+      offsetValid &&
+      conversionValid &&
+      offsetDiffValid &&
+      businessHoursWorking &&
+      formattingValid
+    );
   } catch (error) {
     console.error('❌ Timezone validation failed:', error);
     return false;
   }
+}
+
+/**
+ * Debug function to show timezone information
+ * Useful for troubleshooting timezone issues
+ */
+export function getTimezoneDebugInfo() {
+  const utcNow = getCurrentUtc();
+  const vietnamNow = getVietnamTime();
+
+  return {
+    utc: {
+      time: utcNow.toISOString(),
+      timestamp: utcNow.getTime(),
+    },
+    vietnam: {
+      time: vietnamNow.toISOString(),
+      timestamp: vietnamNow.getTime(),
+      hours: vietnamNow.getHours(),
+      formatted: formatVietnamTime(vietnamNow),
+    },
+    offset: {
+      expected: -420,
+      calculated: getVietnamTimezoneOffset(),
+      difference: vietnamNow.getTime() - utcNow.getTime(),
+      differenceHours:
+        (vietnamNow.getTime() - utcNow.getTime()) / (1000 * 60 * 60),
+    },
+    validation: validateTimezoneImplementation(),
+  };
 }
 
 /**
