@@ -116,6 +116,7 @@ const nextConfig = {
   // Environment variables
   env: {
     NEXT_TELEMETRY_DISABLED: '1',
+    TZ: 'Asia/Ho_Chi_Minh',
   },
 };
 
