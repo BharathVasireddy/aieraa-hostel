@@ -27,55 +27,89 @@ export default function PWAUpdatePrompt() {
       }, 2000);
     });
 
-    // Check for waiting service worker (update available)
+    // Force check for updates immediately
     const checkForUpdates = async () => {
       try {
         const registration = await navigator.serviceWorker.ready;
         
+        console.log('🔄 Checking for PWA updates...', {
+          waiting: !!registration.waiting,
+          installing: !!registration.installing,
+          active: !!registration.active
+        });
+        
         if (registration.waiting) {
+          console.log('🎉 Update available! Service worker is waiting...');
           setUpdateAvailable(true);
           setShowPrompt(true);
         }
 
         // Listen for new service worker installations
         registration.addEventListener('updatefound', () => {
+          console.log('🔄 New service worker found, installing...');
           const newWorker = registration.installing;
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
+              console.log('🔄 Service worker state changed:', newWorker.state);
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('✅ New service worker installed and ready!');
                 setUpdateAvailable(true);
                 setShowPrompt(true);
               }
             });
           }
         });
+
+        // Force update check by calling update()
+        registration.update().then(() => {
+          console.log('🔄 Forced service worker update check completed');
+        }).catch(error => {
+          console.error('❌ Service worker update check failed:', error);
+        });
+
       } catch (error) {
-        console.error('Error checking for updates:', error);
+        console.error('❌ Error checking for updates:', error);
       }
     };
 
+    // Check immediately when component mounts
     checkForUpdates();
 
-    // Check for updates periodically (every 30 seconds)
-    const interval = setInterval(checkForUpdates, 30000);
+    // Check for updates periodically (every 10 seconds for testing)
+    const interval = setInterval(checkForUpdates, 10000);
 
-    return () => clearInterval(interval);
+    // Also check when window regains focus (user returns to app)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('👀 App became visible, checking for updates...');
+        checkForUpdates();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const handleUpdate = async () => {
     if (!updateAvailable) return;
 
     setIsUpdating(true);
+    console.log('🔄 Starting app update...');
 
     try {
       const registration = await navigator.serviceWorker.ready;
       
       if (registration.waiting) {
+        console.log('📤 Sending SKIP_WAITING message to service worker...');
         // Tell the waiting service worker to skip waiting and become active
         registration.waiting.postMessage({ type: 'SKIP_WAITING' });
       }
     } catch (error) {
-      console.error('Error updating app:', error);
+      console.error('❌ Error updating app:', error);
       setIsUpdating(false);
     }
   };
@@ -83,6 +117,8 @@ export default function PWAUpdatePrompt() {
   const handleDismiss = () => {
     setShowPrompt(false);
     setUpdateAvailable(false);
+    // Set a timestamp to avoid showing again too quickly
+    localStorage.setItem('pwa-update-dismissed', Date.now().toString());
   };
 
   if (updateComplete) {

@@ -8,6 +8,7 @@ import { NotificationProvider } from '@/components/NotificationSystem';
 import PageTransition from '@/components/PageTransition';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import PWAUpdatePrompt from '@/components/PWAUpdatePrompt';
+import PushNotificationDebug from '@/components/PushNotificationDebug';
 import PushNotifications from '@/components/PushNotifications';
 import PWAPerformanceMonitor from '@/components/PWAPerformanceMonitor';
 
@@ -54,7 +55,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#16a34a',
+  themeColor: '#ffffff',
 };
 
 export default function RootLayout({
@@ -102,6 +103,7 @@ export default function RootLayout({
                   <div className="relative min-h-screen">
                     <PWAInstallPrompt />
                     <PWAUpdatePrompt />
+                    <PushNotificationDebug />
                     {children}
                   </div>
                 </CartProvider>
@@ -125,34 +127,41 @@ export default function RootLayout({
                   }
                 });
                 
-                // Service worker registration with update handling
+                // Enhanced service worker registration with proper update handling
                 if ('serviceWorker' in navigator) {
                   window.addEventListener('load', function() {
                     navigator.serviceWorker.register('/sw.js')
                       .then(function(registration) {
+                        console.log('🔧 Service worker registered:', registration);
+                        
                         // Handle service worker updates
                         registration.addEventListener('updatefound', function() {
+                          console.log('🔄 Service worker update found');
                           const newWorker = registration.installing;
                           if (newWorker) {
                             newWorker.addEventListener('statechange', function() {
+                              console.log('🔄 Service worker state:', newWorker.state);
                               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log('✅ New app version available!');
                                 // New content is available, will be shown by PWAUpdatePrompt
-                                console.log('New app version available!');
                               }
                             });
                           }
                         });
+                        
+                        // Listen for skip waiting messages
+                        navigator.serviceWorker.addEventListener('message', function(event) {
+                          if (event.data && event.data.type === 'SKIP_WAITING') {
+                            console.log('🚀 Activating new service worker...');
+                            if (registration.waiting) {
+                              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                          }
+                        });
                       })
                       .catch(function(error) {
-                        // Service worker registration failed silently
+                        console.error('❌ Service worker registration failed:', error);
                       });
-                  });
-                  
-                  // Listen for skip waiting message from PWAUpdatePrompt
-                  navigator.serviceWorker.addEventListener('message', function(event) {
-                    if (event.data && event.data.type === 'SKIP_WAITING') {
-                      navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
-                    }
                   });
                 }
               `,

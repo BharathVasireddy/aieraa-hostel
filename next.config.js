@@ -144,6 +144,13 @@ export default withPWA({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
+  sw: 'sw.js',
+  additionalManifestEntries: [
+    {
+      url: '/sw-custom.js',
+      revision: Date.now().toString()
+    }
+  ],
   runtimeCaching: [
     {
       urlPattern: /^https?.*/,
