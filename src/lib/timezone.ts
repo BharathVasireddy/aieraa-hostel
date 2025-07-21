@@ -22,9 +22,8 @@ export function getVietnamTime(): Date {
  * Server-independent: Uses absolute UTC calculations
  */
 export function toVietnamTime(date: Date): Date {
-  // If the date is already in local time, convert to UTC first, then to Vietnam
-  const utcTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return new Date(utcTime.getTime() + VIETNAM_UTC_OFFSET);
+  // Simply add Vietnam UTC offset (+7 hours) to the input date
+  return new Date(date.getTime() + VIETNAM_UTC_OFFSET);
 }
 
 /**
@@ -56,16 +55,14 @@ export function createVietnamTime(
   minutes = 0,
   seconds = 0
 ): Date {
-  // Create date in Vietnam timezone
-  const vietnamDate = new Date();
-  vietnamDate.setFullYear(year);
-  vietnamDate.setMonth(month - 1); // Month is 0-indexed
-  vietnamDate.setDate(day);
-  vietnamDate.setHours(hours, minutes, seconds, 0);
+  // Create the desired Vietnam time as if it were UTC
+  const vietnamTimeAsUtc = new Date(
+    Date.UTC(year, month - 1, day, hours, minutes, seconds, 0)
+  );
 
-  // Convert to Vietnam time by ensuring it represents Vietnam timezone
-  const utcEquivalent = vietnamTimeToUtc(vietnamDate);
-  return new Date(utcEquivalent.getTime() + VIETNAM_UTC_OFFSET);
+  // Convert this "Vietnam time" to actual UTC by subtracting 7 hours
+  // This gives us the UTC time that will show as the desired Vietnam time when converted
+  return vietnamTimeToUtc(vietnamTimeAsUtc);
 }
 
 /**
