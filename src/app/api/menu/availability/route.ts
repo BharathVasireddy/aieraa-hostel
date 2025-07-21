@@ -1,56 +1,64 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const dateParam = searchParams.get('date')
+    const { searchParams } = new URL(request.url);
+    const dateParam = searchParams.get('date');
 
     if (!dateParam) {
       return NextResponse.json(
         { error: 'Date parameter is required' },
         { status: 400 }
-      )
+      );
     }
 
-    const date = new Date(dateParam)
+    const date = new Date(dateParam);
     if (isNaN(date.getTime())) {
       return NextResponse.json(
         { error: 'Invalid date format' },
         { status: 400 }
-      )
+      );
     }
 
     // Get menu items with their availability for the specific date
     const menuItems = await prisma.menuItem.findMany({
       where: {
-        isActive: true
+        isActive: true,
       },
       include: {
         university: true,
         availability: {
           where: {
             date: {
-              gte: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
-              lt: new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
-            }
-          }
-        }
+              gte: new Date(
+                date.getFullYear(),
+                date.getMonth(),
+                date.getDate()
+              ),
+              lt: new Date(
+                date.getFullYear(),
+                date.getMonth(),
+                date.getDate() + 1
+              ),
+            },
+          },
+        },
       },
       orderBy: {
-        name: 'asc'
-      }
-    })
+        name: 'asc',
+      },
+    });
 
     const formattedItems = menuItems
       .filter(item => {
         // If no availability record exists, item is NOT available for this date
-        if (item.availability.length === 0) return false
+        if (item.availability.length === 0) return false;
         // If availability record exists, check if it's available
-        return item.availability[0].isAvailable
+        return item.availability[0].isAvailable;
       })
       .map(item => {
-        const availability = item.availability[0]
+        const availability = item.availability[0];
         return {
           id: item.id,
           name: item.name,
@@ -68,16 +76,16 @@ export async function GET(request: NextRequest) {
           image: item.image,
           isAvailable: availability?.isAvailable ?? false,
           maxQuantity: availability?.maxQuantity ?? 0,
-          currentQuantity: availability?.currentQuantity ?? 0
-        }
-      })
+          currentQuantity: availability?.currentQuantity ?? 0,
+        };
+      });
 
-    return NextResponse.json(formattedItems)
+    return NextResponse.json(formattedItems);
   } catch (error) {
-    console.error(error)
+    console.error(error);
     return NextResponse.json(
       { error: 'Failed to fetch menu availability' },
       { status: 500 }
-    )
+    );
   }
-} 
+}

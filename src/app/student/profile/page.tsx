@@ -1,104 +1,108 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { Camera, HelpCircle, LogOut, Shield, User } from 'lucide-react'
-import { useSession, signOut } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import MobileHeader from '@/components/MobileHeader'
-import BottomNavigation from '@/components/BottomNavigation'
-import { useUser } from '@/components/UserProvider'
+import { useState, useEffect } from 'react';
+import { Camera, HelpCircle, LogOut, Shield, User } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import MobileHeader from '@/components/MobileHeader';
+import BottomNavigation from '@/components/BottomNavigation';
+import { useUser } from '@/components/UserProvider';
 
 interface UserData {
-  id: string
-  name: string
-  email: string
-  studentId?: string
-  roomNumber?: string
+  id: string;
+  name: string;
+  email: string;
+  studentId?: string;
+  roomNumber?: string;
   university?: {
-    name: string
-    code: string
-  }
-  profileImage?: string
+    name: string;
+    code: string;
+  };
+  profileImage?: string;
 }
 
 export default function StudentProfile() {
-  const { data: session } = useSession()
-  const router = useRouter()
-    const { user: userFromProvider, clearCacheAndRefetch } = useUser()
-  const [userData, setUserData] = useState<UserData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [uploadingImage, setUploadingImage] = useState(false)
-  const [showEditProfile, setShowEditProfile] = useState(false)
-  const [showPrivacySecurity, setShowPrivacySecurity] = useState(false)
-    
+  const { data: session } = useSession();
+  const router = useRouter();
+  const { user: userFromProvider, clearCacheAndRefetch } = useUser();
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showPrivacySecurity, setShowPrivacySecurity] = useState(false);
+
   useEffect(() => {
     // Only fetch when session user ID is available and we haven't fetched yet
     if (session?.user?.id && !userData) {
-      fetchUserData()
+      fetchUserData();
     }
-  }, [session?.user?.id]) // Reduced dependencies
+  }, [session?.user?.id]); // Reduced dependencies
 
   useEffect(() => {
     // User data loaded from provider - no action needed
     if (userFromProvider) {
       // User data loaded from provider
     }
-  }, [userFromProvider])
+  }, [userFromProvider]);
 
   const fetchUserData = async () => {
     try {
-      setLoading(true)
-      const response = await fetch(`/api/user/${session?.user?.id}`)
+      setLoading(true);
+      const response = await fetch(`/api/user/${session?.user?.id}`);
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         // API returns { success: true, user: userData }
-        setUserData(data.user || data)
+        setUserData(data.user || data);
       }
     } catch (error) {
       // Error fetching user data
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file')
-      return
+      alert('Please select a valid image file');
+      return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Please select an image smaller than 5MB')
-      return
+      alert('Please select an image smaller than 5MB');
+      return;
     }
-    
-    setUploadingImage(true)
-    
-        try {
+
+    setUploadingImage(true);
+
+    try {
       // Create FormData for secure upload
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('folder', 'profiles')
-      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'profiles');
+
       // Upload through secure API endpoint
       const uploadResponse = await fetch('/api/upload/image', {
         method: 'POST',
-        body: formData
-      })
+        body: formData,
+      });
 
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json()
-        throw new Error(errorData.details || errorData.error || 'Failed to upload image')
+        const errorData = await uploadResponse.json();
+        throw new Error(
+          errorData.details || errorData.error || 'Failed to upload image'
+        );
       }
 
-      const uploadData = await uploadResponse.json()
-      const imageUrl = uploadData.url
-      
+      const uploadData = await uploadResponse.json();
+      const imageUrl = uploadData.url;
+
       // Update user profile with new image URL
       const response = await fetch(`/api/user/${session?.user?.id}`, {
         method: 'PATCH',
@@ -106,132 +110,140 @@ export default function StudentProfile() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          profileImage: imageUrl
-        })
-      })
+          profileImage: imageUrl,
+        }),
+      });
 
       if (response.ok) {
-        const data = await response.json()
-        setUserData(prev => prev ? { ...prev, profileImage: imageUrl } : null)
-        alert('Profile image updated successfully!')
+        const data = await response.json();
+        setUserData(prev =>
+          prev ? { ...prev, profileImage: imageUrl } : null
+        );
+        alert('Profile image updated successfully!');
       } else {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: 'Unknown error' }));
+        throw new Error(
+          errorData.error || `HTTP ${response.status}: ${response.statusText}`
+        );
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
-      alert(`Upload failed: ${errorMessage}`)
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to upload image';
+      alert(`Upload failed: ${errorMessage}`);
     } finally {
-      setUploadingImage(false)
+      setUploadingImage(false);
     }
-  }
+  };
 
   const handleEditProfile = () => {
-    setShowEditProfile(true)
-  }
+    setShowEditProfile(true);
+  };
 
   const handlePrivacySecurity = () => {
-    setShowPrivacySecurity(true)
-  }
+    setShowPrivacySecurity(true);
+  };
 
   const handleHelpSupport = () => {
-    router.push('/student/help-support')
-  }
+    router.push('/student/help-support');
+  };
 
   const handleAppRating = () => {
     // Open app store or show rating modal
-    if (window.confirm('Would you like to rate our app? This will open your app store.')) {
+    if (
+      window.confirm(
+        'Would you like to rate our app? This will open your app store.'
+      )
+    ) {
       // In production, detect platform and open appropriate store
-      window.open('https://play.google.com/store', '_blank')
+      window.open('https://play.google.com/store', '_blank');
     }
-  }
+  };
 
   const handleLogout = async () => {
     try {
       // Clear local storage and cache
-      localStorage.clear()
-      sessionStorage.clear()
-      
+      localStorage.clear();
+      sessionStorage.clear();
+
       // Sign out with proper redirect
-      await signOut({ 
+      await signOut({
         redirect: true,
-        callbackUrl: '/'
-      })
+        callbackUrl: '/',
+      });
     } catch (error) {
       // Force redirect to home page even if signOut fails
-      window.location.href = '/'
+      window.location.href = '/';
     }
-  }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-20">
-        <MobileHeader title="Profile" showNotifications={true} />
-        <div className="px-4 py-4">
-          <div className="bg-white rounded-xl p-6 shadow-sm animate-pulse">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
-              <div className="flex-1">
-                <div className="h-5 bg-gray-200 rounded w-32 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
-                <div className="h-4 bg-gray-200 rounded w-20"></div>
+      <div className='min-h-screen bg-gray-50 pb-20'>
+        <MobileHeader title='Profile' showNotifications={true} />
+        <div className='px-4 py-4'>
+          <div className='bg-white rounded-xl p-6 shadow-sm animate-pulse'>
+            <div className='flex items-center space-x-4'>
+              <div className='w-16 h-16 bg-gray-200 rounded-full'></div>
+              <div className='flex-1'>
+                <div className='h-5 bg-gray-200 rounded w-32 mb-2'></div>
+                <div className='h-4 bg-gray-200 rounded w-24 mb-1'></div>
+                <div className='h-4 bg-gray-200 rounded w-20'></div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <MobileHeader 
-        title="Profile" 
-        showNotifications={true}
-      />
+    <div className='min-h-screen bg-gray-50 pb-20'>
+      <MobileHeader title='Profile' showNotifications={true} />
 
-      <div className="px-4 py-4 space-y-6">
+      <div className='px-4 py-4 space-y-6'>
         {/* Profile Header */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden">
+        <div className='bg-white rounded-xl p-6 shadow-sm'>
+          <div className='flex items-center space-x-4'>
+            <div className='relative'>
+              <div className='w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden'>
                 {userData?.profileImage ? (
-                  <img 
-                    src={userData.profileImage} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
+                  <img
+                    src={userData.profileImage}
+                    alt='Profile'
+                    className='w-full h-full object-cover'
                   />
                 ) : (
-                  <User className="w-8 h-8 text-blue-600" />
+                  <User className='w-8 h-8 text-blue-600' />
                 )}
               </div>
-              <label className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer">
+              <label className='absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer'>
                 <input
-                  type="file"
-                  accept="image/*"
+                  type='file'
+                  accept='image/*'
                   onChange={handleImageUpload}
-                  className="hidden"
+                  className='hidden'
                   disabled={uploadingImage}
                 />
                 {uploadingImage ? (
-                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className='w-3 h-3 border border-white border-t-transparent rounded-full animate-spin'></div>
                 ) : (
-                  <Camera className="w-3 h-3 text-white" />
+                  <Camera className='w-3 h-3 text-white' />
                 )}
               </label>
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-gray-900">
+            <div className='flex-1'>
+              <h2 className='text-xl font-semibold text-gray-900'>
                 {userData?.name || 'Student Name'}
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className='text-sm text-gray-600'>
                 {userData?.studentId || 'Student ID: Loading...'}
               </p>
-              <p className="text-sm text-gray-600">
+              <p className='text-sm text-gray-600'>
                 {userData?.roomNumber || 'Room: Not assigned'}
               </p>
-              <p className="text-sm text-blue-600 font-medium">
+              <p className='text-sm text-blue-600 font-medium'>
                 {userData?.university?.name || 'University Name'}
               </p>
             </div>
@@ -239,93 +251,91 @@ export default function StudentProfile() {
         </div>
 
         {/* Account Settings */}
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-4 border-b border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900">Account</h3>
+        <div className='bg-white rounded-xl shadow-sm'>
+          <div className='p-4 border-b border-gray-100'>
+            <h3 className='text-lg font-semibold text-gray-900'>Account</h3>
           </div>
-          
-          <div className="space-y-0">
-            <button 
+
+          <div className='space-y-0'>
+            <button
               onClick={handleEditProfile}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+              className='w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors'
             >
-              <div className="flex items-center space-x-3">
-                <User className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-900">Edit Profile</span>
+              <div className='flex items-center space-x-3'>
+                <User className='w-5 h-5 text-gray-400' />
+                <span className='text-gray-900'>Edit Profile</span>
               </div>
-              <span className="text-gray-400">›</span>
+              <span className='text-gray-400'>›</span>
             </button>
-            
-            <button 
+
+            <button
               onClick={handlePrivacySecurity}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+              className='w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors'
             >
-              <div className="flex items-center space-x-3">
-                <Shield className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-900">Privacy & Security</span>
+              <div className='flex items-center space-x-3'>
+                <Shield className='w-5 h-5 text-gray-400' />
+                <span className='text-gray-900'>Privacy & Security</span>
               </div>
-              <span className="text-gray-400">›</span>
+              <span className='text-gray-400'>›</span>
             </button>
           </div>
         </div>
 
         {/* Support */}
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-4 border-b border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900">Support</h3>
+        <div className='bg-white rounded-xl shadow-sm'>
+          <div className='p-4 border-b border-gray-100'>
+            <h3 className='text-lg font-semibold text-gray-900'>Support</h3>
           </div>
-          
-          <div className="space-y-0">
-            <button 
+
+          <div className='space-y-0'>
+            <button
               onClick={handleHelpSupport}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+              className='w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors'
             >
-              <div className="flex items-center space-x-3">
-                <HelpCircle className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-900">Help & Support</span>
+              <div className='flex items-center space-x-3'>
+                <HelpCircle className='w-5 h-5 text-gray-400' />
+                <span className='text-gray-900'>Help & Support</span>
               </div>
-              <span className="text-gray-400">›</span>
+              <span className='text-gray-400'>›</span>
             </button>
-            
-            <button 
+
+            <button
               onClick={handleAppRating}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+              className='w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors'
             >
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">⭐</span>
-                <span className="text-gray-900">Rate Our App</span>
+              <div className='flex items-center space-x-3'>
+                <span className='text-2xl'>⭐</span>
+                <span className='text-gray-900'>Rate Our App</span>
               </div>
-              <span className="text-gray-400">›</span>
+              <span className='text-gray-400'>›</span>
             </button>
-            
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">📱</span>
-                <span className="text-gray-900">App Version</span>
+
+            <div className='flex items-center justify-between p-4'>
+              <div className='flex items-center space-x-3'>
+                <span className='text-2xl'>📱</span>
+                <span className='text-gray-900'>App Version</span>
               </div>
-              <span className="text-sm text-gray-500">v1.0.0</span>
+              <span className='text-sm text-gray-500'>v1.0.0</span>
             </div>
           </div>
         </div>
 
-
-
         {/* Logout */}
-        <div className="bg-white rounded-xl shadow-sm">
-          <button 
+        <div className='bg-white rounded-xl shadow-sm'>
+          <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-between p-4 hover:bg-red-50 text-red-600 transition-colors"
+            className='w-full flex items-center justify-between p-4 hover:bg-red-50 text-red-600 transition-colors'
           >
-            <div className="flex items-center space-x-3">
-              <LogOut className="w-5 h-5" />
+            <div className='flex items-center space-x-3'>
+              <LogOut className='w-5 h-5' />
               <span>Logout</span>
             </div>
-            <span className="text-red-400">›</span>
+            <span className='text-red-400'>›</span>
           </button>
         </div>
       </div>
 
       <BottomNavigation />
     </div>
-  )
-} 
+  );
+}

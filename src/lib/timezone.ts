@@ -9,21 +9,30 @@ export const VIETNAM_UTC_OFFSET = 7 * 60 * 60 * 1000; // +7 hours in millisecond
 
 /**
  * Get current time in Vietnam timezone
- * Server-independent: Uses absolute UTC offset calculation
+ * Uses timezone offset calculation for reliable conversion
  */
 export function getVietnamTime(): Date {
-  const utcNow = new Date();
-  // Add exactly 7 hours to UTC to get Vietnam time
-  return new Date(utcNow.getTime() + VIETNAM_UTC_OFFSET);
+  const now = new Date();
+  
+  // Create a new date adjusted for Vietnam timezone
+  // This approach accounts for daylight saving time automatically
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const vietnamTime = new Date(utc + (7 * 3600000)); // Add 7 hours for Vietnam timezone
+  
+  return vietnamTime;
 }
 
 /**
  * Convert any date to Vietnam timezone
- * Server-independent: Uses absolute UTC calculations
+ * Uses timezone offset calculation for reliable conversion
  */
 export function toVietnamTime(date: Date): Date {
-  // Simply add Vietnam UTC offset (+7 hours) to the input date
-  return new Date(date.getTime() + VIETNAM_UTC_OFFSET);
+  // Create a new date adjusted for Vietnam timezone
+  // This approach accounts for daylight saving time automatically
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const vietnamTime = new Date(utc + (7 * 3600000)); // Add 7 hours for Vietnam timezone
+  
+  return vietnamTime;
 }
 
 /**
@@ -177,7 +186,16 @@ export function formatVietnamDate(date?: Date): string {
  * Shows both date and time in Vietnam timezone
  */
 export function formatVietnamDateTime(date: Date, pattern = 'MMM dd, yyyy h:mm a'): string {
-  const vietnamTime = toVietnamTime(date)
+  // Use the date as-is for formatting (assumes it's already in correct timezone context)
+  return format(date, pattern) + ' Vietnam time'
+}
+
+/**
+ * Format UTC date as Vietnam time
+ * Converts UTC date to Vietnam timezone first, then formats
+ */
+export function formatUtcAsVietnamTime(utcDate: Date, pattern = 'MMM dd, yyyy h:mm a'): string {
+  const vietnamTime = toVietnamTime(utcDate)
   return format(vietnamTime, pattern) + ' Vietnam time'
 }
 

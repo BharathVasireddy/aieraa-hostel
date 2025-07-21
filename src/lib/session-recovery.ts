@@ -1,10 +1,10 @@
-import { getSession, signOut } from 'next-auth/react'
+import { getSession, signOut } from 'next-auth/react';
 
 interface SessionRecoveryState {
-  isRecovering: boolean
-  attempts: number
-  lastAttempt: number
-  sessionValid: boolean
+  isRecovering: boolean;
+  attempts: number;
+  lastAttempt: number;
+  sessionValid: boolean;
 }
 
 class SessionRecovery {
@@ -12,60 +12,61 @@ class SessionRecovery {
     isRecovering: false,
     attempts: 0,
     lastAttempt: 0,
-    sessionValid: false
-  }
-  
-  private readonly MAX_RETRIES = 3
-  private readonly RETRY_DELAY = 1000
-  private readonly SESSION_CHECK_INTERVAL = 300000 // 5 minutes instead of 30 seconds
-  private readonly RECOVERY_TIMEOUT = 10000 // 10 seconds
-  private readonly VISIBILITY_CHECK_DELAY = 5000 // 5 second delay before checking on visibility change
-  
-  private sessionCheckInterval: NodeJS.Timeout | null = null
-  private recoveryPromise: Promise<boolean> | null = null
-  private visibilityTimeout: NodeJS.Timeout | null = null
-  
+    sessionValid: false,
+  };
+
+  private readonly MAX_RETRIES = 3;
+  private readonly RETRY_DELAY = 1000;
+  private readonly SESSION_CHECK_INTERVAL = 300000; // 5 minutes instead of 30 seconds
+  private readonly RECOVERY_TIMEOUT = 10000; // 10 seconds
+  private readonly VISIBILITY_CHECK_DELAY = 5000; // 5 second delay before checking on visibility change
+
+  private sessionCheckInterval: NodeJS.Timeout | null = null;
+  private recoveryPromise: Promise<boolean> | null = null;
+  private visibilityTimeout: NodeJS.Timeout | null = null;
+
   constructor() {
-    this.startSessionMonitoring()
+    this.startSessionMonitoring();
   }
-  
+
   private startSessionMonitoring() {
-    if (typeof window === 'undefined') return
-    
+    if (typeof window === 'undefined') return;
+
     // Reduce frequency of automatic session checks
     this.sessionCheckInterval = setInterval(() => {
-      this.validateSession()
-    }, this.SESSION_CHECK_INTERVAL)
-    
+      this.validateSession();
+    }, this.SESSION_CHECK_INTERVAL);
+
     // Only check on visibility change if tab was hidden for more than 5 minutes
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         // Clear any pending timeout
         if (this.visibilityTimeout) {
-          clearTimeout(this.visibilityTimeout)
-          this.visibilityTimeout = null
+          clearTimeout(this.visibilityTimeout);
+          this.visibilityTimeout = null;
         }
-        
+
         // Only validate if the last check was more than 5 minutes ago
-        const now = Date.now()
-        const lastCheck = this.state.lastAttempt || 0
-        const timeSinceLastCheck = now - lastCheck
-        
-        if (timeSinceLastCheck > 300000) { // 5 minutes
+        const now = Date.now();
+        const lastCheck = this.state.lastAttempt || 0;
+        const timeSinceLastCheck = now - lastCheck;
+
+        if (timeSinceLastCheck > 300000) {
+          // 5 minutes
           // Add a delay to prevent immediate validation on tab switch
           this.visibilityTimeout = setTimeout(() => {
-            this.validateSession()
-          }, this.VISIBILITY_CHECK_DELAY)
+            this.validateSession();
+          }, this.VISIBILITY_CHECK_DELAY);
         }
       } else {
         // Clear timeout if tab becomes hidden
         if (this.visibilityTimeout) {
-          clearTimeout(this.visibilityTimeout)
-          this.visibilityTimeout = null
+          clearTimeout(this.visibilityTimeout);
+          this.visibilityTimeout = null;
         }
       }
-    })
-    
+    });
+
     // Remove storage event listener as it can cause cross-tab issues
     // window.addEventListener('storage', (e) => {
     //   if (e.key === 'session-recovery' && e.newValue === 'trigger') {
@@ -73,107 +74,107 @@ class SessionRecovery {
     //   }
     // })
   }
-  
+
   async recoverSession(): Promise<boolean> {
     if (this.state.isRecovering) {
-      return this.recoveryPromise || false
+      return this.recoveryPromise || false;
     }
-    
-    this.state.isRecovering = true
-    this.state.attempts = 0
-    
-    this.recoveryPromise = this.performRecovery()
-    
+
+    this.state.isRecovering = true;
+    this.state.attempts = 0;
+
+    this.recoveryPromise = this.performRecovery();
+
     try {
-      const result = await this.recoveryPromise
-      return result
+      const result = await this.recoveryPromise;
+      return result;
     } finally {
-      this.state.isRecovering = false
-      this.recoveryPromise = null
+      this.state.isRecovering = false;
+      this.recoveryPromise = null;
     }
   }
-  
+
   private async performRecovery(): Promise<boolean> {
-    const startTime = Date.now()
-    
+    const startTime = Date.now();
+
     while (this.state.attempts < this.MAX_RETRIES) {
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > this.RECOVERY_TIMEOUT) {
-        return false
+        return false;
       }
-      
-      this.state.attempts++
-      this.state.lastAttempt = Date.now()
-      
+
+      this.state.attempts++;
+      this.state.lastAttempt = Date.now();
+
       try {
-        const session = await getSession()
-        
+        const session = await getSession();
+
         if (session?.user?.id) {
-          this.state.sessionValid = true
-          return true
+          this.state.sessionValid = true;
+          return true;
         }
-        
+
         // If no session, wait before retrying
         if (this.state.attempts < this.MAX_RETRIES) {
-          await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY))
+          await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY));
         }
       } catch (error) {
         // Recovery failed, try again
         if (this.state.attempts < this.MAX_RETRIES) {
-          await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY))
+          await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY));
         }
       }
     }
-    
-    return false
+
+    return false;
   }
-  
+
   async forceLogout(): Promise<void> {
-    this.state.sessionValid = false
-    
+    this.state.sessionValid = false;
+
     try {
-      await signOut({ redirect: false })
-      
+      await signOut({ redirect: false });
+
       // Clear local storage
-      localStorage.removeItem('session-recovery')
-      
+      localStorage.removeItem('session-recovery');
+
       // Redirect to login
-      window.location.href = '/auth/signin'
+      window.location.href = '/auth/signin';
     } catch (error) {
       // Force redirect even if signOut fails
-      window.location.href = '/auth/signin'
+      window.location.href = '/auth/signin';
     }
   }
-  
+
   private async validateSession(): Promise<void> {
     try {
       // Update last attempt timestamp
-      this.state.lastAttempt = Date.now()
-      
-      const session = await getSession()
-      
+      this.state.lastAttempt = Date.now();
+
+      const session = await getSession();
+
       if (!session?.user?.id) {
-        this.state.sessionValid = false
-        return
+        this.state.sessionValid = false;
+        return;
       }
-      
+
       // Check if session is expired
       if (session.expires) {
-        const expiryTime = new Date(session.expires).getTime()
-        const currentTime = Date.now()
-        
+        const expiryTime = new Date(session.expires).getTime();
+        const currentTime = Date.now();
+
         if (currentTime >= expiryTime) {
-          this.state.sessionValid = false
-          return
+          this.state.sessionValid = false;
+          return;
         }
       }
-      
-      this.state.sessionValid = true
+
+      this.state.sessionValid = true;
     } catch (error) {
-      this.state.sessionValid = false
+      this.state.sessionValid = false;
     }
   }
-  
+
   // Disable cross-tab recovery to prevent issues
   triggerCrossTabRecovery() {
     // Disabled to prevent cross-tab session validation issues
@@ -182,73 +183,73 @@ class SessionRecovery {
     //   localStorage.removeItem('session-recovery')
     // }
   }
-  
+
   // Get current session state
   getSessionState(): SessionRecoveryState {
-    return { ...this.state }
+    return { ...this.state };
   }
-  
+
   // Check if session is valid
   isSessionValid(): boolean {
-    return this.state.sessionValid
+    return this.state.sessionValid;
   }
-  
+
   // Cleanup
   destroy() {
     if (this.sessionCheckInterval) {
-      clearInterval(this.sessionCheckInterval)
-      this.sessionCheckInterval = null
+      clearInterval(this.sessionCheckInterval);
+      this.sessionCheckInterval = null;
     }
-    
+
     if (this.visibilityTimeout) {
-      clearTimeout(this.visibilityTimeout)
-      this.visibilityTimeout = null
+      clearTimeout(this.visibilityTimeout);
+      this.visibilityTimeout = null;
     }
   }
 }
 
 // Create singleton instance
-let sessionRecovery: SessionRecovery | null = null
+let sessionRecovery: SessionRecovery | null = null;
 
 export function getSessionRecovery(): SessionRecovery {
   if (!sessionRecovery) {
-    sessionRecovery = new SessionRecovery()
+    sessionRecovery = new SessionRecovery();
   }
-  return sessionRecovery
+  return sessionRecovery;
 }
 
 // Auto-recovery hook for React components
 export function useSessionRecovery() {
-  const recovery = getSessionRecovery()
-  
+  const recovery = getSessionRecovery();
+
   return {
     recoverSession: () => recovery.recoverSession(),
     getSessionState: () => recovery.getSessionState(),
     isSessionValid: () => recovery.isSessionValid(),
     forceLogout: () => recovery.forceLogout(),
-    triggerCrossTabRecovery: () => recovery.triggerCrossTabRecovery()
-  }
+    triggerCrossTabRecovery: () => recovery.triggerCrossTabRecovery(),
+  };
 }
 
 // Utility function to handle API errors with session recovery
 export async function handleAPIError(error: any, recovery?: SessionRecovery) {
   if (error.status === 401 || error.status === 403) {
-    const sessionRecovery = recovery || getSessionRecovery()
-    
+    const sessionRecovery = recovery || getSessionRecovery();
+
     // Try to recover session
-    const recovered = await sessionRecovery.recoverSession()
-    
+    const recovered = await sessionRecovery.recoverSession();
+
     if (!recovered) {
       // If recovery fails, force logout
-      await sessionRecovery.forceLogout()
-      return false
+      await sessionRecovery.forceLogout();
+      return false;
     }
-    
-    return true
+
+    return true;
   }
-  
-  return false
+
+  return false;
 }
 
 // Export the singleton instance
-export { SessionRecovery } 
+export { SessionRecovery };

@@ -1,63 +1,79 @@
-'use client'
+'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import type { ReactNode } from 'react'
-import { useSession } from 'next-auth/react'
-import { migrateLocalStorageCart, needsCartMigration } from '@/lib/cart-migration'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from 'react';
+import type { ReactNode } from 'react';
+import { useSession } from 'next-auth/react';
+import {
+  migrateLocalStorageCart,
+  needsCartMigration,
+} from '@/lib/cart-migration';
 
 interface CartItem {
-  id: string
-  name: string
-  price: number
-  quantity: number
-  category: string
-  isVegetarian?: boolean
-  isVegan?: boolean
-  variantId?: string
-  variantName?: string
-  image?: string
-  cartItemId?: string
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  category: string;
+  isVegetarian?: boolean;
+  isVegan?: boolean;
+  variantId?: string;
+  variantName?: string;
+  image?: string;
+  cartItemId?: string;
 }
 
 interface CartContextType {
-  items: CartItem[]
-  addItem: (item: Omit<CartItem, 'quantity'>, variantId?: string) => Promise<void>
-  removeItem: (itemId: string, variantId?: string) => Promise<void>
-  updateQuantity: (itemId: string, quantity: number, variantId?: string) => Promise<void>
-  clearCart: () => Promise<void>
-  getTotalItems: () => number
-  getTotalPrice: () => number
-  getSubtotal: () => number
-  isLoaded: boolean
-  isLoading: boolean
-  syncWithDatabase: () => Promise<void>
+  items: CartItem[];
+  addItem: (
+    item: Omit<CartItem, 'quantity'>,
+    variantId?: string
+  ) => Promise<void>;
+  removeItem: (itemId: string, variantId?: string) => Promise<void>;
+  updateQuantity: (
+    itemId: string,
+    quantity: number,
+    variantId?: string
+  ) => Promise<void>;
+  clearCart: () => Promise<void>;
+  getTotalItems: () => number;
+  getTotalPrice: () => number;
+  getSubtotal: () => number;
+  isLoaded: boolean;
+  isLoading: boolean;
+  syncWithDatabase: () => Promise<void>;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined)
+const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { data: session, status } = useSession()
-  const [items, setItems] = useState<CartItem[]>([])
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
+  const { data: session, status } = useSession();
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Set mounted state to prevent SSR hydration issues
   useEffect(() => {
-    setIsMounted(true)
-  }, [])
+    setIsMounted(true);
+  }, []);
 
   // Sync cart with database
   const syncWithDatabase = useCallback(async () => {
-    if (!session?.user?.id || status !== 'authenticated') return
-    
+    if (!session?.user?.id || status !== 'authenticated') return;
+
     try {
-      setIsLoading(true)
+      setIsLoading(true);
 
       // Check if we need to migrate localStorage cart data
       if (needsCartMigration(session.user.id)) {
-        console.log('Migrating cart data from localStorage...')
-        await migrateLocalStorageCart(session.user.id)
+        console.log('Migrating cart data from localStorage...');
+        await migrateLocalStorageCart(session.user.id);
       }
 
       const response = await fetch('/api/cart', {
@@ -65,256 +81,272 @@ export function CartProvider({ children }: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include'
-      })
+        credentials: 'include',
+      });
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         if (data.success) {
-          setItems(data.items || [])
-          
+          setItems(data.items || []);
+
           // Also save to localStorage as backup
           if (typeof window !== 'undefined') {
-            const cartKey = `cart_${session.user.id}`
-            localStorage.setItem(cartKey, JSON.stringify(data.items || []))
+            const cartKey = `cart_${session.user.id}`;
+            localStorage.setItem(cartKey, JSON.stringify(data.items || []));
           }
         }
       } else {
         // Fallback to localStorage if API fails
-        loadFromLocalStorage()
+        loadFromLocalStorage();
       }
     } catch (error) {
-      console.error('Failed to sync cart:', error)
+      console.error('Failed to sync cart:', error);
       // Fallback to localStorage if API fails
-      loadFromLocalStorage()
+      loadFromLocalStorage();
     } finally {
-      setIsLoading(false)
-      setIsLoaded(true)
+      setIsLoading(false);
+      setIsLoaded(true);
     }
-  }, [session?.user?.id, status])
+  }, [session?.user?.id, status]);
 
   // Load from localStorage as fallback
   const loadFromLocalStorage = useCallback(() => {
-    if (!isMounted || !session?.user?.id) return
-    
+    if (!isMounted || !session?.user?.id) return;
+
     try {
-      const cartKey = `cart_${session.user.id}`
-      const savedCart = localStorage.getItem(cartKey)
+      const cartKey = `cart_${session.user.id}`;
+      const savedCart = localStorage.getItem(cartKey);
       if (savedCart) {
-        const parsedCart = JSON.parse(savedCart)
-        setItems(parsedCart)
+        const parsedCart = JSON.parse(savedCart);
+        setItems(parsedCart);
       }
     } catch (error) {
-      console.error('Failed to load cart from localStorage:', error)
+      console.error('Failed to load cart from localStorage:', error);
       if (session?.user?.id) {
-        const cartKey = `cart_${session.user.id}`
-        localStorage.removeItem(cartKey)
+        const cartKey = `cart_${session.user.id}`;
+        localStorage.removeItem(cartKey);
       }
     }
-  }, [session?.user?.id, isMounted])
+  }, [session?.user?.id, isMounted]);
 
   // Initial cart load
   useEffect(() => {
-    if (!isMounted) return
-    
+    if (!isMounted) return;
+
     if (status === 'authenticated' && session?.user?.id) {
-      syncWithDatabase()
+      syncWithDatabase();
     } else if (status === 'unauthenticated') {
-      setItems([])
-      setIsLoaded(true)
+      setItems([]);
+      setIsLoaded(true);
     }
-  }, [session?.user?.id, status, isMounted, syncWithDatabase])
+  }, [session?.user?.id, status, isMounted, syncWithDatabase]);
 
   // Add item to cart
-  const addItem = useCallback(async (newItem: Omit<CartItem, 'quantity'>, variantId?: string) => {
-    if (!session?.user?.id) {
-      console.error('User not authenticated')
-      return
-    }
-
-    try {
-      setIsLoading(true)
-      const response = await fetch('/api/cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          menuItemId: newItem.id,
-          variantId,
-          quantity: 1
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setItems(data.items || [])
-          
-          // Update localStorage
-          if (typeof window !== 'undefined') {
-            const cartKey = `cart_${session.user.id}`
-            localStorage.setItem(cartKey, JSON.stringify(data.items || []))
-          }
-        }
-      } else {
-        // Fallback to local state update if API fails
-        setItems(currentItems => {
-          const itemKey = `${newItem.id}-${variantId || ''}`
-          const existingItem = currentItems.find(item => 
-            item.id === newItem.id && (item.variantId || '') === (variantId || '')
-          )
-          
-          if (existingItem) {
-            return currentItems.map(item =>
-              (item.id === newItem.id && (item.variantId || '') === (variantId || ''))
-                ? { ...item, quantity: item.quantity + 1 }
-                : item
-            )
-          } else {
-            return [...currentItems, { ...newItem, quantity: 1, variantId }]
-          }
-        })
+  const addItem = useCallback(
+    async (newItem: Omit<CartItem, 'quantity'>, variantId?: string) => {
+      if (!session?.user?.id) {
+        console.error('User not authenticated');
+        return;
       }
-    } catch (error) {
-      console.error('Failed to add item to cart:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [session?.user?.id])
+
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/cart', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            menuItemId: newItem.id,
+            variantId,
+            quantity: 1,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setItems(data.items || []);
+
+            // Update localStorage
+            if (typeof window !== 'undefined') {
+              const cartKey = `cart_${session.user.id}`;
+              localStorage.setItem(cartKey, JSON.stringify(data.items || []));
+            }
+          }
+        } else {
+          // Fallback to local state update if API fails
+          setItems(currentItems => {
+            const itemKey = `${newItem.id}-${variantId || ''}`;
+            const existingItem = currentItems.find(
+              item =>
+                item.id === newItem.id &&
+                (item.variantId || '') === (variantId || '')
+            );
+
+            if (existingItem) {
+              return currentItems.map(item =>
+                item.id === newItem.id &&
+                (item.variantId || '') === (variantId || '')
+                  ? { ...item, quantity: item.quantity + 1 }
+                  : item
+              );
+            } else {
+              return [...currentItems, { ...newItem, quantity: 1, variantId }];
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Failed to add item to cart:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [session?.user?.id]
+  );
 
   // Remove item from cart
-  const removeItem = useCallback(async (itemId: string, variantId?: string) => {
-    if (!session?.user?.id) return
+  const removeItem = useCallback(
+    async (itemId: string, variantId?: string) => {
+      if (!session?.user?.id) return;
 
-    try {
-      setIsLoading(true)
-      const params = new URLSearchParams({ menuItemId: itemId })
-      if (variantId) params.append('variantId', variantId)
-      
-      const response = await fetch(`/api/cart?${params}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      })
+      try {
+        setIsLoading(true);
+        const params = new URLSearchParams({ menuItemId: itemId });
+        if (variantId) params.append('variantId', variantId);
 
-      if (response.ok) {
-        await syncWithDatabase()
-      } else {
-        // Fallback to local state update
-        setItems(currentItems => 
-          currentItems.filter(item => 
-            !(item.id === itemId && (item.variantId || '') === (variantId || ''))
-          )
-        )
+        const response = await fetch(`/api/cart?${params}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          await syncWithDatabase();
+        } else {
+          // Fallback to local state update
+          setItems(currentItems =>
+            currentItems.filter(
+              item =>
+                !(
+                  item.id === itemId &&
+                  (item.variantId || '') === (variantId || '')
+                )
+            )
+          );
+        }
+      } catch (error) {
+        console.error('Failed to remove item from cart:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to remove item from cart:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [session?.user?.id, syncWithDatabase])
+    },
+    [session?.user?.id, syncWithDatabase]
+  );
 
   // Update item quantity
-  const updateQuantity = useCallback(async (itemId: string, quantity: number, variantId?: string) => {
-    if (!session?.user?.id) return
+  const updateQuantity = useCallback(
+    async (itemId: string, quantity: number, variantId?: string) => {
+      if (!session?.user?.id) return;
 
-    if (quantity <= 0) {
-      await removeItem(itemId, variantId)
-      return
-    }
-
-    try {
-      setIsLoading(true)
-      const response = await fetch('/api/cart', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          menuItemId: itemId,
-          variantId,
-          quantity
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setItems(data.items || [])
-          
-          // Update localStorage
-          if (typeof window !== 'undefined') {
-            const cartKey = `cart_${session.user.id}`
-            localStorage.setItem(cartKey, JSON.stringify(data.items || []))
-          }
-        }
-      } else {
-        // Fallback to local state update
-        setItems(currentItems =>
-          currentItems.map(item =>
-            (item.id === itemId && (item.variantId || '') === (variantId || ''))
-              ? { ...item, quantity }
-              : item
-          )
-        )
+      if (quantity <= 0) {
+        await removeItem(itemId, variantId);
+        return;
       }
-    } catch (error) {
-      console.error('Failed to update cart quantity:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [session?.user?.id, removeItem])
+
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/cart', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            menuItemId: itemId,
+            variantId,
+            quantity,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setItems(data.items || []);
+
+            // Update localStorage
+            if (typeof window !== 'undefined') {
+              const cartKey = `cart_${session.user.id}`;
+              localStorage.setItem(cartKey, JSON.stringify(data.items || []));
+            }
+          }
+        } else {
+          // Fallback to local state update
+          setItems(currentItems =>
+            currentItems.map(item =>
+              item.id === itemId && (item.variantId || '') === (variantId || '')
+                ? { ...item, quantity }
+                : item
+            )
+          );
+        }
+      } catch (error) {
+        console.error('Failed to update cart quantity:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [session?.user?.id, removeItem]
+  );
 
   // Clear entire cart
   const clearCart = useCallback(async () => {
-    if (!session?.user?.id) return
+    if (!session?.user?.id) return;
 
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       const response = await fetch('/api/cart', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include'
-      })
+        credentials: 'include',
+      });
 
       if (response.ok) {
-        setItems([])
-        
+        setItems([]);
+
         // Clear localStorage
         if (typeof window !== 'undefined') {
-          const cartKey = `cart_${session.user.id}`
-          localStorage.removeItem(cartKey)
+          const cartKey = `cart_${session.user.id}`;
+          localStorage.removeItem(cartKey);
         }
       } else {
         // Fallback to local state update
-        setItems([])
+        setItems([]);
       }
     } catch (error) {
-      console.error('Failed to clear cart:', error)
+      console.error('Failed to clear cart:', error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [session?.user?.id])
+  }, [session?.user?.id]);
 
   // Helper functions
   const getTotalItems = useCallback(() => {
-    return items.reduce((total, item) => total + item.quantity, 0)
-  }, [items])
+    return items.reduce((total, item) => total + item.quantity, 0);
+  }, [items]);
 
   const getTotalPrice = useCallback(() => {
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0)
-  }, [items])
+    return items.reduce((total, item) => total + item.price * item.quantity, 0);
+  }, [items]);
 
   const getSubtotal = useCallback(() => {
-    return getTotalPrice()
-  }, [getTotalPrice])
+    return getTotalPrice();
+  }, [getTotalPrice]);
 
   const value = {
     items,
@@ -327,20 +359,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     getSubtotal,
     isLoaded,
     isLoading,
-    syncWithDatabase
-  }
+    syncWithDatabase,
+  };
 
-  return (
-    <CartContext.Provider value={value}>
-      {children}
-    </CartContext.Provider>
-  )
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export function useCart() {
-  const context = useContext(CartContext)
+  const context = useContext(CartContext);
   if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider')
+    throw new Error('useCart must be used within a CartProvider');
   }
-  return context
-} 
+  return context;
+}

@@ -1,23 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
 
 // Validation schema for updating menu items
 const UpdateMenuItemSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name too long').optional(),
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(100, 'Name too long')
+    .optional(),
   description: z.string().optional(),
   basePrice: z.number().min(0, 'Price must be positive').optional(),
   offerPrice: z.number().min(0, 'Offer price must be positive').optional(),
-  categories: z.array(z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS', 'BEVERAGES'])).min(1, 'At least one category required').optional(),
+  categories: z
+    .array(z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS', 'BEVERAGES']))
+    .min(1, 'At least one category required')
+    .optional(),
   image: z.string().url().optional(),
   isVegetarian: z.boolean().optional(),
   isVegan: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
   isActive: z.boolean().optional(),
-  allergens: z.array(z.string()).optional()
-})
+  allergens: z.array(z.string()).optional(),
+});
 
 // GET: Get individual menu item details
 export async function GET(
@@ -25,67 +32,72 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
     if (!session?.user || session.user.role !== 'MANAGER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const currentUser = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: { id: true, role: true, universityId: true }
-    })
+      select: { id: true, role: true, universityId: true },
+    });
 
     if (!currentUser || !currentUser.universityId) {
-      return NextResponse.json({ error: 'Manager university not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Manager university not found' },
+        { status: 404 }
+      );
     }
 
-    const resolvedParams = await params
-    const menuItemId = resolvedParams.id
+    const resolvedParams = await params;
+    const menuItemId = resolvedParams.id;
 
     // Get menu item details with variants and availability
     const menuItem = await prisma.menuItem.findUnique({
       where: { id: menuItemId },
       include: {
         variants: {
-          orderBy: [{ isDefault: 'desc' }, { name: 'asc' }]
+          orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
         },
         availability: {
           where: {
             date: {
-              gte: new Date(new Date().setHours(0, 0, 0, 0)) // From today
-            }
+              gte: new Date(new Date().setHours(0, 0, 0, 0)), // From today
+            },
           },
           orderBy: { date: 'asc' },
-          take: 30 // Next 30 days
+          take: 30, // Next 30 days
         },
         university: {
           select: {
             name: true,
-            code: true
-          }
-        }
-      }
-    })
+            code: true,
+          },
+        },
+      },
+    });
 
     if (!menuItem) {
-      return NextResponse.json({ error: 'Menu item not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Menu item not found' },
+        { status: 404 }
+      );
     }
 
     // Ensure menu item belongs to manager's university
     if (menuItem.universityId !== currentUser.universityId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     return NextResponse.json({
-      ...menuItem
-    })
-
+      ...menuItem,
+    });
   } catch (error) {
-    console.error('Manager menu item details API error:', error)
+    console.error('Manager menu item details API error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch menu item details' },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -95,26 +107,29 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
     if (!session?.user || session.user.role !== 'MANAGER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const currentUser = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: { id: true, role: true, universityId: true, name: true }
-    })
+      select: { id: true, role: true, universityId: true, name: true },
+    });
 
     if (!currentUser || !currentUser.universityId) {
-      return NextResponse.json({ error: 'Manager university not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Manager university not found' },
+        { status: 404 }
+      );
     }
 
-    const resolvedParams = await params
-    const menuItemId = resolvedParams.id
-    
+    const resolvedParams = await params;
+    const menuItemId = resolvedParams.id;
+
     // Parse and validate request body
-    const body = await request.json()
-    const validatedData = UpdateMenuItemSchema.parse(body)
+    const body = await request.json();
+    const validatedData = UpdateMenuItemSchema.parse(body);
 
     // Check if menu item exists and belongs to manager's university
     const existingMenuItem = await prisma.menuItem.findUnique({
@@ -123,16 +138,19 @@ export async function PATCH(
         id: true,
         name: true,
         universityId: true,
-        isActive: true
-      }
-    })
+        isActive: true,
+      },
+    });
 
     if (!existingMenuItem) {
-      return NextResponse.json({ error: 'Menu item not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Menu item not found' },
+        { status: 404 }
+      );
     }
 
     if (existingMenuItem.universityId !== currentUser.universityId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // If updating name, check if another item with same name exists
@@ -141,14 +159,17 @@ export async function PATCH(
         where: {
           name: validatedData.name,
           universityId: currentUser.universityId,
-          NOT: { id: menuItemId }
-        }
-      })
+          NOT: { id: menuItemId },
+        },
+      });
 
       if (duplicateItem) {
-        return NextResponse.json({ 
-          error: 'Menu item with this name already exists' 
-        }, { status: 409 })
+        return NextResponse.json(
+          {
+            error: 'Menu item with this name already exists',
+          },
+          { status: 409 }
+        );
       }
     }
 
@@ -157,38 +178,42 @@ export async function PATCH(
       where: { id: menuItemId },
       data: {
         ...validatedData,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       include: {
         variants: {
-          orderBy: [{ isDefault: 'desc' }, { name: 'asc' }]
-        }
-      }
-    })
+          orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+        },
+      },
+    });
 
     // Log the update
-    const changedFields = Object.keys(validatedData).join(', ')
-    console.log(`Manager ${currentUser.name} updated menu item ${existingMenuItem.name}: ${changedFields}`)
+    const changedFields = Object.keys(validatedData).join(', ');
+    console.log(
+      `Manager ${currentUser.name} updated menu item ${existingMenuItem.name}: ${changedFields}`
+    );
 
     return NextResponse.json({
       success: true,
       menuItem: updatedMenuItem,
-      message: 'Menu item updated successfully'
-    })
-
+      message: 'Menu item updated successfully',
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ 
-        error: 'Invalid request data',
-        details: error.issues 
-      }, { status: 400 })
+      return NextResponse.json(
+        {
+          error: 'Invalid request data',
+          details: error.issues,
+        },
+        { status: 400 }
+      );
     }
 
-    console.error('Manager menu item update API error:', error)
+    console.error('Manager menu item update API error:', error);
     return NextResponse.json(
       { error: 'Failed to update menu item' },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -198,22 +223,25 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
     if (!session?.user || session.user.role !== 'MANAGER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const currentUser = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: { id: true, role: true, universityId: true, name: true }
-    })
+      select: { id: true, role: true, universityId: true, name: true },
+    });
 
     if (!currentUser || !currentUser.universityId) {
-      return NextResponse.json({ error: 'Manager university not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Manager university not found' },
+        { status: 404 }
+      );
     }
 
-    const resolvedParams = await params
-    const menuItemId = resolvedParams.id
+    const resolvedParams = await params;
+    const menuItemId = resolvedParams.id;
 
     // Check if menu item exists and belongs to manager's university
     const existingMenuItem = await prisma.menuItem.findUnique({
@@ -222,16 +250,19 @@ export async function DELETE(
         id: true,
         name: true,
         universityId: true,
-        isActive: true
-      }
-    })
+        isActive: true,
+      },
+    });
 
     if (!existingMenuItem) {
-      return NextResponse.json({ error: 'Menu item not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Menu item not found' },
+        { status: 404 }
+      );
     }
 
     if (existingMenuItem.universityId !== currentUser.universityId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // Check if there are any pending or approved orders for this item
@@ -240,16 +271,20 @@ export async function DELETE(
         menuItemId: menuItemId,
         order: {
           status: {
-            in: ['PENDING', 'APPROVED', 'PREPARING', 'READY']
-          }
-        }
-      }
-    })
+            in: ['PENDING', 'APPROVED', 'PREPARING', 'READY'],
+          },
+        },
+      },
+    });
 
     if (activeOrders > 0) {
-      return NextResponse.json({ 
-        error: 'Cannot delete menu item with active orders. Deactivate it instead.' 
-      }, { status: 400 })
+      return NextResponse.json(
+        {
+          error:
+            'Cannot delete menu item with active orders. Deactivate it instead.',
+        },
+        { status: 400 }
+      );
     }
 
     // Soft delete: mark as inactive and hide from menu
@@ -258,23 +293,24 @@ export async function DELETE(
       data: {
         isActive: false,
         isFeatured: false,
-        updatedAt: new Date()
-      }
-    })
+        updatedAt: new Date(),
+      },
+    });
 
     // Log the deletion
-    console.log(`Manager ${currentUser.name} deleted menu item: ${existingMenuItem.name}`)
+    console.log(
+      `Manager ${currentUser.name} deleted menu item: ${existingMenuItem.name}`
+    );
 
     return NextResponse.json({
       success: true,
-      message: 'Menu item deleted successfully'
-    })
-
+      message: 'Menu item deleted successfully',
+    });
   } catch (error) {
-    console.error('Manager menu item deletion API error:', error)
+    console.error('Manager menu item deletion API error:', error);
     return NextResponse.json(
       { error: 'Failed to delete menu item' },
       { status: 500 }
-    )
+    );
   }
-} 
+}
