@@ -6,6 +6,9 @@ import { UserProvider } from '@/components/UserProvider'
 import { CartProvider } from '@/components/CartProvider'
 import { NotificationProvider } from '@/components/NotificationSystem'
 import PageTransition from '@/components/PageTransition'
+import PWAInstallPrompt from '@/components/PWAInstallPrompt'
+import PushNotifications from '@/components/PushNotifications'
+import PWAPerformanceMonitor from '@/components/PWAPerformanceMonitor'
 
 // Optimize font loading
 const inter = Inter({ 
@@ -85,6 +88,9 @@ export default function RootLayout({
                   <PageTransition>
                     {children}
                   </PageTransition>
+                  <PWAInstallPrompt />
+                  <PushNotifications />
+                  <PWAPerformanceMonitor />
                 </CartProvider>
               </NotificationProvider>
             </UserProvider>
