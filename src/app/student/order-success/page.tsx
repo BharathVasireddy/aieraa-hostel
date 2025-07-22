@@ -41,7 +41,7 @@ interface OrderDetails {
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
-  const { user } = useUser();
+  // const { user } = useUser(); // Commented out as not used
   const router = useRouter();
   const orderId = searchParams.get('orderId');
   const orderNumber = searchParams.get('orderNumber');
@@ -62,7 +62,7 @@ function OrderSuccessContent() {
         const response = await fetch(`/api/orders/${orderId}`);
         const data = await response.json();
 
-        if (response.ok && data && data.id) {
+        if (response.ok && data?.id) {
           setOrder(data);
         } else {
           setError(data.error || 'Failed to fetch order details');
@@ -75,7 +75,7 @@ function OrderSuccessContent() {
       }
     };
 
-    fetchOrderDetails();
+    void fetchOrderDetails();
   }, [orderId, orderNumber]);
 
   if (loading) {
@@ -121,7 +121,7 @@ function OrderSuccessContent() {
           bgColor: 'bg-orange-100',
           icon: Clock,
           title: 'Order Received',
-          message: 'Your order has been placed successfully'
+          message: 'Your order has been placed successfully',
         };
       default:
         return {
@@ -129,7 +129,7 @@ function OrderSuccessContent() {
           bgColor: 'bg-green-100',
           icon: CheckCircle,
           title: 'Order Confirmed',
-          message: 'Your order has been placed successfully'
+          message: 'Your order has been placed successfully',
         };
     }
   };
@@ -159,15 +159,15 @@ function OrderSuccessContent() {
       <div className='px-4 py-8'>
         {/* Success Status */}
         <div className='text-center mb-8'>
-          <div className={`w-20 h-20 ${statusConfig.bgColor} rounded-full flex items-center justify-center mx-auto mb-4`}>
+          <div
+            className={`w-20 h-20 ${statusConfig.bgColor} rounded-full flex items-center justify-center mx-auto mb-4`}
+          >
             <StatusIcon className={`w-10 h-10 ${statusConfig.color}`} />
           </div>
           <h2 className='text-2xl font-bold text-gray-900 mb-2'>
             {statusConfig.title}
           </h2>
-          <p className='text-gray-600 mb-4'>
-            {statusConfig.message}
-          </p>
+          <p className='text-gray-600 mb-4'>{statusConfig.message}</p>
           <div className='text-xl font-bold text-green-600'>
             #{order.orderNumber}
           </div>
@@ -177,14 +177,21 @@ function OrderSuccessContent() {
         <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6'>
           <div className='flex items-center space-x-3 mb-4'>
             <Receipt className='w-5 h-5 text-gray-600' />
-            <h3 className='text-lg font-semibold text-gray-900'>Order Summary</h3>
+            <h3 className='text-lg font-semibold text-gray-900'>
+              Order Summary
+            </h3>
           </div>
-          
+
           <div className='space-y-3'>
             {order.orderItems.map(item => (
-              <div key={item.id} className='flex justify-between items-center py-2'>
+              <div
+                key={item.id}
+                className='flex justify-between items-center py-2'
+              >
                 <div>
-                  <span className='font-medium text-gray-900'>{item.menuItem.name}</span>
+                  <span className='font-medium text-gray-900'>
+                    {item.menuItem.name}
+                  </span>
                   <span className='text-gray-500 ml-2'>× {item.quantity}</span>
                 </div>
                 <span className='font-medium text-gray-900'>
@@ -192,10 +199,12 @@ function OrderSuccessContent() {
                 </span>
               </div>
             ))}
-            
+
             <div className='border-t border-gray-200 pt-3 mt-4'>
               <div className='flex justify-between items-center'>
-                <span className='text-lg font-semibold text-gray-900'>Total</span>
+                <span className='text-lg font-semibold text-gray-900'>
+                  Total
+                </span>
                 <span className='text-xl font-bold text-green-600'>
                   ₹{order.totalAmount.toLocaleString()}
                 </span>
@@ -209,12 +218,18 @@ function OrderSuccessContent() {
           <div className='flex items-start space-x-3'>
             <MapPin className='w-5 h-5 text-blue-600 mt-0.5' />
             <div>
-              <h4 className='font-semibold text-blue-800 mb-1'>Delivery Information</h4>
+              <h4 className='font-semibold text-blue-800 mb-1'>
+                Delivery Information
+              </h4>
               <p className='text-blue-700 text-sm'>
-                {order.user.university.name} • {format(new Date(order.orderDate), 'MMM dd, yyyy')}
+                {order.user.university.name} •{' '}
+                {format(new Date(order.orderDate), 'MMM dd, yyyy')}
               </p>
               <p className='text-blue-700 text-sm'>
-                Payment: {order.paymentMethod === 'cash' ? 'Cash on Delivery' : 'Online Payment'}
+                Payment:{' '}
+                {order.paymentMethod === 'cash'
+                  ? 'Cash on Delivery'
+                  : 'Online Payment'}
               </p>
             </div>
           </div>
@@ -250,7 +265,6 @@ function OrderSuccessContent() {
 }
 
 export default function OrderSuccessPage() {
-  const router = useRouter();
   return (
     <Suspense
       fallback={

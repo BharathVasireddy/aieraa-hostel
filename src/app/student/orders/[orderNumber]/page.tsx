@@ -70,21 +70,20 @@ export default function StudentOrderDetail({
   const [showQR, setShowQR] = useState(false);
   const [qrCodeData, setQrCodeData] = useState('');
   const [orderNumber, setOrderNumber] = useState<string>('');
-  const { notifications, addNotification, removeNotification } =
-    useNotifications();
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     const getOrderNumber = async () => {
       const resolvedParams = await params;
       setOrderNumber(resolvedParams.orderNumber);
     };
-    getOrderNumber();
+    void getOrderNumber();
   }, [params]);
 
   useEffect(() => {
     // Only fetch when session user ID and order number are available
     if (session?.user?.id && orderNumber && !order) {
-      fetchOrderDetail();
+      void fetchOrderDetail();
     }
   }, [session?.user?.id, orderNumber]);
 
@@ -124,7 +123,7 @@ export default function StudentOrderDetail({
       console.log('API Response data:', data);
 
       // API returns order data directly
-      if (data && data.id) {
+      if (data?.id) {
         console.log('Order found successfully:', data.orderNumber);
         setOrder(data);
         generateQRCode(data);
@@ -146,7 +145,7 @@ export default function StudentOrderDetail({
 
   const generateQRCode = (orderData: OrderDetail) => {
     // Safety check to ensure orderData exists
-    if (!orderData || !orderData.id) {
+    if (!orderData?.id) {
       console.error('Cannot generate QR code: Invalid order data');
       return;
     }
@@ -245,7 +244,7 @@ export default function StudentOrderDetail({
       }
     } else {
       // Fallback to clipboard
-      navigator.clipboard.writeText(window.location.href);
+      void navigator.clipboard.writeText(window.location.href);
       addNotification({
         type: 'success',
         title: 'Link Copied',
@@ -390,7 +389,7 @@ export default function StudentOrderDetail({
             {(order.orderItems || []).map(item => (
               <div key={item.id} className='p-4 flex items-center space-x-4'>
                 <div className='w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0'>
-                  {(item.menuItem.image || item.menuItem.imageUrl) ? (
+                  {item.menuItem.image || item.menuItem.imageUrl ? (
                     <Image
                       src={item.menuItem.image || item.menuItem.imageUrl || ''}
                       alt={item.menuItem.name}
@@ -408,7 +407,9 @@ export default function StudentOrderDetail({
                 <div className='flex-1'>
                   <div className='flex items-start justify-between'>
                     <div>
-                      <h3 className='font-medium text-gray-900'>{item.menuItem.name}</h3>
+                      <h3 className='font-medium text-gray-900'>
+                        {item.menuItem.name}
+                      </h3>
                       {item.variant && (
                         <p className='text-sm text-gray-600'>
                           {item.variant.name}

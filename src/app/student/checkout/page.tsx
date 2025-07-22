@@ -4,7 +4,6 @@ import {
   AlertCircle,
   ArrowLeft,
   CreditCard,
-  Edit,
   Edit3,
   Info,
   Minus,
@@ -41,18 +40,17 @@ export default function CheckoutPage() {
     clearCart,
   } = useCart();
   const [loading, setLoading] = useState(false);
-  const [currentTime, setCurrentTime] = useState(getVietnamTime());
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [cutoffHours, setCutoffHours] = useState<number | null>(null); // Start with null to prevent jerk
   const [orderPlaced, setOrderPlaced] = useState(false); // Track if order has been placed
 
   // Get selected date from localStorage
-  const [selectedDate, setSelectedDate] = useState(() => {
+  const [selectedDate] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved =
         localStorage.getItem('checkoutDate') ||
         localStorage.getItem('selectedOrderDate');
-      if (saved) return saved;
+      if (saved) {return saved;}
     }
     const tomorrow = addDays(startOfToday(), 1);
     return format(tomorrow, 'yyyy-MM-dd');
@@ -69,7 +67,11 @@ export default function CheckoutPage() {
             setCutoffHours(data.cutoffHours);
           }
         } else {
-          console.warn('Checkout cutoff API error:', response.status, 'Using default 22 hours');
+          console.warn(
+            'Checkout cutoff API error:',
+            response.status,
+            'Using default 22 hours'
+          );
           setCutoffHours(22); // Fallback
         }
       } catch (error) {
@@ -77,8 +79,8 @@ export default function CheckoutPage() {
         setCutoffHours(22); // Fallback to default 22 (10 PM) if API fails
       }
     };
-    
-    fetchCutoffTime();
+
+    void fetchCutoffTime();
   }, []);
 
   // Update time every minute for real-time countdown
@@ -91,7 +93,9 @@ export default function CheckoutPage() {
 
   // Get countdown for selected date - only if cutoffHours is loaded
   const countdown = useMemo(() => {
-    return cutoffHours !== null ? getOrderingCountdown(selectedDate, cutoffHours) : null;
+    return cutoffHours !== null
+      ? getOrderingCountdown(selectedDate, cutoffHours)
+      : null;
   }, [selectedDate, cutoffHours]);
 
   // Check if cart is empty and redirect to menu (but not if order was just placed)
@@ -142,7 +146,7 @@ export default function CheckoutPage() {
   }, [cartItems, countdown]);
 
   const handlePlaceOrder = useCallback(async () => {
-    if (!isValidForm || loading) return;
+    if (!isValidForm || loading) {return;}
 
     setLoading(true);
     try {
@@ -177,7 +181,9 @@ export default function CheckoutPage() {
         // Ensure we have the required data for redirect
         if (!result.order?.id || !result.order?.orderNumber) {
           console.error('Missing order data in response:', result);
-          throw new Error('Order was placed but missing details for confirmation');
+          throw new Error(
+            'Order was placed but missing details for confirmation'
+          );
         }
 
         // Mark order as placed to prevent cart empty redirect
@@ -189,7 +195,15 @@ export default function CheckoutPage() {
             particleCount: 150,
             spread: 70,
             origin: { y: 0.6 },
-            colors: ['#22C55E', '#4ADE80', '#BBF7D0', '#F1F5F9', '#10B981', '#3B82F6', '#60A5FA']
+            colors: [
+              '#22C55E',
+              '#4ADE80',
+              '#BBF7D0',
+              '#F1F5F9',
+              '#10B981',
+              '#3B82F6',
+              '#60A5FA',
+            ],
           });
         }
 
@@ -209,7 +223,7 @@ export default function CheckoutPage() {
         // Redirect to order success page with proper error handling
         const successUrl = `/student/order-success?orderId=${result.order.id}&orderNumber=${result.order.orderNumber}`;
         console.log('Redirecting to:', successUrl);
-        
+
         try {
           router.push(successUrl);
         } catch (redirectError) {
@@ -220,36 +234,41 @@ export default function CheckoutPage() {
       } else {
         const error = await response.json();
         console.error('Order API error:', error);
-        
+
         // Handle specific error cases
         if (error.cutoffPassed) {
           alert('Order deadline has passed. Please select a different date.');
           return;
         }
-        
+
         if (error.invalidDate) {
           alert('Invalid order date. Please select a future date.');
           return;
         }
-        
+
         throw new Error(error.error || 'Failed to place order');
       }
     } catch (error) {
       console.error('Order placement failed:', error);
-      
+
       // More user-friendly error messages
       let errorMessage = 'Failed to place order. Please try again.';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('Network')) {
-          errorMessage = 'Network error. Please check your connection and try again.';
-        } else if (error.message.includes('cutoff') || error.message.includes('deadline')) {
-          errorMessage = 'Order deadline has passed. Please select a different date.';
+          errorMessage =
+            'Network error. Please check your connection and try again.';
+        } else if (
+          error.message.includes('cutoff') ||
+          error.message.includes('deadline')
+        ) {
+          errorMessage =
+            'Order deadline has passed. Please select a different date.';
         } else {
           errorMessage = `Failed to place order: ${error.message}`;
         }
       }
-      
+
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -293,296 +312,299 @@ export default function CheckoutPage() {
     <>
       <Script
         src='https://cdn.jsdelivr.net/npm/tsparticles-confetti@2.12.0/tsparticles.confetti.bundle.min.js'
-        strategy="lazyOnload"
+        strategy='lazyOnload'
       />
       <StudentLayout>
         {/* Header */}
-      <div className='bg-white border-b border-neutral-100 px-4 py-4'>
-        <div className='flex items-center space-x-3'>
-          <button
-            onClick={() => router.back()}
-            className='p-2 -ml-2 hover:bg-neutral-100 rounded-full transition-colors'
-          >
-            <ArrowLeft className='w-5 h-5 text-neutral-600' />
-          </button>
-          <div>
-            <h1 className='text-lg font-bold text-neutral-800'>Checkout</h1>
-            <p className='text-sm text-neutral-600'>
-              Order for {format(new Date(selectedDate), 'MMM d, yyyy')}
-            </p>
+        <div className='bg-white border-b border-neutral-100 px-4 py-4'>
+          <div className='flex items-center space-x-3'>
+            <button
+              onClick={() => router.back()}
+              className='p-2 -ml-2 hover:bg-neutral-100 rounded-full transition-colors'
+            >
+              <ArrowLeft className='w-5 h-5 text-neutral-600' />
+            </button>
+            <div>
+              <h1 className='text-lg font-bold text-neutral-800'>Checkout</h1>
+              <p className='text-sm text-neutral-600'>
+                Order for {format(new Date(selectedDate), 'MMM d, yyyy')}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className='px-4 py-6 space-y-6'>
-        {/* Order Cutoff Warning */}
-        {countdown && countdown.isPastCutoff && (
-          <div className='bg-red-50 border border-red-200 rounded-xl p-4'>
-            <div className='flex items-start space-x-3'>
-              <AlertCircle className='w-5 h-5 text-red-600 mt-0.5 flex-shrink-0' />
-              <div>
-                <h3 className='font-semibold text-red-800 mb-1'>
-                  Ordering Deadline Passed
-                </h3>
-                <p className='text-sm text-red-700'>
-                  Orders must be placed before the daily cutoff time the day
-                  before. Please select a different date to place your order.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Student Information */}
-        <section className='bg-white rounded-xl border border-neutral-100 p-6'>
-          <div className='flex items-center space-x-3 mb-4'>
-            <User className='w-5 h-5 text-blue-600' />
-            <h2 className='text-lg font-semibold text-neutral-800'>
-              Student Information
-            </h2>
-          </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
-                Name
-              </label>
-              <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
-                {user.name}
-              </div>
-            </div>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
-                Student ID
-              </label>
-              <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
-                {user.studentId}
-              </div>
-            </div>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
-                Room Number
-              </label>
-              <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
-                {user.roomNumber}
-              </div>
-            </div>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
-                Phone Number
-              </label>
-              <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
-                {user.phone}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Cart Items Section */}
-        <section className='bg-white rounded-xl border border-neutral-100 p-6'>
-          <div className='flex items-center justify-between mb-4'>
-            <h2 className='text-lg font-semibold text-neutral-800'>
-              Your Order
-            </h2>
-            <span className='text-sm text-neutral-600'>
-              {totals.itemCount} item{totals.itemCount > 1 ? 's' : ''}
-            </span>
-          </div>
-
-          <div className='space-y-4'>
-            {cartItems.map(item => (
-              <div
-                key={item.id}
-                className='flex items-center space-x-4 p-4 bg-neutral-50 rounded-lg'
-              >
-                <div className='w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden'>
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className='w-full h-full object-cover'
-                    />
-                  ) : (
-                    <div className='w-full h-full flex items-center justify-center text-gray-400'>
-                      <User className='w-6 h-6' />
-                    </div>
-                  )}
-                </div>
-
-                <div className='flex-1 min-w-0'>
-                  <h3 className='font-medium text-neutral-900 truncate'>
-                    {item.name}
+        <div className='px-4 py-6 space-y-6'>
+          {/* Order Cutoff Warning */}
+          {countdown && countdown.isPastCutoff && (
+            <div className='bg-red-50 border border-red-200 rounded-xl p-4'>
+              <div className='flex items-start space-x-3'>
+                <AlertCircle className='w-5 h-5 text-red-600 mt-0.5 flex-shrink-0' />
+                <div>
+                  <h3 className='font-semibold text-red-800 mb-1'>
+                    Ordering Deadline Passed
                   </h3>
-                  <div className='flex items-center space-x-2 mt-1'>
-                    {item.isVegetarian && (
-                      <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
-                        Veg
-                      </span>
+                  <p className='text-sm text-red-700'>
+                    Orders must be placed before the daily cutoff time the day
+                    before. Please select a different date to place your order.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Student Information */}
+          <section className='bg-white rounded-xl border border-neutral-100 p-6'>
+            <div className='flex items-center space-x-3 mb-4'>
+              <User className='w-5 h-5 text-blue-600' />
+              <h2 className='text-lg font-semibold text-neutral-800'>
+                Student Information
+              </h2>
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Name
+                </label>
+                <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
+                  {user.name}
+                </div>
+              </div>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Student ID
+                </label>
+                <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
+                  {user.studentId}
+                </div>
+              </div>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Room Number
+                </label>
+                <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
+                  {user.roomNumber}
+                </div>
+              </div>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Phone Number
+                </label>
+                <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
+                  {user.phone}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Cart Items Section */}
+          <section className='bg-white rounded-xl border border-neutral-100 p-6'>
+            <div className='flex items-center justify-between mb-4'>
+              <h2 className='text-lg font-semibold text-neutral-800'>
+                Your Order
+              </h2>
+              <span className='text-sm text-neutral-600'>
+                {totals.itemCount} item{totals.itemCount > 1 ? 's' : ''}
+              </span>
+            </div>
+
+            <div className='space-y-4'>
+              {cartItems.map(item => (
+                <div
+                  key={item.id}
+                  className='flex items-center space-x-4 p-4 bg-neutral-50 rounded-lg'
+                >
+                  <div className='w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden'>
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className='w-full h-full object-cover'
+                      />
+                    ) : (
+                      <div className='w-full h-full flex items-center justify-center text-gray-400'>
+                        <User className='w-6 h-6' />
+                      </div>
                     )}
-                    <span className='text-sm font-semibold text-neutral-900'>
-                      ₹{item.price}
+                  </div>
+
+                  <div className='flex-1 min-w-0'>
+                    <h3 className='font-medium text-neutral-900 truncate'>
+                      {item.name}
+                    </h3>
+                    <div className='flex items-center space-x-2 mt-1'>
+                      {item.isVegetarian && (
+                        <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
+                          Veg
+                        </span>
+                      )}
+                      <span className='text-sm font-semibold text-neutral-900'>
+                        ₹{item.price}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className='flex items-center space-x-2'>
+                    <button
+                      onClick={() =>
+                        handleUpdateQuantity(item.id, item.quantity - 1)
+                      }
+                      className='p-1 rounded-full hover:bg-neutral-200 transition-colors'
+                    >
+                      <Minus className='w-4 h-4 text-neutral-600' />
+                    </button>
+                    <span className='w-8 text-center font-medium text-neutral-900'>
+                      {item.quantity}
                     </span>
+                    <button
+                      onClick={() =>
+                        handleUpdateQuantity(item.id, item.quantity + 1)
+                      }
+                      className='p-1 rounded-full hover:bg-neutral-200 transition-colors'
+                    >
+                      <Plus className='w-4 h-4 text-neutral-600' />
+                    </button>
+                    <button
+                      onClick={() => handleRemoveItem(item.id)}
+                      className='p-1 rounded-full hover:bg-red-100 transition-colors ml-2'
+                    >
+                      <Trash2 className='w-4 h-4 text-red-600' />
+                    </button>
                   </div>
                 </div>
+              ))}
+            </div>
+          </section>
 
-                <div className='flex items-center space-x-2'>
-                  <button
-                    onClick={() =>
-                      handleUpdateQuantity(item.id, item.quantity - 1)
-                    }
-                    className='p-1 rounded-full hover:bg-neutral-200 transition-colors'
-                  >
-                    <Minus className='w-4 h-4 text-neutral-600' />
-                  </button>
-                  <span className='w-8 text-center font-medium text-neutral-900'>
-                    {item.quantity}
+          {/* Special Instructions */}
+          <section className='bg-white rounded-xl border border-neutral-100 p-6'>
+            <div className='flex items-center space-x-3 mb-4'>
+              <Edit3 className='w-5 h-5 text-gray-600' />
+              <h2 className='text-lg font-semibold text-neutral-800'>
+                Special Instructions
+              </h2>
+            </div>
+
+            <textarea
+              value={specialInstructions}
+              onChange={e => setSpecialInstructions(e.target.value)}
+              placeholder='Any special instructions for your order (optional)'
+              className='w-full p-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none'
+              rows={3}
+            />
+          </section>
+
+          {/* Order Summary */}
+          <section className='bg-white rounded-xl border border-neutral-100 p-6'>
+            <h2 className='text-lg font-semibold text-neutral-800 mb-4'>
+              Order Summary
+            </h2>
+
+            <div className='space-y-3'>
+              <div className='flex justify-between items-center'>
+                <span className='text-neutral-600'>Subtotal</span>
+                <span className='font-medium text-neutral-900'>
+                  ₹{totals.subtotal}
+                </span>
+              </div>
+              <div className='flex justify-between items-center'>
+                <span className='text-neutral-600'>Delivery Fee</span>
+                <span className='font-medium text-green-600'>Free</span>
+              </div>
+              <div className='flex justify-between items-center'>
+                <span className='text-neutral-600'>Tax (5%)</span>
+                <span className='font-medium text-neutral-900'>
+                  ₹{totals.tax}
+                </span>
+              </div>
+              <div className='border-t border-neutral-200 pt-3'>
+                <div className='flex justify-between items-center'>
+                  <span className='text-lg font-semibold text-neutral-900'>
+                    Total
                   </span>
-                  <button
-                    onClick={() =>
-                      handleUpdateQuantity(item.id, item.quantity + 1)
-                    }
-                    className='p-1 rounded-full hover:bg-neutral-200 transition-colors'
-                  >
-                    <Plus className='w-4 h-4 text-neutral-600' />
-                  </button>
-                  <button
-                    onClick={() => handleRemoveItem(item.id)}
-                    className='p-1 rounded-full hover:bg-red-100 transition-colors ml-2'
-                  >
-                    <Trash2 className='w-4 h-4 text-red-600' />
-                  </button>
+                  <span className='text-lg font-bold text-blue-600'>
+                    ₹{totals.total}
+                  </span>
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Special Instructions */}
-        <section className='bg-white rounded-xl border border-neutral-100 p-6'>
-          <div className='flex items-center space-x-3 mb-4'>
-            <Edit3 className='w-5 h-5 text-gray-600' />
-            <h2 className='text-lg font-semibold text-neutral-800'>
-              Special Instructions
-            </h2>
-          </div>
-
-          <textarea
-            value={specialInstructions}
-            onChange={e => setSpecialInstructions(e.target.value)}
-            placeholder='Any special instructions for your order (optional)'
-            className='w-full p-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none'
-            rows={3}
-          />
-        </section>
-
-        {/* Order Summary */}
-        <section className='bg-white rounded-xl border border-neutral-100 p-6'>
-          <h2 className='text-lg font-semibold text-neutral-800 mb-4'>
-            Order Summary
-          </h2>
-
-          <div className='space-y-3'>
-            <div className='flex justify-between items-center'>
-              <span className='text-neutral-600'>Subtotal</span>
-              <span className='font-medium text-neutral-900'>
-                ₹{totals.subtotal}
-              </span>
             </div>
-            <div className='flex justify-between items-center'>
-              <span className='text-neutral-600'>Delivery Fee</span>
-              <span className='font-medium text-green-600'>Free</span>
+          </section>
+
+          {/* Delivery Information */}
+          <section className='bg-blue-50 border border-blue-200 rounded-xl p-4'>
+            <div className='flex items-start space-x-3'>
+              <Info className='w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0' />
+              <div>
+                <h3 className='font-semibold text-blue-800 mb-2'>
+                  Delivery Information
+                </h3>
+                <ul className='text-sm text-blue-700 space-y-1'>
+                  <li>
+                    • Food will be delivered to your room: {user.roomNumber}
+                  </li>
+                  <li>
+                    • Delivery time: 12:00 PM - 2:00 PM on{' '}
+                    {format(new Date(selectedDate), 'MMM d, yyyy')}
+                  </li>
+                  <li>• Payment: Cash on delivery</li>
+                  <li>• Please be available during delivery hours</li>
+                </ul>
+              </div>
             </div>
-            <div className='flex justify-between items-center'>
-              <span className='text-neutral-600'>Tax (5%)</span>
-              <span className='font-medium text-neutral-900'>
-                ₹{totals.tax}
-              </span>
-            </div>
-            <div className='border-t border-neutral-200 pt-3'>
-              <div className='flex justify-between items-center'>
-                <span className='text-lg font-semibold text-neutral-900'>
-                  Total
-                </span>
-                <span className='text-lg font-bold text-blue-600'>
-                  ₹{totals.total}
+          </section>
+
+          {/* Security Notice */}
+          <section className='bg-green-50 border border-green-200 rounded-xl p-4'>
+            <div className='flex items-center space-x-3'>
+              <Shield className='w-5 h-5 text-green-600' />
+              <div>
+                <span className='text-sm text-green-700'>
+                  🔒 Your order is secured with university authentication
                 </span>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        {/* Delivery Information */}
-        <section className='bg-blue-50 border border-blue-200 rounded-xl p-4'>
-          <div className='flex items-start space-x-3'>
-            <Info className='w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0' />
-            <div>
-              <h3 className='font-semibold text-blue-800 mb-2'>
-                Delivery Information
-              </h3>
-              <ul className='text-sm text-blue-700 space-y-1'>
-                <li>
-                  • Food will be delivered to your room: {user.roomNumber}
-                </li>
-                <li>
-                  • Delivery time: 12:00 PM - 2:00 PM on{' '}
-                  {format(new Date(selectedDate), 'MMM d, yyyy')}
-                </li>
-                <li>• Payment: Cash on delivery</li>
-                <li>• Please be available during delivery hours</li>
-              </ul>
-            </div>
-          </div>
-        </section>
+        {/* Bottom Action */}
+        <div className='sticky bottom-0 bg-white border-t border-neutral-100 p-4'>
+          <button
+            onClick={handlePlaceOrder}
+            disabled={!isValidForm || loading}
+            className={`w-full flex items-center justify-center space-x-2 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${
+              !isValidForm || loading
+                ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
+            }`}
+          >
+            {loading ? (
+              <>
+                <div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
+                <span>Placing Order...</span>
+              </>
+            ) : (
+              <>
+                <CreditCard className='w-5 h-5' />
+                <span>Place Order • ₹{totals.total}</span>
+              </>
+            )}
+          </button>
 
-        {/* Security Notice */}
-        <section className='bg-green-50 border border-green-200 rounded-xl p-4'>
-          <div className='flex items-center space-x-3'>
-            <Shield className='w-5 h-5 text-green-600' />
-            <div>
-              <span className='text-sm text-green-700'>
-                🔒 Your order is secured with university authentication
-              </span>
-            </div>
-          </div>
-        </section>
-      </div>
+          {!isValidForm &&
+            cartItems.length > 0 &&
+            countdown &&
+            countdown.isPastCutoff && (
+              <p className='text-center text-sm text-red-600 mt-2'>
+                Ordering deadline has passed for this date
+              </p>
+            )}
 
-      {/* Bottom Action */}
-      <div className='sticky bottom-0 bg-white border-t border-neutral-100 p-4'>
-        <button
-          onClick={handlePlaceOrder}
-          disabled={!isValidForm || loading}
-          className={`w-full flex items-center justify-center space-x-2 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${
-            !isValidForm || loading
-              ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
-          }`}
-        >
-          {loading ? (
-            <>
-              <div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
-              <span>Placing Order...</span>
-            </>
-          ) : (
-            <>
-              <CreditCard className='w-5 h-5' />
-              <span>Place Order • ₹{totals.total}</span>
-            </>
+          {cartItems.length === 0 && (
+            <p className='text-center text-sm text-gray-600 mt-2'>
+              Your cart is empty
+            </p>
           )}
-        </button>
-
-        {!isValidForm && cartItems.length > 0 && countdown && countdown.isPastCutoff && (
-          <p className='text-center text-sm text-red-600 mt-2'>
-            Ordering deadline has passed for this date
-          </p>
-        )}
-
-        {cartItems.length === 0 && (
-          <p className='text-center text-sm text-gray-600 mt-2'>
-            Your cart is empty
-          </p>
-        )}
-      </div>
+        </div>
       </StudentLayout>
     </>
   );
