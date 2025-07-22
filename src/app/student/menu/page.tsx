@@ -40,6 +40,14 @@ interface MenuItem {
   orderCount?: number;
   calories?: number;
   preparationTime?: number;
+  variants?: MenuVariant[];
+}
+
+interface MenuVariant {
+  id: string;
+  name: string;
+  price: number;
+  isDefault: boolean;
 }
 
 export default function StudentMenu() {
@@ -188,16 +196,30 @@ export default function StudentMenu() {
     });
   }, [menuItems, selectedCategory, searchQuery, showVegOnly]);
 
-  const addToCart = async (item: MenuItem, quantity: number = 1) => {
+  const addToCart = async (item: MenuItem, quantity: number = 1, variantId?: string) => {
+    // If item has variants and no variant is selected, show variant selection
+    if (item.variants && item.variants.length > 1 && !variantId) {
+      setSelectedItem(item);
+      setShowVariationSheet(true);
+      return;
+    }
+
+    // Find the selected variant or use default
+    const selectedVariant = variantId 
+      ? item.variants?.find(v => v.id === variantId)
+      : item.variants?.find(v => v.isDefault) || item.variants?.[0];
+
     const cartItem = {
       id: item.id,
       name: item.name,
-      price: item.offerPrice || item.price,
+      price: item.offerPrice || selectedVariant?.price || item.price,
       category: item.category,
       isVegetarian: item.isVegetarian,
       image: item.image,
+      variantId: selectedVariant?.id,
+      variantName: selectedVariant?.name,
     };
-    await addItem(cartItem);
+    await addItem(cartItem, variantId);
   };
 
   const updateCartQuantity = async (itemId: string, quantity: number) => {
@@ -448,6 +470,52 @@ export default function StudentMenu() {
           )}
         </div>
       </div>
+
+      {/* Variant Selection Modal */}
+      {showVariationSheet && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50">
+          <div className="bg-white rounded-t-2xl w-full max-h-[70vh] overflow-y-auto">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Select Size for {selectedItem.name}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowVariationSheet(false);
+                    setSelectedItem(null);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <span className="text-2xl">&times;</span>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4 space-y-3">
+              {selectedItem.variants?.map((variant) => (
+                <button
+                  key={variant.id}
+                  onClick={() => {
+                    addToCart(selectedItem, 1, variant.id);
+                    setShowVariationSheet(false);
+                    setSelectedItem(null);
+                  }}
+                  className="w-full flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
+                >
+                  <div className="text-left">
+                    <div className="font-medium text-gray-900">{variant.name}</div>
+                    {variant.isDefault && (
+                      <div className="text-sm text-green-600">Recommended</div>
+                    )}
+                  </div>
+                  <div className="font-semibold text-gray-900">₹{variant.price}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </StudentLayout>
   );
 }

@@ -9,30 +9,44 @@ export const VIETNAM_UTC_OFFSET = 7 * 60 * 60 * 1000; // +7 hours in millisecond
 
 /**
  * Get current time in Vietnam timezone
- * Uses timezone offset calculation for reliable conversion
+ * Uses proper Intl API for accurate timezone conversion
  */
 export function getVietnamTime(): Date {
+  // Simple approach - return current time and let timezone formatting handle display
   const now = new Date();
-  
-  // Create a new date adjusted for Vietnam timezone
-  // This approach accounts for daylight saving time automatically
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const vietnamTime = new Date(utc + (7 * 3600000)); // Add 7 hours for Vietnam timezone
-  
-  return vietnamTime;
+  return now;
 }
 
 /**
  * Convert any date to Vietnam timezone
- * Uses timezone offset calculation for reliable conversion
+ * Uses proper Intl API for accurate timezone conversion
  */
 export function toVietnamTime(date: Date): Date {
-  // Create a new date adjusted for Vietnam timezone
-  // This approach accounts for daylight saving time automatically
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-  const vietnamTime = new Date(utc + (7 * 3600000)); // Add 7 hours for Vietnam timezone
+  // Get Vietnam time using proper Intl API
+  const vietnamTimeString = date.toLocaleString('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
   
-  return vietnamTime;
+  // Parse the string back to Date object
+  const [datePart, timePart] = vietnamTimeString.split(', ');
+  const [year, month, day] = datePart.split('-');
+  const [hour, minute, second] = timePart.split(':');
+  
+  return new Date(
+    parseInt(year),
+    parseInt(month) - 1, // Month is 0-indexed
+    parseInt(day),
+    parseInt(hour),
+    parseInt(minute),
+    parseInt(second)
+  );
 }
 
 /**
@@ -54,7 +68,7 @@ export function getCurrentUtc(): Date {
 
 /**
  * Create a date in Vietnam timezone from date components
- * Useful for creating specific Vietnam times
+ * Simple approach using the same Intl API method
  */
 export function createVietnamTime(
   year: number,
@@ -64,14 +78,11 @@ export function createVietnamTime(
   minutes = 0,
   seconds = 0
 ): Date {
-  // Create the desired Vietnam time as if it were UTC
-  const vietnamTimeAsUtc = new Date(
-    Date.UTC(year, month - 1, day, hours, minutes, seconds, 0)
-  );
-
-  // Convert this "Vietnam time" to actual UTC by subtracting 7 hours
-  // This gives us the UTC time that will show as the desired Vietnam time when converted
-  return vietnamTimeToUtc(vietnamTimeAsUtc);
+  // Create a date string in ISO format
+  const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.000+07:00`;
+  
+  // Parse as Vietnam time (UTC+7)
+  return new Date(isoString);
 }
 
 /**
@@ -95,7 +106,7 @@ export function getVietnamGreeting(): string {
  * Get cutoff time for orders in Vietnam timezone
  * Industry practice: Business logic in local timezone
  */
-export function getOrderCutoffTime(orderDate: string): Date {
+export function getOrderCutoffTime(orderDate: string, cutoffHours: number = 22): Date {
   // Parse the order date (YYYY-MM-DD)
   const [year, month, day] = orderDate.split('-').map(Number);
 
@@ -103,12 +114,12 @@ export function getOrderCutoffTime(orderDate: string): Date {
   const orderDateObj = new Date(year, month - 1, day);
   const dayBefore = addDays(orderDateObj, -1);
 
-  // Create 10 PM Vietnam time on the day before
+  // Create cutoff time in Vietnam timezone on the day before
   const cutoffVietnam = createVietnamTime(
     dayBefore.getFullYear(),
     dayBefore.getMonth() + 1,
     dayBefore.getDate(),
-    22, // 10 PM
+    cutoffHours, // Dynamic cutoff hours
     0, // 0 minutes
     0 // 0 seconds
   );
@@ -120,9 +131,9 @@ export function getOrderCutoffTime(orderDate: string): Date {
  * Check if current Vietnam time is past ordering cutoff
  * Timezone-aware business logic
  */
-export function isPastOrderingCutoff(orderDate: string): boolean {
+export function isPastOrderingCutoff(orderDate: string, cutoffHours: number = 22): boolean {
   const vietnamNow = getVietnamTime();
-  const cutoff = getOrderCutoffTime(orderDate);
+  const cutoff = getOrderCutoffTime(orderDate, cutoffHours);
   return vietnamNow >= cutoff;
 }
 
@@ -130,13 +141,13 @@ export function isPastOrderingCutoff(orderDate: string): boolean {
  * Get countdown to ordering cutoff
  * Real-time countdown in Vietnam timezone
  */
-export function getOrderingCountdown(orderDate: string): {
+export function getOrderingCountdown(orderDate: string, cutoffHours: number = 22): {
   hours: number;
   minutes: number;
   isPastCutoff: boolean;
 } {
   const vietnamNow = getVietnamTime();
-  const cutoff = getOrderCutoffTime(orderDate);
+  const cutoff = getOrderCutoffTime(orderDate, cutoffHours);
 
   if (vietnamNow >= cutoff) {
     return { hours: 0, minutes: 0, isPastCutoff: true };

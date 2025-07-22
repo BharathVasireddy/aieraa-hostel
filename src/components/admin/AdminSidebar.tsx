@@ -55,17 +55,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
   const navigationItems: NavigationItem[] = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Universities', href: '/admin/universities', icon: Building2 },
-    {
-      name: 'Orders',
-      href: '/admin/orders',
-      icon: ShoppingCart,
-      children: [
-        { name: 'All Orders', href: '/admin/orders' },
-        { name: 'Pending', href: '/admin/orders?status=pending' },
-        { name: 'In Progress', href: '/admin/orders?status=preparing' },
-        { name: 'Completed', href: '/admin/orders?status=served' },
-      ],
-    },
+    { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
     { name: 'User Management', href: '/admin/users', icon: Users },
     { name: 'Menu Management', href: '/admin/menu', icon: UtensilsCrossed },
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
@@ -97,7 +87,17 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
     if (href === '/admin') {
       return pathname === '/admin';
     }
-    return pathname.startsWith(href);
+    
+    // Handle URLs with query parameters
+    const [hrefPath, hrefQuery] = href.split('?');
+    const currentUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : pathname;
+    
+    if (hrefQuery) {
+      // For exact match with query parameters
+      return currentUrl === href;
+    }
+    
+    return pathname.startsWith(hrefPath);
   };
 
   const isChildActive = (
@@ -187,12 +187,18 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
                       onClick={() => router.push(child.href)}
                       className={`w-full flex items-center justify-between px-4 py-2 text-sm rounded-lg transition-all duration-200 ${
                         isActive(child.href)
-                          ? 'bg-green-50 text-green-700 border-l-2 border-green-500'
+                          ? 'bg-green-600 text-white shadow-sm'
                           : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                       }`}
                     >
                       <div className='flex items-center space-x-3'>
-                        {child.icon && <child.icon className='w-4 h-4' />}
+                        {child.icon && (
+                          <child.icon 
+                            className={`w-4 h-4 ${
+                              isActive(child.href) ? 'text-white' : 'text-gray-400'
+                            }`}
+                          />
+                        )}
                         <span>{child.name}</span>
                         {child.badge && (
                           <span className='bg-orange-500 text-white text-xs font-medium px-2 py-0.5 rounded-full'>

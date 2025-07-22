@@ -43,7 +43,7 @@ interface Order {
     | 'SERVED'
     | 'CANCELLED';
   createdAt: string;
-  deliveryDate: string;
+  orderDate: string;
   notes?: string;
   user: {
     id: string;
@@ -94,7 +94,7 @@ export default function ManagerOrdersPage() {
 
   const fetchOrders = useCallback(
     async (status = 'ALL') => {
-      if (!user?.universityId) return;
+      if (!user?.university?.id) return;
 
       try {
         setLoading(true);
@@ -129,12 +129,21 @@ export default function ManagerOrdersPage() {
         setLoading(false);
       }
     },
-    [user?.universityId]
+    [user?.university?.id]
   );
 
   useEffect(() => {
     fetchOrders(selectedStatus);
   }, [fetchOrders, selectedStatus]);
+
+  // Watch for URL parameter changes
+  useEffect(() => {
+    const statusFromUrl = searchParams?.get('status')?.toUpperCase() || 'ALL';
+    if (statusFromUrl !== selectedStatus) {
+      setSelectedStatus(statusFromUrl);
+      fetchOrders(statusFromUrl);
+    }
+  }, [searchParams]);
 
   const updateOrderStatus = async (
     orderId: string,
@@ -161,18 +170,49 @@ export default function ManagerOrdersPage() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const vietnamDate = new Date(
-      date.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
-    );
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      
+      // Format date directly with timezone consideration
+      const options: Intl.DateTimeFormatOptions = {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      };
+      
+      return date.toLocaleString('en-GB', options).replace(',', '');
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid Date';
+    }
+  };
 
-    const day = vietnamDate.getDate().toString().padStart(2, '0');
-    const month = (vietnamDate.getMonth() + 1).toString().padStart(2, '0');
-    const year = vietnamDate.getFullYear();
-    const hours = vietnamDate.getHours().toString().padStart(2, '0');
-    const minutes = vietnamDate.getMinutes().toString().padStart(2, '0');
-
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  const formatDateOnly = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      
+      const options: Intl.DateTimeFormatOptions = {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      };
+      
+      return date.toLocaleDateString('en-GB', options);
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid Date';
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -245,13 +285,13 @@ export default function ManagerOrdersPage() {
       ),
     },
     {
-      id: 'deliveryDate',
-      header: 'Delivery',
-      accessor: 'deliveryDate',
+      id: 'orderDate',
+      header: 'Meal Date',
+      accessor: 'orderDate',
       width: '12%',
       sortable: true,
       render: value => (
-        <div className='text-sm text-gray-600'>{formatDate(value)}</div>
+        <div className='text-sm text-gray-600'>{formatDateOnly(value)}</div>
       ),
     },
     {
@@ -269,7 +309,7 @@ export default function ManagerOrdersPage() {
       width: '16%',
       render: (value, row) => (
         <div className='flex items-center space-x-1'>
-          <Link href={`/manager/orders/${value}`}>
+          <Link href={`/manager/orders/${row.orderNumber}`}>
             <button
               className='p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors'
               title='View Details'
@@ -468,14 +508,14 @@ export default function ManagerOrdersPage() {
           ].map(status => (
             <button
               key={status}
-              onClick={() => {
+              onClick={async () => {
                 setSelectedStatus(status);
-                fetchOrders(status);
+                await fetchOrders(status);
               }}
               className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                 selectedStatus === status
-                  ? 'bg-green-100 text-green-800'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-green-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
               {status.charAt(0) + status.slice(1).toLowerCase()}

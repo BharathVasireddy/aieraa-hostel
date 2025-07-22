@@ -52,8 +52,8 @@ export default function StudentDashboard() {
     <StudentLayout>
       <div className='bg-gray-50 min-h-screen'>
         <div className='px-4 py-4 pb-24 space-y-6'>
-          {/* Welcome Section with Order Deadline - Shows immediately */}
-          <WelcomeSection userName={user?.name} selectedDate={selectedDate} />
+          {/* Welcome Section - Shows immediately */}
+          <WelcomeSection userName={user?.name} />
 
           {/* Promotional Slider - Shows immediately */}
           {user?.universityId && (

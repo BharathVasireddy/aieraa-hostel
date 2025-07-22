@@ -35,6 +35,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(getVietnamTime());
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [cutoffHours, setCutoffHours] = useState<number | null>(null); // Start with null to prevent jerk
 
   // Get selected date from localStorage
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -48,6 +49,29 @@ export default function CheckoutPage() {
     return format(tomorrow, 'yyyy-MM-dd');
   });
 
+  // Fetch cutoff time from API
+  useEffect(() => {
+    const fetchCutoffTime = async () => {
+      try {
+        const response = await fetch('/api/student/cutoff-info');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && typeof data.cutoffHours === 'number') {
+            setCutoffHours(data.cutoffHours);
+          }
+        } else {
+          console.warn('Checkout cutoff API error:', response.status, 'Using default 22 hours');
+          setCutoffHours(22); // Fallback
+        }
+      } catch (error) {
+        console.error('Failed to fetch cutoff time:', error);
+        setCutoffHours(22); // Fallback to default 22 (10 PM) if API fails
+      }
+    };
+    
+    fetchCutoffTime();
+  }, []);
+
   // Update time every minute for real-time countdown
   useEffect(() => {
     const timer = setInterval(() => {
@@ -56,10 +80,10 @@ export default function CheckoutPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Get countdown for selected date
+  // Get countdown for selected date - only if cutoffHours is loaded
   const countdown = useMemo(() => {
-    return getOrderingCountdown(selectedDate);
-  }, [selectedDate]);
+    return cutoffHours !== null ? getOrderingCountdown(selectedDate, cutoffHours) : null;
+  }, [selectedDate, cutoffHours]);
 
   // Check if cart is empty and redirect to menu
   useEffect(() => {
@@ -101,8 +125,8 @@ export default function CheckoutPage() {
 
   // Simplified validation - only check if cart has items and not past cutoff
   const isValidForm = useMemo(() => {
-    return cartItems.length > 0 && !countdown.isPastCutoff;
-  }, [cartItems, countdown.isPastCutoff]);
+    return cartItems.length > 0 && (countdown ? !countdown.isPastCutoff : true);
+  }, [cartItems, countdown]);
 
   const handlePlaceOrder = useCallback(async () => {
     if (!isValidForm || loading) return;
@@ -208,7 +232,7 @@ export default function CheckoutPage() {
 
       <div className='px-4 py-6 space-y-6'>
         {/* Order Cutoff Warning */}
-        {countdown.isPastCutoff && (
+        {countdown && countdown.isPastCutoff && (
           <div className='bg-red-50 border border-red-200 rounded-xl p-4'>
             <div className='flex items-start space-x-3'>
               <AlertCircle className='w-5 h-5 text-red-600 mt-0.5 flex-shrink-0' />
@@ -217,7 +241,7 @@ export default function CheckoutPage() {
                   Ordering Deadline Passed
                 </h3>
                 <p className='text-sm text-red-700'>
-                  Orders must be placed before 10:00 PM Vietnam time the day
+                  Orders must be placed before the daily cutoff time the day
                   before. Please select a different date to place your order.
                 </p>
               </div>
@@ -463,7 +487,7 @@ export default function CheckoutPage() {
           )}
         </button>
 
-        {!isValidForm && cartItems.length > 0 && countdown.isPastCutoff && (
+        {!isValidForm && cartItems.length > 0 && countdown && countdown.isPastCutoff && (
           <p className='text-center text-sm text-red-600 mt-2'>
             Ordering deadline has passed for this date
           </p>

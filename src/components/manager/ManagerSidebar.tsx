@@ -13,9 +13,6 @@ import {
   ChevronDown,
   ChevronRight,
   Building2,
-  Clock,
-  CheckCircle,
-  AlertCircle,
   LogOut,
   ChevronUp,
 } from 'lucide-react';
@@ -47,13 +44,11 @@ interface ManagerSidebarProps {
     universityId?: string;
   };
   pendingOrdersCount?: number;
-  pendingStudentsCount?: number;
 }
 
 export default function ManagerSidebar({
   user,
   pendingOrdersCount = 0,
-  pendingStudentsCount = 0,
 }: ManagerSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -67,49 +62,11 @@ export default function ManagerSidebar({
       href: '/manager/orders',
       icon: ShoppingCart,
       badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined,
-      children: [
-        { name: 'All Orders', href: '/manager/orders', icon: ShoppingCart },
-        {
-          name: 'Pending Approval',
-          href: '/manager/orders?status=pending',
-          badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined,
-          icon: Clock,
-        },
-        {
-          name: 'In Progress',
-          href: '/manager/orders?status=preparing',
-          icon: AlertCircle,
-        },
-        {
-          name: 'Ready for Pickup',
-          href: '/manager/orders?status=ready',
-          icon: CheckCircle,
-        },
-        {
-          name: 'Completed',
-          href: '/manager/orders?status=served',
-          icon: CheckCircle,
-        },
-      ],
     },
     { name: 'Menu Management', href: '/manager/menu', icon: UtensilsCrossed },
-    {
-      name: 'Students',
-      href: '/manager/students',
-      icon: Users,
-      badge: pendingStudentsCount > 0 ? pendingStudentsCount : undefined,
-    },
+    { name: 'Students', href: '/manager/students', icon: Users },
     { name: 'Analytics', href: '/manager/analytics', icon: BarChart3 },
-    {
-      name: 'Settings',
-      href: '/manager/settings',
-      icon: Settings,
-      children: [
-        { name: 'University Settings', href: '/manager/settings' },
-        { name: 'Ordering Rules', href: '/manager/settings/ordering' },
-        { name: 'Notifications', href: '/manager/settings/notifications' },
-      ],
-    },
+    { name: 'Settings', href: '/manager/settings', icon: Settings },
   ];
 
   const toggleExpanded = (itemName: string) => {
@@ -124,7 +81,17 @@ export default function ManagerSidebar({
     if (href === '/manager') {
       return pathname === '/manager';
     }
-    return pathname.startsWith(href);
+    
+    // Handle URLs with query parameters
+    const [hrefPath, hrefQuery] = href.split('?');
+    const currentUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : pathname;
+    
+    if (hrefQuery) {
+      // For exact match with query parameters
+      return currentUrl === href;
+    }
+    
+    return pathname.startsWith(hrefPath);
   };
 
   const isChildActive = (
@@ -158,31 +125,7 @@ export default function ManagerSidebar({
         </div>
       </div>
 
-      {/* Quick Stats */}
-      {(pendingOrdersCount > 0 || pendingStudentsCount > 0) && (
-        <div className='px-6 py-3 mx-4 mt-4 bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl space-y-3'>
-          {pendingOrdersCount > 0 && (
-            <div className='flex items-center justify-between'>
-              <span className='text-sm font-medium text-orange-700'>
-                Pending Orders
-              </span>
-              <span className='bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm'>
-                {pendingOrdersCount}
-              </span>
-            </div>
-          )}
-          {pendingStudentsCount > 0 && (
-            <div className='flex items-center justify-between'>
-              <span className='text-sm font-medium text-orange-700'>
-                Pending Students
-              </span>
-              <span className='bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm'>
-                {pendingStudentsCount}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
+
 
       {/* Navigation */}
       <nav className='flex-1 px-4 py-4 space-y-2 overflow-y-auto'>
@@ -244,12 +187,18 @@ export default function ManagerSidebar({
                       onClick={() => router.push(child.href)}
                       className={`w-full flex items-center justify-between px-4 py-2 text-sm rounded-lg transition-all duration-200 ${
                         isActive(child.href)
-                          ? 'bg-green-50 text-green-700 border-l-2 border-green-500'
+                          ? 'bg-green-600 text-white shadow-sm'
                           : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                       }`}
                     >
                       <div className='flex items-center space-x-3'>
-                        {child.icon && <child.icon className='w-4 h-4' />}
+                        {child.icon && (
+                          <child.icon 
+                            className={`w-4 h-4 ${
+                              isActive(child.href) ? 'text-white' : 'text-gray-400'
+                            }`}
+                          />
+                        )}
                         <span>{child.name}</span>
                         {child.badge && (
                           <span className='bg-orange-500 text-white text-xs font-medium px-2 py-0.5 rounded-full'>

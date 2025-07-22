@@ -89,6 +89,7 @@ export async function GET(
         menuItem: {
           ...item.menuItem,
           category: item.menuItem.categories?.[0] || 'GENERAL',
+          imageUrl: item.menuItem.image, // Map image to imageUrl for frontend compatibility
         },
       })),
     });

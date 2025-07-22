@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, ChevronDown, User } from 'lucide-react';
 import { format, addDays, startOfToday } from 'date-fns';
@@ -25,6 +25,30 @@ export default function StudentHeader({
 }: StudentHeaderProps) {
   const router = useRouter();
   const [showDatePickerDropdown, setShowDatePickerDropdown] = useState(false);
+  const [cutoffHours, setCutoffHours] = useState<number | null>(null); // Start with null to prevent jerk
+
+  // Fetch cutoff time from API
+  useEffect(() => {
+    const fetchCutoffTime = async () => {
+      try {
+        const response = await fetch('/api/student/cutoff-info');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && typeof data.cutoffHours === 'number') {
+            setCutoffHours(data.cutoffHours);
+          }
+        } else {
+          console.warn('StudentHeader cutoff API error:', response.status, 'Using default 22 hours');
+          setCutoffHours(22); // Fallback
+        }
+      } catch (error) {
+        console.error('Failed to fetch cutoff time:', error);
+        setCutoffHours(22); // Fallback to default 22 (10 PM) if API fails
+      }
+    };
+    
+    fetchCutoffTime();
+  }, []);
 
   // Generate next 7 days for date selection (starting from tomorrow)
   const availableDates = useMemo(() => {
@@ -47,13 +71,16 @@ export default function StudentHeader({
     [availableDates, selectedDate]
   );
 
-  // Calculate countdown for selected date
+  // Calculate countdown for selected date - only if cutoffHours is loaded
   const countdown = useMemo(() => {
-    return getOrderingCountdown(selectedDate);
-  }, [selectedDate]);
+    return cutoffHours !== null ? getOrderingCountdown(selectedDate, cutoffHours) : null;
+  }, [selectedDate, cutoffHours]);
 
   // Get compact countdown text
   const countdownText = useMemo(() => {
+    if (!countdown) {
+      return 'Loading...'; // Show loading while cutoff time is being fetched
+    }
     if (countdown.isPastCutoff) {
       return 'Ordering closed';
     } else {
@@ -110,7 +137,7 @@ export default function StudentHeader({
                         {selectedDateObj?.shortDay}, {selectedDateObj?.day}
                       </div>
                       <div
-                        className={`text-xs ${countdown.isPastCutoff ? 'text-red-600' : 'text-green-600'}`}
+                        className={`text-xs ${countdown && countdown.isPastCutoff ? 'text-red-600' : 'text-green-600'}`}
                       >
                         {countdownText}
                       </div>

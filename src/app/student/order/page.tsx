@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Calendar, Clock, Menu, Minus, Plus, ShoppingCart } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Menu, Minus, Plus, ShoppingCart, AlertCircle } from 'lucide-react'
 import { format, addDays, isSameDay, isToday, isTomorrow } from 'date-fns'
 
 interface MenuItem {
@@ -17,6 +17,144 @@ interface MenuItem {
   isAvailable?: boolean
   maxQuantity?: number
   currentQuantity?: number
+}
+
+// Component to display cutoff time notice
+function CutoffTimeNotice({ selectedDate }: { selectedDate: Date }) {
+  const [cutoffInfo, setCutoffInfo] = useState<{
+    cutoffHours: number
+    isPastCutoff: boolean
+    hoursLeft: number
+    minutesLeft: number
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchCutoffInfo = async () => {
+      try {
+        const response = await fetch('/api/student/cutoff-info')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            const cutoffHours = data.cutoffHours
+            const now = new Date()
+            const currentHour = now.getHours()
+            const currentMinute = now.getMinutes()
+            
+            // Calculate if we're past cutoff for tomorrow's orders
+            const tomorrow = addDays(new Date(), 1)
+            const isOrderingForTomorrow = isSameDay(selectedDate, tomorrow)
+            const isPastCutoff = isOrderingForTomorrow && currentHour >= cutoffHours
+            
+            // Calculate time left until cutoff
+            let hoursLeft = 0
+            let minutesLeft = 0
+            
+            if (isOrderingForTomorrow && !isPastCutoff) {
+              hoursLeft = cutoffHours - currentHour - 1
+              minutesLeft = 60 - currentMinute
+              
+              if (minutesLeft === 60) {
+                hoursLeft += 1
+                minutesLeft = 0
+              }
+            }
+            
+            setCutoffInfo({
+              cutoffHours,
+              isPastCutoff,
+              hoursLeft: Math.max(0, hoursLeft),
+              minutesLeft: Math.max(0, minutesLeft)
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch cutoff info:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCutoffInfo()
+    
+    // Update every minute
+    const interval = setInterval(fetchCutoffInfo, 60000)
+    return () => clearInterval(interval)
+  }, [selectedDate])
+
+  const formatTime = (hours: number) => {
+    const period = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+    return `${displayHours}:00 ${period}`
+  }
+
+  if (loading) {
+    return (
+      <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg animate-pulse">
+        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+      </div>
+    )
+  }
+
+  if (!cutoffInfo) return null
+
+  const tomorrow = addDays(new Date(), 1)
+  const isOrderingForTomorrow = isSameDay(selectedDate, tomorrow)
+
+  if (!isOrderingForTomorrow) {
+    // Not ordering for tomorrow, show normal info
+    return (
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center">
+          <Clock className="w-4 h-4 mr-2 text-blue-600" />
+          <span className="text-sm text-blue-800">
+            Order by {formatTime(cutoffInfo.cutoffHours)} the day before for {format(selectedDate, 'MMM dd')}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  if (cutoffInfo.isPastCutoff) {
+    // Past cutoff for tomorrow
+    return (
+      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div className="flex items-start space-x-2">
+          <AlertCircle className="w-4 h-4 mr-2 text-red-600 mt-0.5" />
+          <div>
+            <div className="text-sm text-red-800 font-medium">
+              Ordering deadline passed
+            </div>
+            <div className="text-xs text-red-700 mt-1">
+              Orders for tomorrow must be placed before {formatTime(cutoffInfo.cutoffHours)}. Please select a different date.
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Still within cutoff time
+  return (
+    <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <Clock className="w-4 h-4 mr-2 text-orange-600" />
+          <span className="text-sm text-orange-800">
+            Order by {formatTime(cutoffInfo.cutoffHours)} today for {format(selectedDate, 'MMM dd')}
+          </span>
+        </div>
+        {cutoffInfo.hoursLeft < 2 && (
+          <div className="text-xs font-medium text-orange-600 bg-orange-100 px-2 py-1 rounded">
+            {cutoffInfo.hoursLeft > 0 
+              ? `${cutoffInfo.hoursLeft}h ${cutoffInfo.minutesLeft}m left`
+              : `${cutoffInfo.minutesLeft}m left`
+            }
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function OrderPageContent() {
@@ -167,14 +305,7 @@ function OrderPageContent() {
           </div>
 
           {/* Cutoff Notice */}
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center">
-              <Clock className="w-4 h-4 mr-2 text-blue-600" />
-              <span className="text-sm text-blue-800">
-                Order by 10:00 PM today for {format(selectedDate, 'MMM dd')}
-              </span>
-            </div>
-          </div>
+          <CutoffTimeNotice selectedDate={selectedDate} />
 
           {/* Category Tabs */}
           <div className="flex space-x-2 overflow-x-auto pb-2">

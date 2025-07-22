@@ -34,22 +34,12 @@ export default async function ManagerLayout({
   });
 
   let pendingOrdersCount = 0;
-  let pendingStudentsCount = 0;
 
   if (currentUser?.universityId) {
     // Get pending orders count
     pendingOrdersCount = await prisma.order.count({
       where: {
         universityId: currentUser.universityId,
-        status: 'PENDING',
-      },
-    });
-
-    // Get pending students count
-    pendingStudentsCount = await prisma.user.count({
-      where: {
-        universityId: currentUser.universityId,
-        role: 'STUDENT',
         status: 'PENDING',
       },
     });
@@ -69,7 +59,6 @@ export default async function ManagerLayout({
         universityId: session.user.universityId,
       }}
       pendingOrdersCount={pendingOrdersCount}
-      pendingStudentsCount={pendingStudentsCount}
     />
   );
 

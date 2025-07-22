@@ -121,6 +121,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Validate cutoff time for order date
+    const orderDateObj = new Date(orderDate);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    // If ordering for tomorrow, check cutoff time
+    if (orderDateObj.toDateString() === tomorrow.toDateString()) {
+      const cutoffHours = user.university?.settings?.cutoffHours || 22;
+      const currentHour = today.getHours();
+      
+      if (currentHour >= cutoffHours) {
+        return NextResponse.json({
+          error: `Orders for tomorrow must be placed before ${cutoffHours}:00. Please select a different date.`,
+          cutoffPassed: true
+        }, { status: 400 });
+      }
+    }
+
+    // Validate order date is not in the past
+    const todayDateStr = today.toDateString();
+    if (orderDateObj.toDateString() === todayDateStr) {
+      return NextResponse.json({
+        error: 'Orders cannot be placed for today. Please select a future date.',
+        invalidDate: true
+      }, { status: 400 });
+    }
+
+    if (orderDateObj < today) {
+      return NextResponse.json({
+        error: 'Orders cannot be placed for past dates.',
+        invalidDate: true
+      }, { status: 400 });
+    }
+
+    // Validate maximum advance order days
+    const maxAdvanceDays = user.university?.settings?.maxAdvanceOrderDays || 7;
+    const maxOrderDate = new Date(today);
+    maxOrderDate.setDate(today.getDate() + maxAdvanceDays);
+    
+    if (orderDateObj > maxOrderDate) {
+      return NextResponse.json({
+        error: `Orders can only be placed up to ${maxAdvanceDays} days in advance.`,
+        exceedsAdvanceLimit: true
+      }, { status: 400 });
+    }
+
     // Validate menu items and calculate total
     let totalAmount = 0;
     const validatedItems = [];
