@@ -20,6 +20,14 @@ import StudentLayout from '@/components/StudentLayout';
 import { getVietnamTime, getOrderingCountdown } from '@/lib/timezone';
 import { useUser } from '@/components/UserProvider';
 import { useCart } from '@/components/CartProvider';
+import Script from 'next/script';
+
+// Declare confetti as a global function
+declare global {
+  interface Window {
+    confetti: (options?: any) => void;
+  }
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -36,6 +44,7 @@ export default function CheckoutPage() {
   const [currentTime, setCurrentTime] = useState(getVietnamTime());
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [cutoffHours, setCutoffHours] = useState<number | null>(null); // Start with null to prevent jerk
+  const [orderPlaced, setOrderPlaced] = useState(false); // Track if order has been placed
 
   // Get selected date from localStorage
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -85,12 +94,16 @@ export default function CheckoutPage() {
     return cutoffHours !== null ? getOrderingCountdown(selectedDate, cutoffHours) : null;
   }, [selectedDate, cutoffHours]);
 
-  // Check if cart is empty and redirect to menu
+  // Check if cart is empty and redirect to menu (but not if order was just placed)
   useEffect(() => {
-    if (cartItems.length === 0) {
-      router.push('/student/menu');
+    if (cartItems.length === 0 && !orderPlaced && !loading) {
+      // Add a small delay to prevent immediate redirects on page load
+      const timer = setTimeout(() => {
+        router.push('/student/menu');
+      }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, [cartItems.length, router]);
+  }, [cartItems.length, router, orderPlaced, loading]);
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -144,6 +157,8 @@ export default function CheckoutPage() {
         paymentMethod: 'cash',
       };
 
+      console.log('Placing order with data:', orderData);
+
       // Call the actual orders API
       const response = await fetch('/api/orders', {
         method: 'POST',
@@ -153,26 +168,89 @@ export default function CheckoutPage() {
         body: JSON.stringify(orderData),
       });
 
+      console.log('Order API response status:', response.status);
+
       if (response.ok) {
         const result = await response.json();
+        console.log('Order placed successfully:', result);
+
+        // Ensure we have the required data for redirect
+        if (!result.order?.id || !result.order?.orderNumber) {
+          console.error('Missing order data in response:', result);
+          throw new Error('Order was placed but missing details for confirmation');
+        }
+
+        // Mark order as placed to prevent cart empty redirect
+        setOrderPlaced(true);
+
+        // Launch confetti celebration immediately after successful order
+        if (typeof window !== 'undefined' && window.confetti) {
+          window.confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#22C55E', '#4ADE80', '#BBF7D0', '#F1F5F9', '#10B981', '#3B82F6', '#60A5FA']
+          });
+        }
 
         // Clear cart
-        await clearCart();
-        localStorage.removeItem('checkoutDate');
+        try {
+          await clearCart();
+          localStorage.removeItem('checkoutDate');
+          console.log('Cart cleared successfully');
+        } catch (cartError) {
+          console.warn('Failed to clear cart:', cartError);
+          // Don't fail the order process if cart clearing fails
+        }
 
-        // Redirect to order success page
-        router.push(
-          `/student/order-success?orderId=${result.order.id}&orderNumber=${result.order.orderNumber}`
-        );
+        // Small delay to ensure cart clearing is processed and let confetti show
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Redirect to order success page with proper error handling
+        const successUrl = `/student/order-success?orderId=${result.order.id}&orderNumber=${result.order.orderNumber}`;
+        console.log('Redirecting to:', successUrl);
+        
+        try {
+          router.push(successUrl);
+        } catch (redirectError) {
+          console.error('Router push failed:', redirectError);
+          // Fallback: Use window.location as backup
+          window.location.href = successUrl;
+        }
       } else {
         const error = await response.json();
+        console.error('Order API error:', error);
+        
+        // Handle specific error cases
+        if (error.cutoffPassed) {
+          alert('Order deadline has passed. Please select a different date.');
+          return;
+        }
+        
+        if (error.invalidDate) {
+          alert('Invalid order date. Please select a future date.');
+          return;
+        }
+        
         throw new Error(error.error || 'Failed to place order');
       }
     } catch (error) {
-      console.error(error);
-      alert(
-        `Failed to place order: ${error instanceof Error ? error.message : 'Please try again.'}`
-      );
+      console.error('Order placement failed:', error);
+      
+      // More user-friendly error messages
+      let errorMessage = 'Failed to place order. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Network')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('cutoff') || error.message.includes('deadline')) {
+          errorMessage = 'Order deadline has passed. Please select a different date.';
+        } else {
+          errorMessage = `Failed to place order: ${error.message}`;
+        }
+      }
+      
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -183,6 +261,7 @@ export default function CheckoutPage() {
     selectedDate,
     specialInstructions,
     router,
+    clearCart,
   ]);
 
   // Show loading state if user not loaded
@@ -211,8 +290,13 @@ export default function CheckoutPage() {
   }
 
   return (
-    <StudentLayout>
-      {/* Header */}
+    <>
+      <Script
+        src='https://cdn.jsdelivr.net/npm/tsparticles-confetti@2.12.0/tsparticles.confetti.bundle.min.js'
+        strategy="lazyOnload"
+      />
+      <StudentLayout>
+        {/* Header */}
       <div className='bg-white border-b border-neutral-100 px-4 py-4'>
         <div className='flex items-center space-x-3'>
           <button
@@ -499,6 +583,7 @@ export default function CheckoutPage() {
           </p>
         )}
       </div>
-    </StudentLayout>
+      </StudentLayout>
+    </>
   );
 }

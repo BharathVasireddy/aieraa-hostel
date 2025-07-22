@@ -37,18 +37,24 @@ interface OrderDetail {
   createdAt: string;
   completedAt?: string;
   specialInstructions?: string;
-  items: Array<{
+  orderItems: Array<{
     id: string;
-    name: string;
     quantity: number;
     price: number;
+    menuItem: {
+      id: string;
+      name: string;
+      description?: string;
+      basePrice?: number;
+      categories?: string[];
+      image?: string;
+      imageUrl?: string;
+      category?: string;
+      isVegetarian?: boolean;
+      isVegan?: boolean;
+    };
     variant?: {
       name: string;
-    };
-    menuItem: {
-      image?: string;
-      isVegetarian: boolean;
-      isVegan: boolean;
     };
   }>;
 }
@@ -154,8 +160,8 @@ export default function StudentOrderDetail({
       status: orderData.status,
       timestamp: new Date().toISOString(),
       items:
-        orderData.items?.map(item => ({
-          name: item.name,
+        orderData.orderItems?.map(item => ({
+          name: item.menuItem.name,
           quantity: item.quantity,
           variant: item.variant?.name,
         })) || [],
@@ -381,13 +387,13 @@ export default function StudentOrderDetail({
           </div>
 
           <div className='divide-y divide-gray-100'>
-            {order.items.map(item => (
+            {(order.orderItems || []).map(item => (
               <div key={item.id} className='p-4 flex items-center space-x-4'>
                 <div className='w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0'>
-                  {item.menuItem.image ? (
+                  {(item.menuItem.image || item.menuItem.imageUrl) ? (
                     <Image
-                      src={item.menuItem.image}
-                      alt={item.name}
+                      src={item.menuItem.image || item.menuItem.imageUrl || ''}
+                      alt={item.menuItem.name}
                       width={64}
                       height={64}
                       className='w-full h-full object-cover'
@@ -402,7 +408,7 @@ export default function StudentOrderDetail({
                 <div className='flex-1'>
                   <div className='flex items-start justify-between'>
                     <div>
-                      <h3 className='font-medium text-gray-900'>{item.name}</h3>
+                      <h3 className='font-medium text-gray-900'>{item.menuItem.name}</h3>
                       {item.variant && (
                         <p className='text-sm text-gray-600'>
                           {item.variant.name}

@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
         cartId_menuItemId_variantId: {
           cartId: cart.id,
           menuItemId,
-          variantId: variantId || null,
+          variantId: variantId || '', // Use empty string instead of null
         },
       },
     });
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
         data: {
           cartId: cart.id,
           menuItemId,
-          variantId,
+          variantId: variantId || '', // Use empty string instead of null/undefined
           quantity,
         },
       });
@@ -261,7 +261,7 @@ export async function PUT(request: NextRequest) {
         where: {
           cartId: cart.id,
           menuItemId,
-          variantId: variantId || null,
+          variantId: variantId || '',
         },
       });
     } else {
@@ -270,7 +270,7 @@ export async function PUT(request: NextRequest) {
         where: {
           cartId: cart.id,
           menuItemId,
-          variantId: variantId || null,
+          variantId: variantId || '',
         },
         data: {
           quantity,
@@ -318,7 +318,7 @@ export async function DELETE(request: NextRequest) {
         where: {
           cartId: cart.id,
           menuItemId,
-          variantId: variantId || null,
+          variantId: variantId || '',
         },
       });
     } else {

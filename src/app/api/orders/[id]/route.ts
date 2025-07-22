@@ -74,28 +74,42 @@ export async function GET(
       orderNumber: order.orderNumber,
       status: order.status,
       paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod || 'cash',
       totalAmount: order.totalAmount,
       subtotalAmount: order.subtotalAmount || order.totalAmount,
       taxAmount: order.taxAmount || 0,
       orderDate: order.orderDate,
       createdAt: order.createdAt,
       completedAt: order.completedAt,
+      approvedAt: order.approvedAt,
+      rejectedAt: order.rejectedAt,
       specialInstructions: order.specialInstructions,
-      // Transform orderItems to items array as expected by frontend
-      items: order.orderItems.map(item => ({
+      // Transform orderItems to match frontend expectations
+      orderItems: order.orderItems.map(item => ({
         id: item.id,
-        name: item.menuItem.name,
         quantity: item.quantity,
         price: item.price,
-        variant: item.variant ? {
-          name: item.variant.name
-        } : undefined,
         menuItem: {
-          image: item.menuItem.image,
-          isVegetarian: item.menuItem.isVegetarian || false,
-          isVegan: item.menuItem.isVegan || false
+          id: item.menuItem.id,
+          name: item.menuItem.name,
+          categories: item.menuItem.categories || []
+        },
+        variant: item.variant ? {
+          id: item.variant.id,
+          name: item.variant.name
+        } : undefined
+      })),
+      user: {
+        id: order.user.id,
+        name: order.user.name,
+        email: order.user.email,
+        phone: order.user.phone,
+        roomNumber: order.user.roomNumber,
+        university: {
+          name: order.user.university.name,
+          address: order.user.university.address
         }
-      }))
+      }
     }
 
     return NextResponse.json(transformedOrder)

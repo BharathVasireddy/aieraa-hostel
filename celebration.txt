@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Success Modal</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles-confetti@2.12.0/tsparticles.confetti.bundle.min.js"></script>
+  <style>
+    @keyframes fadeIn { 0% { opacity: 0; transform: scale(0.98); } 100% { opacity: 1; transform: scale(1); } }
+    @keyframes pulse { 0%, 100% { opacity: 0.9; } 50% { opacity: 1; } }
+    .modal-animation { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .pulse-animation { animation: pulse 2s ease-in-out infinite; }
+    body { background-color: #F3F4F6; }
+    .backdrop { backdrop-filter: blur(6px); }
+  </style>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 bg-gray-100">
+  <!-- Background overlay -->
+  <div class="fixed inset-0 bg-black bg-opacity-5 backdrop z-10"></div>
+  <!-- Payment Success Modal -->
+  <div class="w-full max-w-md bg-white rounded-md shadow-sm overflow-hidden relative z-20 modal-animation">
+    <!-- Modal Content -->
+    <div class="relative z-10 flex flex-col p-6">
+      <div class="flex justify-between items-start mb-4">
+        <div class="flex items-center">
+          <div class="h-10 w-10 rounded-md bg-green-100 flex items-center justify-center mr-3">
+            <!-- Payment Success Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 class="text-gray-900 text-lg font-medium">Payment successful</h3>
+        </div>
+        <button class="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close modal">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+      <div class="py-2">
+        <p class="text-gray-600 text-sm">
+          Your payment has been processed successfully.
+          A receipt has been sent to your email.
+        </p>
+        
+        <!-- Receipt Section (shown by default) -->
+        <div id="receiptSection" class="mt-4 bg-gray-50 rounded-md border border-gray-200">
+          <div class="p-4">
+            <div class="flex justify-between mb-2">
+              <span class="text-xs font-medium text-gray-500">ORDER #23491</span>
+              <span class="text-xs font-medium text-gray-500">MAY 15, 2023</span>
+            </div>
+            
+            <div class="border-b border-gray-200 pb-4 mb-4">
+              <h4 class="text-sm font-medium text-gray-900 mb-2">Premium Plan Subscription</h4>
+              <div class="flex justify-between text-sm mb-1">
+                <span class="text-gray-600">Monthly Plan</span>
+                <span class="text-gray-900">$29.99</span>
+              </div>
+              <div class="flex justify-between text-xs text-gray-500">
+                <span>Next billing date: June 15, 2023</span>
+              </div>
+            </div>
+            
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-600">Subtotal</span>
+              <span class="text-gray-900">$29.99</span>
+            </div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-600">Tax</span>
+              <span class="text-gray-900">$2.40</span>
+            </div>
+            <div class="flex justify-between text-sm font-medium mt-3 pt-3 border-t border-gray-200">
+              <span class="text-gray-900">Total</span>
+              <span class="text-gray-900">$32.39</span>
+            </div>
+            
+            <div class="mt-3 pt-3 border-t border-gray-200">
+              <div class="flex items-center">
+                <div class="bg-gray-100 rounded p-1 mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                    <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <span class="text-xs text-gray-600">Visa ending in 4242</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-6 flex flex-col space-y-2">
+          <button id="confettiButton" class="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded transition-colors duration-150">
+            Celebrate
+          </button>
+          <button id="hideReceiptBtn" class="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium rounded transition-colors duration-150">
+            Hide receipt
+          </button>
+        </div>
+        
+        <div class="mt-4 pt-4 border-t border-gray-200">
+          <div class="flex items-center justify-between">
+            <span class="text-gray-400 text-xs">Paid 10s ago</span>
+            <div class="flex items-center text-xs text-gray-400">
+              <span class="w-2 h-2 bg-green-500 rounded-full mr-2 pulse-animation"></span>
+              Payment system
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Scripts -->
+  <script>
+    // Confetti
+    document.getElementById('confettiButton').addEventListener('click', () => {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#22C55E', '#4ADE80', '#BBF7D0', '#F1F5F9', '#10B981']
+      });
+    });
+    
+    // Auto launch confetti on page load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        confetti({
+          particleCount: 80,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#22C55E', '#4ADE80', '#BBF7D0', '#F1F5F9', '#10B981']
+        });
+      }, 600);
+    });
+    
+    // Toggle receipt visibility
+    const hideReceiptBtn = document.getElementById('hideReceiptBtn');
+    const receiptSection = document.getElementById('receiptSection');
+    
+    hideReceiptBtn.addEventListener('click', () => {
+      if (receiptSection.style.display === 'none') {
+        receiptSection.style.display = 'block';
+        hideReceiptBtn.textContent = 'Hide receipt';
+      } else {
+        receiptSection.style.display = 'none';
+        hideReceiptBtn.textContent = 'Show receipt';
+      }
+    });
+  </script>
+</body>
+</html>
