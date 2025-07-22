@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/components/UserProvider';
 import { signOut, getSession } from 'next-auth/react';
-import DataTable, { Column } from '@/components/ui/DataTable';
+import AnimatedDataTable, { Column } from '@/components/ui/AnimatedDataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import {
   Users,
@@ -93,10 +93,9 @@ export default function ManagerStudentsPage() {
             rejected: 0,
           }
         );
-        console.log('📈 Updated summary (static):', data.summary);
+        // Updated summary with static data
       }
     } catch (error) {
-      console.error('❌ Failed to fetch summary:', error);
     }
   }, [user?.universityId]);
 
@@ -104,12 +103,9 @@ export default function ManagerStudentsPage() {
   const fetchStudents = useCallback(
     async (status = 'ALL') => {
       if (!user?.universityId) {
-        console.log('❌ No universityId found for user:', user);
         // If user exists but no universityId, show refresh option
         if (user && !user.universityId) {
-          console.log(
-            '🔄 User exists but no universityId - session may be outdated'
-          );
+          // User exists but no universityId - session may be outdated
         }
         return;
       }
@@ -126,28 +122,16 @@ export default function ManagerStudentsPage() {
         }
 
         const url = `/api/manager/users?${params}`;
-        console.log('🔄 Fetching students from:', url);
-        console.log('👤 Current user:', {
-          name: user?.name,
-          email: user?.email,
-          universityId: user?.universityId,
-          university: user?.university,
-        });
 
         const response = await fetch(url);
 
-        console.log('📡 Response status:', response.status);
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('❌ API Error:', response.status, errorText);
           throw new Error(`HTTP error: ${response.status} - ${errorText}`);
         }
 
         const data: StudentsResponse = await response.json();
-        console.log('✅ API Response:', data);
-        console.log('📊 Students found:', data.users?.length || 0);
-        console.log('📈 Summary:', data.summary);
 
         setStudents(data.users || []);
         // setSummary(data.summary || { // This line is now handled by fetchSummary
@@ -158,7 +142,6 @@ export default function ManagerStudentsPage() {
         //   rejected: 0
         // })
       } catch (error) {
-        console.error('❌ Failed to fetch students:', error);
         // Set empty data on error
         setStudents([]);
         // setSummary({ // This line is now handled by fetchSummary
@@ -177,19 +160,15 @@ export default function ManagerStudentsPage() {
 
   const handleRefreshSession = async () => {
     try {
-      console.log('🔄 Refreshing session...');
       const newSession = await getSession();
-      console.log('📱 New session:', newSession);
 
       // Force a page reload to get fresh user data
       window.location.reload();
     } catch (error) {
-      console.error('❌ Failed to refresh session:', error);
     }
   };
 
   const handleForceLogout = () => {
-    console.log('🚪 Force logout to refresh session data');
     signOut({ callbackUrl: '/auth/signin' });
   };
 
@@ -223,7 +202,6 @@ export default function ManagerStudentsPage() {
         throw new Error(data.error || 'Failed to update user status');
       }
     } catch (error) {
-      console.error('Failed to update user status:', error);
       throw error;
     } finally {
       setUpdating(null);
@@ -245,7 +223,7 @@ export default function ManagerStudentsPage() {
 
   const handleReject = (student: Student) => {
     if (
-      confirm(`Are you sure you want to reject ${student.name}'s application?`)
+      confirm(`Are you sure you want to reject ${student.name}&apos;s application?`)
     ) {
       updateUserStatus(
         student.id,
@@ -261,8 +239,8 @@ export default function ManagerStudentsPage() {
   };
 
   useEffect(() => {
-    fetchStudents();
-    fetchSummary(); // Fetch summary on mount
+    void fetchStudents();
+    void fetchSummary(); // Fetch summary on mount
   }, [fetchStudents, fetchSummary]);
 
   // Show error state if user doesn't have universityId
@@ -627,7 +605,7 @@ export default function ManagerStudentsPage() {
                 key={status}
                 onClick={() => {
                   setSelectedStatus(status);
-                  fetchStudents(status);
+                  void fetchStudents(status);
                 }}
                 className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                   selectedStatus === status
@@ -643,7 +621,7 @@ export default function ManagerStudentsPage() {
       </div>
 
       {/* Students Table */}
-      <DataTable
+      <AnimatedDataTable
         data={students}
         columns={columns}
         loading={loading}
@@ -651,10 +629,19 @@ export default function ManagerStudentsPage() {
         pagination={true}
         pageSize={20}
         paginationLabel='students'
+        enableAnimations={true}
+        enableKeyboardNavigation={true}
+        animationDelay={0.04}
+        staggerDelay={0.1}
+        showGradients={true}
         emptyState={{
           title: 'No students found',
           description: 'No students match the current filter criteria.',
           icon: Users,
+        }}
+        onRowClick={(student) => {
+          setSelectedUser(student);
+          setShowUserModal(true);
         }}
       />
 

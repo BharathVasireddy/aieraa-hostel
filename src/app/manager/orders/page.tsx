@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/components/UserProvider';
 import { useSearchParams } from 'next/navigation';
-import DataTable, { Column } from '@/components/ui/DataTable';
+import AnimatedDataTable, { Column } from '@/components/ui/AnimatedDataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import {
   ShoppingCart,
@@ -12,10 +12,6 @@ import {
   Clock,
   AlertCircle,
   RefreshCw,
-  Filter,
-  Calendar,
-  User,
-  DollarSign,
   Package,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -124,7 +120,7 @@ export default function ManagerOrdersPage() {
           );
         }
       } catch (error) {
-        console.error('Failed to fetch orders:', error);
+        // Failed to fetch orders
       } finally {
         setLoading(false);
       }
@@ -133,7 +129,7 @@ export default function ManagerOrdersPage() {
   );
 
   useEffect(() => {
-    fetchOrders(selectedStatus);
+    void fetchOrders(selectedStatus);
   }, [fetchOrders, selectedStatus]);
 
   // Watch for URL parameter changes
@@ -141,9 +137,9 @@ export default function ManagerOrdersPage() {
     const statusFromUrl = searchParams?.get('status')?.toUpperCase() || 'ALL';
     if (statusFromUrl !== selectedStatus) {
       setSelectedStatus(statusFromUrl);
-      fetchOrders(statusFromUrl);
+      void fetchOrders(statusFromUrl);
     }
-  }, [searchParams]);
+  }, [searchParams, selectedStatus, fetchOrders]);
 
   const updateOrderStatus = async (
     orderId: string,
@@ -163,7 +159,7 @@ export default function ManagerOrdersPage() {
         await fetchOrders(selectedStatus);
       }
     } catch (error) {
-      console.error('Failed to update order status:', error);
+      // Failed to update order status
     } finally {
       setUpdating(null);
     }
@@ -189,7 +185,6 @@ export default function ManagerOrdersPage() {
       
       return date.toLocaleString('en-GB', options).replace(',', '');
     } catch (error) {
-      console.error('Date formatting error:', error);
       return 'Invalid Date';
     }
   };
@@ -210,7 +205,6 @@ export default function ManagerOrdersPage() {
       
       return date.toLocaleDateString('en-GB', options);
     } catch (error) {
-      console.error('Date formatting error:', error);
       return 'Invalid Date';
     }
   };
@@ -525,7 +519,7 @@ export default function ManagerOrdersPage() {
       </div>
 
       {/* Orders Table */}
-      <DataTable
+      <AnimatedDataTable
         data={orders}
         columns={columns}
         loading={loading}
@@ -533,10 +527,19 @@ export default function ManagerOrdersPage() {
         pagination={true}
         pageSize={20}
         paginationLabel='orders'
+        enableAnimations={true}
+        enableKeyboardNavigation={true}
+        animationDelay={0.03}
+        staggerDelay={0.08}
+        showGradients={true}
         emptyState={{
           title: 'No orders found',
           description: 'No orders match the current filter criteria.',
           icon: ShoppingCart,
+        }}
+        onRowClick={(order) => {
+          // Navigate to order details
+          window.location.href = `/manager/orders/${order.orderNumber}`;
         }}
       />
     </div>
