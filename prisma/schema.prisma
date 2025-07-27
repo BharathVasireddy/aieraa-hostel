@@ -457,3 +457,21 @@ model PushSubscription {
   @@index([userId])
   @@map("push_subscriptions")
 }
+
+// Phone OTP for WhatsApp login authentication
+model PhoneOTP {
+  id        String   @id @default(cuid())
+  phone     String   @unique // Phone number with country code (e.g., 919876543210)
+  otp       String   // 6-digit OTP
+  expiresAt DateTime // OTP expiry time
+  attempts  Int      @default(0) // Number of verification attempts
+  verified  Boolean  @default(false) // Whether OTP has been used
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexes for performance
+  @@index([phone])
+  @@index([expiresAt])
+  @@index([phone, verified])
+  @@map("phone_otps")
+}

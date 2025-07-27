@@ -1,35 +1,69 @@
 {
-  "orderConfirmation": {
-    "name": "Order Confirmation",
-    "message": "🍽️ *Order Confirmed!*\n\nHi {{customerName}}! Your meal order *#{{orderNumber}}* has been received and is being reviewed by our kitchen team.\n\n📝 *Order Details:*\n• Items: {{items}}\n• Total: ₹{{totalAmount}}\n• Date: {{orderDate}}\n\nWe'll notify you once approved! 👨‍🍳\n\nView your order: https://hostel.aieraa.com/student/orders/{{orderNumber}}\n\n_Aieraa Food Service_",
+  "order_confirmation": {
+    "template_name": "aieraa_food_order_confirmation",
+    "category": "transactional",
+    "language": "en",
+    "body": "Hi {{1}}! Your food order #{{2}} has been confirmed.\n\n📋 *Order Details:*\n{{3}}\n\n💰 Total: ₹{{4}}\n📅 Delivery Date: {{5}}\n\nThank you for choosing Aieraa Food Service!",
+    "footer": "Aieraa Hostel Food Service",
+    "buttons": [
+      {
+        "type": "url",
+        "text": "View Order",
+        "url": "https://hostel.aieraa.com/student/orders/{{2}}"
+      }
+    ],
     "parameters": [
-      "customerName",
-      "orderNumber",
-      "items",
-      "totalAmount",
-      "orderDate"
+      {"name": "1", "type": "text", "description": "Student name"},
+      {"name": "2", "type": "text", "description": "Order number"},
+      {"name": "3", "type": "text", "description": "Items list"},
+      {"name": "4", "type": "text", "description": "Total amount"},
+      {"name": "5", "type": "text", "description": "Delivery date"}
     ]
   },
-  "statusUpdate": {
-    "name": "Order Status Update",
-    "message": "📋 *Order Status Update*\n\nHi {{customerName}}! Your order *#{{orderNumber}}* status: *{{status}}*\n\n{{statusMessage}}\n\n💰 Total: ₹{{totalAmount}}\n🕐 Updated: {{updatedTime}}\n\nView details: https://hostel.aieraa.com/student/orders/{{orderNumber}}\n\n_Aieraa Food Service_",
+  "order_status_update": {
+    "template_name": "aieraa_food_order_status",
+    "category": "transactional",
+    "language": "en",
+    "body": "Hi {{1}}! Your order #{{2}} status has been updated to: *{{3}}*\n\n{{4}}\n\nOrder Total: ₹{{5}}",
+    "footer": "Aieraa Hostel Food Service",
     "parameters": [
-      "customerName",
-      "orderNumber",
-      "status",
-      "statusMessage",
-      "totalAmount",
-      "updatedTime"
+      {"name": "1", "type": "text", "description": "Student name"},
+      {"name": "2", "type": "text", "description": "Order number"},
+      {"name": "3", "type": "text", "description": "Order status"},
+      {"name": "4", "type": "text", "description": "Status message"},
+      {"name": "5", "type": "text", "description": "Total amount"}
     ]
   },
-  "orderReady": {
-    "name": "Order Ready for Pickup",
-    "message": "🎉 *Great news {{customerName}}!*\n\nYour order *#{{orderNumber}}* is ready for pickup!\n\n📍 *Pickup Instructions:*\n• Go to Main Hostel Counter\n• Show this message or your QR code\n• Provide order number: *#{{orderNumber}}*\n\n💰 Total: ₹{{totalAmount}}\n⏰ Pickup by: {{pickupTime}}\n\nGet directions: https://maps.google.com/your-location\nCall counter: +919344141424\n\n_Enjoy your meal! 😊_",
+  "order_ready_pickup": {
+    "template_name": "aieraa_food_order_ready",
+    "category": "transactional",
+    "language": "en",
+    "body": "🎉 Great news {{1}}! Your order #{{2}} is ready for pickup!\n\n📍 Pickup Location: Main Hostel Counter\n⏰ Available until: {{3}}\n💰 Total: ₹{{4}}",
+    "footer": "Please collect within 30 minutes",
     "parameters": [
-      "customerName",
-      "orderNumber",
-      "totalAmount",
-      "pickupTime"
+      {"name": "1", "type": "text", "description": "Student name"},
+      {"name": "2", "type": "text", "description": "Order number"},
+      {"name": "3", "type": "text", "description": "Pickup deadline"},
+      {"name": "4", "type": "text", "description": "Total amount"}
     ]
+  },
+  "login_otp": {
+    "template_name": "aieraa_food_login_otp",
+    "category": "authentication",
+    "language": "en",
+    "body": "{{1}} is your verification code. For your security, do not share this code.",
+    "footer": "This code expires in 10 minutes.",
+    "buttons": [
+      {
+        "type": "copy_code",
+        "text": "Copy Code",
+        "example": "123456"
+      }
+    ],
+    "parameters": [
+      {"name": "1", "type": "text", "description": "6-digit OTP code", "example": "123456"}
+    ],
+    "expiry": "10 minutes",
+    "security_note": "Never share this code with anyone. Aieraa will never ask for this code over phone or email."
   }
 }

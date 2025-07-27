@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { MessageCircle, Phone, Shield, Clock, CheckCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -22,37 +22,19 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
   const otpInputs = useRef<(HTMLInputElement | null)[]>([])
   const router = useRouter()
 
-  // Format phone number as user types
-  const formatPhoneNumber = (value: string) => {
-    const cleaned = value.replace(/\D/g, '')
-    if (cleaned.length <= 5) {
-      return cleaned
-    } else if (cleaned.length <= 10) {
-      return cleaned.replace(/(\d{5})(\d{0,5})/, '$1 $2')
-    }
-    return cleaned.slice(0, 10).replace(/(\d{5})(\d{5})/, '$1 $2')
-  }
+  // Check if phone number is valid (10 digits)
+  const isPhoneValid = phone.length === 10 && /^\d{10}$/.test(phone)
 
   // Handle phone number input
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value)
-    setPhone(formatted)
+    const value = e.target.value.replace(/\D/g, '') // Keep only digits
+    setPhone(value)
     setError('')
-    
-    // Debug logging
-    const cleanDigits = formatted.replace(/\D/g, '')
-    console.log('Phone input:', {
-      raw: e.target.value,
-      formatted,
-      cleanDigits,
-      length: cleanDigits.length,
-      isValid: cleanDigits.length === 10
-    })
   }
 
   // Send OTP
   const handleSendOTP = async () => {
-    if (!phone || phone.replace(/\D/g, '').length !== 10) {
+    if (!isPhoneValid) {
       setError('Please enter a valid 10-digit mobile number')
       return
     }
@@ -64,7 +46,7 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
       const response = await fetch('/api/auth/whatsapp/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.replace(/\D/g, '') })
+        body: JSON.stringify({ phone })
       })
 
       const data = await response.json()
@@ -115,7 +97,7 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
 
     // Auto-verify when OTP is complete
     if (newOTP.join('').length === 6) {
-      setTimeout(() => handleVerifyOTP(newOTP.join('')), 100)
+      setTimeout(() => void handleVerifyOTP(newOTP.join('')), 100)
     }
   }
 
@@ -141,7 +123,7 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          phone: phone.replace(/\D/g, ''), 
+          phone, 
           otp: otpCode 
         })
       })
@@ -188,6 +170,19 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
 
   return (
     <div className="w-full max-w-md mx-auto">
+      {/* Debug Section */}
+      <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+        <p>Debug: Phone = "{phone}" (length: {phone.length})</p>
+        <p>Debug: Valid = {isPhoneValid ? 'Yes' : 'No'}</p>
+        <p>Debug: Loading = {loading ? 'Yes' : 'No'}</p>
+        <p>Debug: Step = {step}</p>
+        <button 
+          onClick={() => alert('Click works!')}
+          className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs"
+        >
+          Test Click
+        </button>
+      </div>
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
@@ -223,9 +218,9 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
                 type="tel"
                 value={phone}
                 onChange={handlePhoneChange}
-                placeholder="Enter 10-digit mobile number"
+                placeholder="8885333635"
                 className="block w-full pl-12 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg"
-                maxLength={11}
+                maxLength={10}
                 disabled={loading}
               />
               <Phone className="absolute inset-y-0 right-0 pr-3 flex items-center h-5 w-5 text-gray-400" />
@@ -234,18 +229,7 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
 
           <button
             onClick={handleSendOTP}
-            disabled={(() => {
-              const cleanDigits = phone.replace(/\D/g, '')
-              const isDisabled = loading || !phone || cleanDigits.length !== 10
-              console.log('Button state:', {
-                phone,
-                cleanDigits,
-                digitLength: cleanDigits.length,
-                loading,
-                isDisabled
-              })
-              return isDisabled
-            })()}
+            disabled={loading || !isPhoneValid}
             className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
           >
             {loading ? (

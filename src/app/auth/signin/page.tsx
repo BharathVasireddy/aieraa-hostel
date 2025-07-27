@@ -224,17 +224,22 @@ function SignInForm() {
             </div>
           )}
 
-          {/* Login Method Toggle */}
-          {/* Debug: Current login method */}
-          <div className='text-xs text-gray-500 mb-2'>
-            Debug: Current method = {loginMethod}
+          {/* Debug Section */}
+          <div className='mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm'>
+            <p>Debug: Login Method = {loginMethod}</p>
+            <button 
+              onClick={() => alert('Toggle click works!')}
+              className='mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs'
+            >
+              Test Toggle Click
+            </button>
           </div>
+
+          {/* Login Method Toggle */}
           <div className='flex bg-gray-100 rounded-lg p-1 mb-6'>
             <button
-              onClick={() => {
-                console.log('Switching to WhatsApp login')
-                setLoginMethod('whatsapp')
-              }}
+              type="button"
+              onClick={() => setLoginMethod('whatsapp')}
               className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md transition-all duration-200 ${
                 loginMethod === 'whatsapp'
                   ? 'bg-white text-green-600 shadow-sm'
@@ -245,10 +250,8 @@ function SignInForm() {
               WhatsApp Login
             </button>
             <button
-              onClick={() => {
-                console.log('Switching to email login')
-                setLoginMethod('email')
-              }}
+              type="button"
+              onClick={() => setLoginMethod('email')}
               className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md transition-all duration-200 ${
                 loginMethod === 'email'
                   ? 'bg-white text-gray-700 shadow-sm'
