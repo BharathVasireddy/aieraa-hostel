@@ -12,12 +12,16 @@ import {
   Clock,
   XCircle,
   Info,
+  Mail,
+  MessageCircle
 } from 'lucide-react';
 import { ButtonPress } from '@/components/PageTransition';
 import { Suspense } from 'react';
+import WhatsAppLogin from '@/components/auth/WhatsAppLogin';
 
 function SignInForm() {
   const { data: session, status } = useSession();
+  const [loginMethod, setLoginMethod] = useState<'whatsapp' | 'email'>('whatsapp');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -50,31 +54,29 @@ function SignInForm() {
         }
       }
 
-      // Use replace to prevent back navigation to login page
-      router.replace(redirectUrl);
+      router.push(redirectUrl);
     }
-  }, [session?.user?.role, status, router, callbackUrl]); // Reduced dependencies
+  }, [status, session, router, callbackUrl]);
 
-  // Show loading while checking session
-  if (status === 'loading') {
-    return (
-      <div className='min-h-screen bg-white flex items-center justify-center'>
-        <div className='text-center'>
-          <div className='relative w-8 h-8 mx-auto mb-4'>
-            <div className='absolute inset-0 w-8 h-8 border-4 border-green-200 rounded-full'></div>
-            <div className='absolute inset-0 w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin'></div>
-          </div>
-          <p className='text-green-700 font-medium'>Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  // Handle URL error messages
+  useEffect(() => {
+    const urlError = searchParams.get('error');
+    if (urlError === 'CredentialsSignin') {
+      setError('Invalid email or password. Please try again.');
+      setErrorType('auth');
+    } else if (urlError === 'Configuration') {
+      setError('Authentication service configuration error.');
+      setErrorType('general');
+    } else if (urlError === 'AccessDenied') {
+      setError('Access denied. Please check your account status.');
+      setErrorType('status');
+    }
+  }, [searchParams]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setErrorType('general');
 
     try {
       const result = await signIn('credentials', {
@@ -84,53 +86,16 @@ function SignInForm() {
       });
 
       if (result?.error) {
-        // Handle different types of errors
-        switch (result.error) {
-          case 'Invalid credentials':
-          case 'Invalid email or password':
-            setError(
-              'Invalid email or password. Please check your credentials and try again.'
-            );
-            setErrorType('auth');
-            break;
-          case 'ACCOUNT_PENDING_APPROVAL':
-            setError(
-              'Your account is pending approval by the university manager. Please try again after approval.'
-            );
-            setErrorType('status');
-            break;
-          case 'ACCOUNT_SUSPENDED':
-            setError(
-              'Your account has been suspended. Please contact your administrator.'
-            );
-            setErrorType('status');
-            break;
-          case 'ACCOUNT_REJECTED':
-            setError(
-              'Your account has been rejected. Please contact your administrator.'
-            );
-            setErrorType('status');
-            break;
-          case 'Account inactive':
-            setError(
-              'Your account is inactive. Please contact your administrator.'
-            );
-            setErrorType('status');
-            break;
-          case 'Account not verified':
-            setError(
-              'Your account email is not verified. Please check your email and verify your account.'
-            );
-            setErrorType('status');
-            break;
-          default:
-            setError('An error occurred during sign in. Please try again.');
-            setErrorType('general');
+        if (result.error === 'CredentialsSignin') {
+          setError('Invalid email or password. Please try again.');
+          setErrorType('auth');
+        } else {
+          setError('An error occurred during sign in. Please try again.');
+          setErrorType('general');
         }
       } else if (result?.ok) {
-        // Get fresh session after successful login
+        // Get the user session to determine role
         const session = await getSession();
-
         if (session?.user?.role) {
           let redirectUrl = callbackUrl;
 
@@ -150,54 +115,80 @@ function SignInForm() {
           }
 
           router.push(redirectUrl);
-        } else {
-          router.push(callbackUrl);
         }
       }
     } catch (error) {
-      console.error('Sign in error:', error);
-      setError('An unexpected error occurred. Please try again.');
+      setError('Network error. Please check your connection and try again.');
       setErrorType('general');
     } finally {
       setLoading(false);
     }
   };
 
-  const getErrorIcon = () => {
-    switch (errorType) {
-      case 'status':
-        return <Clock className='w-5 h-5 text-amber-600' />;
-      case 'auth':
-        return <XCircle className='w-5 h-5 text-red-600' />;
-      default:
-        return <Info className='w-5 h-5 text-blue-600' />;
-    }
+  const handleWhatsAppSuccess = (user: any) => {
+    // Handle successful WhatsApp login
+    // The WhatsApp component handles redirection
+  };
+
+  const handleWhatsAppError = (error: string) => {
+    setError(error);
+    setErrorType('general');
   };
 
   const getErrorColor = () => {
     switch (errorType) {
-      case 'status':
-        return 'bg-amber-50 border-amber-200 text-amber-800';
       case 'auth':
-        return 'bg-red-50 border-red-200 text-red-800';
+        return 'bg-red-50 border-red-200 text-red-700';
+      case 'status':
+        return 'bg-orange-50 border-orange-200 text-orange-700';
       default:
-        return 'bg-blue-50 border-blue-200 text-blue-800';
+        return 'bg-blue-50 border-blue-200 text-blue-700';
     }
   };
 
-  return (
-    <div className='min-h-screen bg-white relative'>
-      {/* Back Button - Absolute positioned */}
-      <ButtonPress
-        onClick={() => router.back()}
-        className='absolute top-4 left-4 flex items-center text-gray-600 hover:text-gray-900 transition-colors z-10'
-      >
-        <ArrowLeft className='w-5 h-5 mr-2' />
-        Back
-      </ButtonPress>
+  const getErrorIcon = () => {
+    switch (errorType) {
+      case 'auth':
+        return <XCircle className='w-5 h-5 text-red-500 flex-shrink-0' />;
+      case 'status':
+        return <Clock className='w-5 h-5 text-orange-500 flex-shrink-0' />;
+      default:
+        return <Info className='w-5 h-5 text-blue-500 flex-shrink-0' />;
+    }
+  };
 
-      {/* Main Content */}
-      <div className='px-4 pt-16 pb-8'>
+  // Show loading if checking session
+  if (status === 'loading') {
+    return (
+      <div className='min-h-screen bg-white flex items-center justify-center'>
+        <div className='text-center'>
+          <div className='relative w-8 h-8 mx-auto mb-4'>
+            <div className='absolute inset-0 w-8 h-8 border-4 border-green-200 rounded-full'></div>
+            <div className='absolute inset-0 w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin'></div>
+          </div>
+          <p className='text-green-700 font-medium'>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className='min-h-screen bg-gradient-to-br from-green-50 to-white relative overflow-hidden'>
+      {/* Background decoration */}
+      <div className='absolute inset-0 bg-[url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%2316a34a" fill-opacity="0.03"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")] opacity-40'></div>
+
+      {/* Header */}
+      <div className='relative z-10 flex items-center justify-between p-4'>
+        <ButtonPress
+          onClick={() => router.push('/')}
+          className='flex items-center text-gray-600 hover:text-gray-900 transition-colors duration-200'
+        >
+          <ArrowLeft className='w-5 h-5 mr-2' />
+          Back to Home
+        </ButtonPress>
+      </div>
+
+      <div className='px-4 pt-8 pb-8'>
         <div className='max-w-md mx-auto'>
           {/* Logo and Title */}
           <div className='text-center mb-8'>
@@ -233,88 +224,136 @@ function SignInForm() {
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className='space-y-6'>
-            <div>
-              <label
-                htmlFor='email'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                Email Address
-              </label>
-              <input
-                id='email'
-                name='email'
-                type='email'
-                autoComplete='email'
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className='input'
-                placeholder='your-email@university.edu'
+          {/* Login Method Toggle */}
+          {/* Debug: Current login method */}
+          <div className='text-xs text-gray-500 mb-2'>
+            Debug: Current method = {loginMethod}
+          </div>
+          <div className='flex bg-gray-100 rounded-lg p-1 mb-6'>
+            <button
+              onClick={() => {
+                console.log('Switching to WhatsApp login')
+                setLoginMethod('whatsapp')
+              }}
+              className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md transition-all duration-200 ${
+                loginMethod === 'whatsapp'
+                  ? 'bg-white text-green-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <MessageCircle className='w-4 h-4 mr-2' />
+              WhatsApp Login
+            </button>
+            <button
+              onClick={() => {
+                console.log('Switching to email login')
+                setLoginMethod('email')
+              }}
+              className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md transition-all duration-200 ${
+                loginMethod === 'email'
+                  ? 'bg-white text-gray-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Mail className='w-4 h-4 mr-2' />
+              Email & Password
+            </button>
+          </div>
+
+          {/* WhatsApp Login */}
+          {loginMethod === 'whatsapp' && (
+            <div className='mb-6'>
+              <WhatsAppLogin 
+                onSuccess={handleWhatsAppSuccess}
+                onError={handleWhatsAppError}
               />
             </div>
+          )}
 
-            <div>
-              <label
-                htmlFor='password'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                Password
-              </label>
-              <div className='relative'>
-                <input
-                  id='password'
-                  name='password'
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete='current-password'
-                  required
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className='input pr-12'
-                  placeholder='Enter your password'
-                />
-                <button
-                  type='button'
-                  onClick={() => setShowPassword(!showPassword)}
-                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+          {/* Email Login Form */}
+          {loginMethod === 'email' && (
+            <form onSubmit={handleEmailSubmit} className='space-y-6'>
+              <div>
+                <label
+                  htmlFor='email'
+                  className='block text-sm font-medium text-gray-700 mb-2'
                 >
-                  {showPassword ? (
-                    <EyeOff className='w-5 h-5' />
-                  ) : (
-                    <Eye className='w-5 h-5' />
-                  )}
-                </button>
+                  Email Address
+                </label>
+                <input
+                  id='email'
+                  name='email'
+                  type='email'
+                  autoComplete='email'
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className='input'
+                  placeholder='your-email@university.edu'
+                />
               </div>
-            </div>
 
-            <div className='flex justify-end'>
-              <Link
-                href='/auth/forgot-password'
-                className='text-sm text-green-600 hover:text-green-500 font-medium'
-              >
-                Forgot password?
-              </Link>
-            </div>
-
-            <ButtonPress
-              type='submit'
-              disabled={loading}
-              className='w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed'
-            >
-              {loading ? (
-                <div className='flex items-center justify-center'>
-                  <div className='relative w-5 h-5 mr-2'>
-                    <div className='absolute inset-0 w-5 h-5 border-2 border-white border-opacity-25 rounded-full'></div>
-                    <div className='absolute inset-0 w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
-                  </div>
-                  Signing in...
+              <div>
+                <label
+                  htmlFor='password'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  Password
+                </label>
+                <div className='relative'>
+                  <input
+                    id='password'
+                    name='password'
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete='current-password'
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className='input pr-12'
+                    placeholder='Enter your password'
+                  />
+                  <button
+                    type='button'
+                    onClick={() => setShowPassword(!showPassword)}
+                    className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+                  >
+                    {showPassword ? (
+                      <EyeOff className='w-5 h-5' />
+                    ) : (
+                      <Eye className='w-5 h-5' />
+                    )}
+                  </button>
                 </div>
-              ) : (
-                'Sign in'
-              )}
-            </ButtonPress>
-          </form>
+              </div>
+
+              <div className='flex justify-end'>
+                <Link
+                  href='/auth/forgot-password'
+                  className='text-sm text-green-600 hover:text-green-500 font-medium'
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
+              <ButtonPress
+                type='submit'
+                disabled={loading}
+                className='w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                {loading ? (
+                  <div className='flex items-center justify-center'>
+                    <div className='relative w-5 h-5 mr-2'>
+                      <div className='absolute inset-0 w-5 h-5 border-2 border-white border-opacity-25 rounded-full'></div>
+                      <div className='absolute inset-0 w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
+                    </div>
+                    Signing in...
+                  </div>
+                ) : (
+                  'Sign in'
+                )}
+              </ButtonPress>
+            </form>
+          )}
 
           {/* Footer */}
           <div className='mt-8 text-center'>
@@ -328,6 +367,15 @@ function SignInForm() {
               </Link>
             </p>
           </div>
+
+          {/* WhatsApp Feature Highlight */}
+          {loginMethod === 'whatsapp' && (
+            <div className='mt-6 text-center'>
+              <p className='text-xs text-gray-500'>
+                🚀 <strong>New!</strong> Login instantly with your phone number. No passwords to remember!
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
