@@ -13,7 +13,7 @@ import {
   XCircle,
   Info,
   Mail,
-  MessageCircle
+  MessageCircle,
 } from 'lucide-react';
 import { ButtonPress } from '@/components/PageTransition';
 import { Suspense } from 'react';
@@ -21,7 +21,9 @@ import WhatsAppLogin from '@/components/auth/WhatsAppLogin';
 
 function SignInForm() {
   const { data: session, status } = useSession();
-  const [loginMethod, setLoginMethod] = useState<'whatsapp' | 'email'>('whatsapp');
+  const [loginMethod, setLoginMethod] = useState<'whatsapp' | 'email'>(
+    'whatsapp'
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -188,7 +190,7 @@ function SignInForm() {
         </ButtonPress>
       </div>
 
-      <div className='px-4 pt-8 pb-8'>
+      <div className='relative z-10 px-4 pt-8 pb-8'>
         <div className='max-w-md mx-auto'>
           {/* Logo and Title */}
           <div className='text-center mb-8'>
@@ -224,21 +226,10 @@ function SignInForm() {
             </div>
           )}
 
-          {/* Debug Section */}
-          <div className='mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm'>
-            <p>Debug: Login Method = {loginMethod}</p>
-            <button 
-              onClick={() => alert('Toggle click works!')}
-              className='mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs'
-            >
-              Test Toggle Click
-            </button>
-          </div>
-
           {/* Login Method Toggle */}
           <div className='flex bg-gray-100 rounded-lg p-1 mb-6'>
             <button
-              type="button"
+              type='button'
               onClick={() => setLoginMethod('whatsapp')}
               className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md transition-all duration-200 ${
                 loginMethod === 'whatsapp'
@@ -250,7 +241,7 @@ function SignInForm() {
               WhatsApp Login
             </button>
             <button
-              type="button"
+              type='button'
               onClick={() => setLoginMethod('email')}
               className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md transition-all duration-200 ${
                 loginMethod === 'email'
@@ -266,9 +257,7 @@ function SignInForm() {
           {/* WhatsApp Login */}
           {loginMethod === 'whatsapp' && (
             <div className='mb-6'>
-              <WhatsAppLogin 
-                onSuccess={handleWhatsAppSuccess}
-              />
+              <WhatsAppLogin onSuccess={handleWhatsAppSuccess} />
             </div>
           )}
 
@@ -374,7 +363,8 @@ function SignInForm() {
           {loginMethod === 'whatsapp' && (
             <div className='mt-6 text-center'>
               <p className='text-xs text-gray-500'>
-                🚀 <strong>New!</strong> Login instantly with your phone number. No passwords to remember!
+                🚀 <strong>New!</strong> Login instantly with your phone number.
+                No passwords to remember!
               </p>
             </div>
           )}
