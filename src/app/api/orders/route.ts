@@ -282,9 +282,26 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Send multi-channel order confirmation (WhatsApp + Email)
+    try {
+      const { sendOrderConfirmationNotification } = await import('@/lib/notifications')
+      const confirmationResult = await sendOrderConfirmationNotification({
+        ...order,
+        user: user,
+        orderItems: order.orderItems
+      })
+      console.log('✅ Multi-channel order confirmation sent for order:', order.orderNumber, {
+        whatsapp: confirmationResult.watiNotification?.success || false,
+        email: confirmationResult.emailNotification?.success || false
+      })
+    } catch (error) {
+      console.error('❌ Failed to send order confirmation:', error)
+      // Don't fail the order creation if notifications fail
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Order placed successfully',
+      message: 'Order placed successfully! You will receive updates via email, WhatsApp, and push notifications.',
       order: {
         id: order.id,
         orderNumber: order.orderNumber,

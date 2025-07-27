@@ -1,0 +1,35 @@
+{
+  "orderConfirmation": {
+    "name": "Order Confirmation",
+    "message": "🍽️ *Order Confirmed!*\n\nHi {{customerName}}! Your meal order *#{{orderNumber}}* has been received and is being reviewed by our kitchen team.\n\n📝 *Order Details:*\n• Items: {{items}}\n• Total: ₹{{totalAmount}}\n• Date: {{orderDate}}\n\nWe'll notify you once approved! 👨‍🍳\n\nView your order: https://hostel.aieraa.com/student/orders/{{orderNumber}}\n\n_Aieraa Food Service_",
+    "parameters": [
+      "customerName",
+      "orderNumber",
+      "items",
+      "totalAmount",
+      "orderDate"
+    ]
+  },
+  "statusUpdate": {
+    "name": "Order Status Update",
+    "message": "📋 *Order Status Update*\n\nHi {{customerName}}! Your order *#{{orderNumber}}* status: *{{status}}*\n\n{{statusMessage}}\n\n💰 Total: ₹{{totalAmount}}\n🕐 Updated: {{updatedTime}}\n\nView details: https://hostel.aieraa.com/student/orders/{{orderNumber}}\n\n_Aieraa Food Service_",
+    "parameters": [
+      "customerName",
+      "orderNumber",
+      "status",
+      "statusMessage",
+      "totalAmount",
+      "updatedTime"
+    ]
+  },
+  "orderReady": {
+    "name": "Order Ready for Pickup",
+    "message": "🎉 *Great news {{customerName}}!*\n\nYour order *#{{orderNumber}}* is ready for pickup!\n\n📍 *Pickup Instructions:*\n• Go to Main Hostel Counter\n• Show this message or your QR code\n• Provide order number: *#{{orderNumber}}*\n\n💰 Total: ₹{{totalAmount}}\n⏰ Pickup by: {{pickupTime}}\n\nGet directions: https://maps.google.com/your-location\nCall counter: +919344141424\n\n_Enjoy your meal! 😊_",
+    "parameters": [
+      "customerName",
+      "orderNumber",
+      "totalAmount",
+      "pickupTime"
+    ]
+  }
+}

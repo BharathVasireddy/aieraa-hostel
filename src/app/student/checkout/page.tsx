@@ -83,13 +83,7 @@ export default function CheckoutPage() {
     void fetchCutoffTime();
   }, []);
 
-  // Update time every minute for real-time countdown
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(getVietnamTime());
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
+  // Time is updated through the countdown calculation automatically
 
   // Get countdown for selected date - only if cutoffHours is loaded
   const countdown = useMemo(() => {

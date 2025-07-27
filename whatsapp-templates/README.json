@@ -1,0 +1,29 @@
+{
+  "total_templates": 3,
+  "templates": [
+    {
+      "name": "aieraa_order_confirmation",
+      "category": "TRANSACTIONAL",
+      "language": "en",
+      "file": "order_confirmation.json"
+    },
+    {
+      "name": "aieraa_order_status",
+      "category": "TRANSACTIONAL",
+      "language": "en",
+      "file": "order_status_update.json"
+    },
+    {
+      "name": "aieraa_order_ready",
+      "category": "TRANSACTIONAL",
+      "language": "en",
+      "file": "order_ready_pickup.json"
+    }
+  ],
+  "next_steps": [
+    "1. Review each template JSON file",
+    "2. Submit templates via Meta Business Manager",
+    "3. Wait for approval (usually 24-48 hours)",
+    "4. Test with approved templates"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "aieraa_order_status",
+  "language": "en",
+  "category": "TRANSACTIONAL",
+  "components": [
+    {
+      "type": "HEADER",
+      "format": "TEXT",
+      "text": "📋 Order Status Update"
+    },
+    {
+      "type": "BODY",
+      "text": "Hi {{1}}! Your order #{{2}} status: *{{3}}*\\n\\n{{4}}\\n\\nTotal: ₫{{5}}\\nUpdated: {{6}}"
+    },
+    {
+      "type": "FOOTER",
+      "text": "Aieraa Food Service"
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "URL",
+          "text": "View Details",
+          "url": "https://your-domain.com/student/orders/{{7}}"
+        }
+      ]
+    }
+  ]
+}

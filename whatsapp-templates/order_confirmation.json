@@ -1,0 +1,38 @@
+{
+  "name": "aieraa_food_order_confirmation",
+  "language": "english",
+  "category": "utility",
+  "template_name": "aieraa_food_order_confirmation",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Hi *{{1}}!*\n\nYour meal order #{{2}} has been received and is being reviewed by your manager.\n\n*📝 Order Details:*\nItems: {{3}}\nTotal: ₹{{4}}\nDate: {{5}}\n\nWe'll notify you once approved! 👨‍🍳"
+    },
+    {
+      "type": "FOOTER",
+      "text": "Reach out to your manager with order number for help"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "student_name",
+      "description": "Name of the student placing the order"
+    },
+    {
+      "name": "order_number", 
+      "description": "Unique order identifier"
+    },
+    {
+      "name": "items_list",
+      "description": "Comma-separated list of ordered items with quantities"
+    },
+    {
+      "name": "total_amount",
+      "description": "Total order amount in rupees"
+    },
+    {
+      "name": "order_date",
+      "description": "Date when the order was placed"
+    }
+  ]
+}

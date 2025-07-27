@@ -1,0 +1,34 @@
+{
+  "name": "aieraa_order_ready",
+  "language": "en",
+  "category": "TRANSACTIONAL",
+  "components": [
+    {
+      "type": "HEADER",
+      "format": "IMAGE"
+    },
+    {
+      "type": "BODY",
+      "text": "🎉 Great news {{1}}! Your order #{{2}} is ready for pickup!\\n\\n📍 *Pickup Instructions:*\\n• Go to Main Hostel Counter\\n• Show the QR code above ☝️\\n• Provide order number: #{{2}}\\n\\nTotal: ₫{{3}}\\nPickup by: {{4}}"
+    },
+    {
+      "type": "FOOTER",
+      "text": "Enjoy your meal! 😊"
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "URL",
+          "text": "Get Directions",
+          "url": "https://maps.google.com/your-location"
+        },
+        {
+          "type": "PHONE_NUMBER",
+          "text": "Call Counter",
+          "phone_number": "+84901234567"
+        }
+      ]
+    }
+  ]
+}
