@@ -4,30 +4,16 @@
 import { prisma } from './prisma'
 
 // WATI Configuration
-const WATI_API_URL = process.env.WATI_API_URL || 'https://live-mt-server.wati.io/320431'
-const WATI_ACCESS_TOKEN = process.env.WATI_ACCESS_TOKEN || ''
-const TEMPLATE_NAMESPACE = process.env.WATI_TEMPLATE_NAMESPACE || 'bc58e840_9936_490d_8bf4_8935dc18adf9'
+const WATI_API_URL = process.env.WATI_API_URL ?? 'https://live-mt-server.wati.io/320631'
+const WATI_ACCESS_TOKEN = process.env.WATI_ACCESS_TOKEN ?? ''
+const TEMPLATE_NAMESPACE = process.env.WATI_TEMPLATE_NAMESPACE ?? 'bc58e840_9936_490d_8bf4_8935dc18adf9'
 
 // Login OTP Template Configuration
 const LOGIN_OTP_TEMPLATE = 'aieraa_food_login_otp'
 const OTP_EXPIRY_MINUTES = 10
 const MAX_OTP_ATTEMPTS = 3
 
-interface OTPRequest {
-  phone: string
-  otp: string
-  expiresAt: Date
-  attempts: number
-}
 
-interface WatiTemplateRequest {
-  phone: string
-  template_name: string
-  namespace: string
-  language: string
-  broadcast_name: string
-  parameters: Array<{ name: string, value: string }>
-}
 
 class WhatsAppOTPService {
   /**
@@ -98,12 +84,12 @@ class WhatsAppOTPService {
       const result = await response.json()
 
       if (!response.ok || result.result === false) {
-        throw new Error(`WATI Template API error: ${result.info || result.message || response.statusText}`)
+        throw new Error(`WATI Template API error: ${result.info ?? result.message ?? response.statusText}`)
       }
 
       return {
         success: true,
-        messageId: result.messageId || result.id || 'otp_sent',
+        messageId: result.messageId ?? result.id ?? 'otp_sent',
       }
     } catch (error) {
       console.error('WhatsApp OTP send error:', error)
@@ -273,31 +259,23 @@ class WhatsAppOTPService {
       })
 
       // Check if user exists with this phone number
-      let user = await prisma.user.findFirst({
+      const user = await prisma.user.findFirst({
         where: { phone: formattedPhone }
       })
 
-      let isNewUser = false
-
       if (!user) {
-        // Create new user with phone number
-        const phoneWithoutCountryCode = formattedPhone.replace(/^91/, '')
-        user = await prisma.user.create({
-          data: {
-            phone: formattedPhone,
-            name: `User ${phoneWithoutCountryCode.slice(-4)}`, // Default name
-            role: 'STUDENT',
-            verified: true,
-            // We'll need to collect other details after login
-          }
-        })
-        isNewUser = true
-      } else if (!user.verified) {
-        // Verify existing user
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { verified: true }
-        })
+        return {
+          success: false,
+          error: 'Phone number not registered. Please sign up first.'
+        }
+      }
+
+      // Check if user is approved
+      if (user.status !== 'APPROVED') {
+        return {
+          success: false,
+          error: 'Your account is pending approval. Please contact your university administrator.'
+        }
       }
 
       // Clean up OTP record
@@ -307,8 +285,7 @@ class WhatsAppOTPService {
 
       return {
         success: true,
-        user,
-        isNewUser
+        user
       }
     } catch (error) {
       console.error('Verify OTP error:', error)

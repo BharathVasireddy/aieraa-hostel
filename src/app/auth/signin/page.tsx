@@ -268,7 +268,6 @@ function SignInForm() {
             <div className='mb-6'>
               <WhatsAppLogin 
                 onSuccess={handleWhatsAppSuccess}
-                onError={handleWhatsAppError}
               />
             </div>
           )}
@@ -361,7 +360,7 @@ function SignInForm() {
           {/* Footer */}
           <div className='mt-8 text-center'>
             <p className='text-gray-600'>
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link
                 href='/auth/signup'
                 className='text-green-600 hover:text-green-500 font-medium'

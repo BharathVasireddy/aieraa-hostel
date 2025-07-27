@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         phone: result.user?.phone,
         role: result.user?.role 
       },
-      process.env.NEXTAUTH_SECRET || 'fallback-secret',
+      process.env.NEXTAUTH_SECRET ?? 'fallback-secret',
       { expiresIn: '7d' }
     )
 
@@ -66,8 +66,7 @@ export async function POST(request: NextRequest) {
         role: result.user?.role,
         universityId: result.user?.universityId
       },
-      isNewUser: result.isNewUser,
-      redirectTo: result.isNewUser ? '/student/profile' : '/student'
+      redirectTo: '/student'
     })
 
     // Set JWT token as HTTP-only cookie
@@ -81,8 +80,7 @@ export async function POST(request: NextRequest) {
 
     return response
 
-  } catch (error) {
-    console.error('Verify OTP API error:', error)
+  } catch {
     return NextResponse.json(
       { 
         success: false, 

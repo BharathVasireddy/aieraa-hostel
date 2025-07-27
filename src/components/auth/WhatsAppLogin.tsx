@@ -1,15 +1,14 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { MessageCircle, Phone, Shield, Clock, CheckCircle } from 'lucide-react'
+import { MessageCircle, Phone, Clock, CheckCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface WhatsAppLoginProps {
-  onSuccess?: (user: any) => void
-  onError?: (error: string) => void
+  onSuccess?: (user: unknown) => void
 }
 
-export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps) {
+export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
   const [step, setStep] = useState<'phone' | 'otp'>('phone')
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
@@ -56,9 +55,9 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
         setSuccess('OTP sent to your WhatsApp! Check your messages.')
         startCountdown()
       } else {
-        setError(data.error || 'Failed to send OTP')
+        setError(data.error ?? 'Failed to send OTP')
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.')
     } finally {
       setLoading(false)
@@ -136,15 +135,15 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
         
         // Redirect based on user status
         setTimeout(() => {
-          router.push(data.redirectTo || '/student')
+          router.push(data.redirectTo ?? '/student')
         }, 1000)
       } else {
-        setError(data.error || 'Invalid OTP')
+        setError(data.error ?? 'Invalid OTP')
         setOtp('')
         // Focus first OTP input
         otpInputs.current[0]?.focus()
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.')
     } finally {
       setLoading(false)
@@ -154,7 +153,7 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
   // Resend OTP
   const handleResendOTP = () => {
     if (canResend) {
-      handleSendOTP()
+      void handleSendOTP()
     }
   }
 
@@ -170,26 +169,10 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
 
   return (
     <div className="w-full max-w-md mx-auto">
-      {/* Debug Section */}
-      <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
-        <p>Debug: Phone = "{phone}" (length: {phone.length})</p>
-        <p>Debug: Valid = {isPhoneValid ? 'Yes' : 'No'}</p>
-        <p>Debug: Loading = {loading ? 'Yes' : 'No'}</p>
-        <p>Debug: Step = {step}</p>
-        <button 
-          onClick={() => alert('Click works!')}
-          className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs"
-        >
-          Test Click
-        </button>
-      </div>
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
-          <div className="relative">
-            <MessageCircle className="h-12 w-12 text-green-600" />
-            <Shield className="h-5 w-5 text-blue-600 absolute -top-1 -right-1 bg-white rounded-full p-0.5" />
-          </div>
+          <MessageCircle className="h-12 w-12 text-green-600" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
           Login with WhatsApp
@@ -269,7 +252,7 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
               {[0, 1, 2, 3, 4, 5].map((index) => (
                 <input
                   key={index}
-                  ref={(el) => (otpInputs.current[index] = el)}
+                  ref={(el) => { otpInputs.current[index] = el; }}
                   type="tel"
                   maxLength={1}
                   value={otp[index] || ''}
@@ -295,7 +278,7 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
                 disabled={!canResend || loading}
                 className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400"
               >
-                Didn't receive code? Resend OTP
+                Didn&apos;t receive code? Resend OTP
               </button>
             )}
           </div>
@@ -311,7 +294,7 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
                 Verifying...
               </div>
             ) : (
-              'Verify & Login'
+              'Verify &amp; Login'
             )}
           </button>
         </div>
@@ -333,16 +316,7 @@ export default function WhatsAppLogin({ onSuccess, onError }: WhatsAppLoginProps
         </div>
       )}
 
-      {/* Security Note */}
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex items-start">
-          <Shield className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
-          <div className="text-sm text-blue-700">
-            <p className="font-medium mb-1">Secure & Private</p>
-            <p>Your phone number is encrypted and used only for authentication. We never spam or share your contact details.</p>
-          </div>
-        </div>
-      </div>
+
     </div>
   )
 } 
