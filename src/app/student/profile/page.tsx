@@ -34,7 +34,7 @@ export default function StudentProfile() {
   useEffect(() => {
     // Only fetch when session user ID is available and we haven't fetched yet
     if (session?.user?.id && !userData) {
-      fetchUserData();
+      void fetchUserData();
     }
   }, [session?.user?.id]); // Reduced dependencies
 
@@ -247,6 +247,12 @@ export default function StudentProfile() {
                 {userData?.university?.name || 'University Name'}
               </p>
             </div>
+            <button
+              onClick={() => router.push('/student/profile/edit')}
+              className='px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium'
+            >
+              Edit Profile
+            </button>
           </div>
         </div>
 

@@ -24,28 +24,44 @@ class WhatsAppOTPService {
   }
 
   /**
-   * Format phone number for WhatsApp (ensure 91 country code for India)
+   * Format phone number for WhatsApp (ensure proper country code)
    */
   private formatPhoneNumber(phone: string): string {
     // Remove all non-digits
     let cleanPhone = phone.replace(/\D/g, '')
     
-    // Remove leading +91 if present
-    if (cleanPhone.startsWith('91')) {
-      cleanPhone = cleanPhone.substring(2)
+    // If already has country code, return as is
+    if (cleanPhone.startsWith('91') || cleanPhone.startsWith('84')) {
+      return cleanPhone
     }
     
-    // Add country code
-    return '91' + cleanPhone
+    // Determine country code based on phone pattern
+    // Indian numbers start with 6-9 and are 10 digits
+    if (/^[6-9]\d{9}$/.test(cleanPhone)) {
+      return `91${cleanPhone}`
+    }
+    
+    // Vietnamese numbers start with 1-9 and are 9 digits  
+    if (/^[1-9]\d{8}$/.test(cleanPhone)) {
+      return `84${cleanPhone}`
+    }
+    
+    // Default to Indian format if unclear
+    return `91${cleanPhone}`
   }
 
   /**
-   * Validate Indian phone number format
+   * Validate phone number format (Indian +91 or Vietnamese +84)
    */
-  private isValidIndianPhone(phone: string): boolean {
+  private isValidPhone(phone: string): boolean {
     const cleanPhone = phone.replace(/\D/g, '')
-    const phoneRegex = /^[6-9]\d{9}$/
-    return phoneRegex.test(cleanPhone.replace(/^91/, ''))
+    
+    // Indian phone: +91 followed by 10 digits starting with 6-9
+    const indianRegex = /^91[6-9]\d{9}$/
+    // Vietnamese phone: +84 followed by 9 digits starting with 1-9
+    const vietnameseRegex = /^84[1-9]\d{8}$/
+    
+    return indianRegex.test(cleanPhone) || vietnameseRegex.test(cleanPhone)
   }
 
   /**
@@ -106,10 +122,10 @@ class WhatsAppOTPService {
   async sendOTP(phone: string): Promise<{ success: boolean; error?: string; expiresAt?: Date }> {
     try {
       // Validate phone number
-      if (!this.isValidIndianPhone(phone)) {
+      if (!this.isValidPhone(phone)) {
         return {
           success: false,
-          error: 'Invalid phone number. Please enter a valid Indian mobile number.'
+          error: 'Invalid phone number. Please enter a valid Indian (+91) or Vietnamese (+84) mobile number.'
         }
       }
 

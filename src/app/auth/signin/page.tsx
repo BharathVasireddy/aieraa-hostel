@@ -226,44 +226,39 @@ function SignInForm() {
             </div>
           )}
 
-          {/* Login Method Toggle */}
-          <div className='flex bg-gray-100 rounded-lg p-1 mb-6'>
-            <button
-              type='button'
-              onClick={() => setLoginMethod('whatsapp')}
-              className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md transition-all duration-200 ${
-                loginMethod === 'whatsapp'
-                  ? 'bg-white text-green-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <MessageCircle className='w-4 h-4 mr-2' />
-              WhatsApp Login
-            </button>
-            <button
-              type='button'
-              onClick={() => setLoginMethod('email')}
-              className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md transition-all duration-200 ${
-                loginMethod === 'email'
-                  ? 'bg-white text-gray-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Mail className='w-4 h-4 mr-2' />
-              Email & Password
-            </button>
-          </div>
-
-          {/* WhatsApp Login */}
+          {/* WhatsApp Login - Primary Method */}
           {loginMethod === 'whatsapp' && (
             <div className='mb-6'>
               <WhatsAppLogin onSuccess={handleWhatsAppSuccess} />
+              
+              {/* Switch to Email Login */}
+              <div className='mt-4 text-center'>
+                <button
+                  type='button'
+                  onClick={() => setLoginMethod('email')}
+                  className='text-sm text-gray-600 hover:text-gray-900 underline'
+                >
+                  Login with email and password instead
+                </button>
+              </div>
             </div>
           )}
 
           {/* Email Login Form */}
           {loginMethod === 'email' && (
-            <form onSubmit={handleEmailSubmit} className='space-y-6'>
+            <div>
+              {/* Back to WhatsApp Login */}
+              <div className='mb-4 text-center'>
+                <button
+                  type='button'
+                  onClick={() => setLoginMethod('whatsapp')}
+                  className='text-sm text-gray-600 hover:text-gray-900 underline'
+                >
+                  ← Back to WhatsApp login
+                </button>
+              </div>
+              
+              <form onSubmit={handleEmailSubmit} className='space-y-6'>
               <div>
                 <label
                   htmlFor='email'
@@ -344,6 +339,7 @@ function SignInForm() {
                 )}
               </ButtonPress>
             </form>
+            </div>
           )}
 
           {/* Footer */}
@@ -359,15 +355,7 @@ function SignInForm() {
             </p>
           </div>
 
-          {/* WhatsApp Feature Highlight */}
-          {loginMethod === 'whatsapp' && (
-            <div className='mt-6 text-center'>
-              <p className='text-xs text-gray-500'>
-                🚀 <strong>New!</strong> Login instantly with your phone number.
-                No passwords to remember!
-              </p>
-            </div>
-          )}
+
         </div>
       </div>
     </div>

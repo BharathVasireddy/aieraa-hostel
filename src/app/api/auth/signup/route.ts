@@ -57,14 +57,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    // Check if user already exists with this email
+    const existingUserByEmail = await prisma.user.findUnique({
       where: { email }
     })
 
-    if (existingUser) {
+    if (existingUserByEmail) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
+        { status: 400 }
+      )
+    }
+
+    // Check if user already exists with this phone number
+    const existingUserByPhone = await prisma.user.findUnique({
+      where: { phone }
+    })
+
+    if (existingUserByPhone) {
+      return NextResponse.json(
+        { error: 'User with this phone number already exists' },
         { status: 400 }
       )
     }

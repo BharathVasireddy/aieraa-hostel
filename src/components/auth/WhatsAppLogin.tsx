@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { MessageCircle, Phone, Clock, CheckCircle } from 'lucide-react'
+import { MessageCircle, Clock, CheckCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface WhatsAppLoginProps {
@@ -11,6 +11,7 @@ interface WhatsAppLoginProps {
 export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
   const [step, setStep] = useState<'phone' | 'otp'>('phone')
   const [phone, setPhone] = useState('')
+  const [countryCode, setCountryCode] = useState('+91')
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -21,8 +22,10 @@ export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
   const otpInputs = useRef<(HTMLInputElement | null)[]>([])
   const router = useRouter()
 
-  // Check if phone number is valid (10 digits)
-  const isPhoneValid = phone.length === 10 && /^\d{10}$/.test(phone)
+  // Check if phone number is valid based on country code
+  const isPhoneValid = countryCode === '+91' 
+    ? phone.length === 10 && /^[6-9]\d{9}$/.test(phone)
+    : phone.length === 9 && /^[1-9]\d{8}$/.test(phone)
 
   // Handle phone number input
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,7 +37,10 @@ export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
   // Send OTP
   const handleSendOTP = async () => {
     if (!isPhoneValid) {
-      setError('Please enter a valid 10-digit mobile number')
+      const errorMsg = countryCode === '+91' 
+        ? 'Please enter a valid 10-digit Indian mobile number'
+        : 'Please enter a valid 9-digit Vietnamese mobile number'
+      setError(errorMsg)
       return
     }
 
@@ -42,10 +48,11 @@ export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
     setError('')
 
     try {
+      const fullPhoneNumber = `${countryCode}${phone}`
       const response = await fetch('/api/auth/whatsapp/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone: fullPhoneNumber })
       })
 
       const data = await response.json()
@@ -118,11 +125,12 @@ export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
     setError('')
 
     try {
+      const fullPhoneNumber = `${countryCode}${phone}`
       const response = await fetch('/api/auth/whatsapp/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          phone, 
+          phone: fullPhoneNumber, 
           otp: otpCode 
         })
       })
@@ -192,21 +200,30 @@ export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
               Mobile Number
             </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 text-sm">+91</span>
-              </div>
+            <div className="flex space-x-2">
+              <select
+                value={countryCode}
+                onChange={(e) => {
+                  setCountryCode(e.target.value)
+                  setPhone('')
+                  setError('')
+                }}
+                className="px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+                disabled={loading}
+              >
+                <option value="+91">🇮🇳 +91</option>
+                <option value="+84">🇻🇳 +84</option>
+              </select>
               <input
                 id="phone"
                 type="tel"
                 value={phone}
                 onChange={handlePhoneChange}
-                placeholder="8885333635"
-                className="block w-full pl-12 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg"
-                maxLength={10}
+                placeholder={countryCode === '+91' ? "8885333635" : "123456789"}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg"
+                maxLength={countryCode === '+91' ? 10 : 9}
                 disabled={loading}
               />
-              <Phone className="absolute inset-y-0 right-0 pr-3 flex items-center h-5 w-5 text-gray-400" />
             </div>
           </div>
 
