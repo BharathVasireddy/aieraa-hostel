@@ -1,23 +1,23 @@
-import type { NextAuthOptions } from 'next-auth'
-import CredentialsProvider from 'next-auth/providers/credentials'
-import bcrypt from 'bcryptjs'
-import type { JWT } from 'next-auth/jwt'
-import { prisma, ensureConnection } from './prisma'
-import { UserRole, UserStatus } from '@prisma/client'
+import type { NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import bcrypt from 'bcryptjs';
+import type { JWT } from 'next-auth/jwt';
+import { prisma, ensureConnection } from './prisma';
+import { UserRole, UserStatus } from '@prisma/client';
 
 // Generate a stable secret for development
 const getAuthSecret = () => {
   if (process.env.NEXTAUTH_SECRET) {
-    return process.env.NEXTAUTH_SECRET
+    return process.env.NEXTAUTH_SECRET;
   }
-  
+
   // For development, use a stable secret (must be at least 32 characters)
   if (process.env.NODE_ENV === 'development') {
-    return 'dev-secret-aieraa-hostel-jwt-stable-key-2024-minimum-32-chars'
+    return 'dev-secret-aieraa-hostel-jwt-stable-key-2024-minimum-32-chars';
   }
-  
-  throw new Error('NEXTAUTH_SECRET is required in production')
-}
+
+  throw new Error('NEXTAUTH_SECRET is required in production');
+};
 
 export const authOptions: NextAuthOptions = {
   secret: getAuthSecret(),
@@ -35,21 +35,61 @@ export const authOptions: NextAuthOptions = {
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
+        password: { label: 'Password', type: 'password' },
+        phone: { label: 'Phone', type: 'tel' },
+        otp: { label: 'OTP', type: 'text' },
+        loginType: { label: 'Login Type', type: 'text' },
       },
       async authorize(credentials) {
+        // Handle WhatsApp login
+        if (
+          credentials?.loginType === 'whatsapp' &&
+          credentials?.phone &&
+          credentials?.otp
+        ) {
+          try {
+            // Import WhatsApp OTP service
+            const { default: whatsappOTPService } = await import(
+              '@/lib/whatsapp-otp'
+            );
+
+            const result = await whatsappOTPService.verifyOTP(
+              credentials.phone,
+              credentials.otp
+            );
+
+            if (result.success && result.user) {
+              return {
+                id: result.user.id,
+                email: result.user.email,
+                name: result.user.name,
+                role: result.user.role,
+                status: result.user.status,
+                universityId: result.user.universityId,
+                university: result.user.university?.name || 'Unknown',
+              };
+            }
+
+            return null;
+          } catch (error) {
+            console.error('WhatsApp login error:', error);
+            return null;
+          }
+        }
+
+        // Handle email/password login
         if (!credentials?.email || !credentials?.password) {
-          return null
+          return null;
         }
 
         try {
           // Ensure database connection is healthy
-          await ensureConnection()
-          
+          await ensureConnection();
+
           // OPTIMIZED: Only fetch essential auth fields (no JOINs)
           const user = await prisma.user.findUnique({
             where: {
-              email: credentials.email
+              email: credentials.email,
             },
             select: {
               id: true,
@@ -61,14 +101,14 @@ export const authOptions: NextAuthOptions = {
               universityId: true,
               university: {
                 select: {
-                  name: true
-                }
-              }
-            }
-          })
+                  name: true,
+                },
+              },
+            },
+          });
 
           if (!user) {
-            return null
+            return null;
           }
 
           // Check status before expensive bcrypt operation
@@ -76,32 +116,34 @@ export const authOptions: NextAuthOptions = {
             // Provide specific error messages based on user status
             switch (user.status) {
               case UserStatus.PENDING:
-                throw new Error('ACCOUNT_PENDING_APPROVAL')
+                throw new Error('ACCOUNT_PENDING_APPROVAL');
               case UserStatus.SUSPENDED:
-                throw new Error('ACCOUNT_SUSPENDED')
+                throw new Error('ACCOUNT_SUSPENDED');
               case UserStatus.REJECTED:
-                throw new Error('ACCOUNT_REJECTED')
+                throw new Error('ACCOUNT_REJECTED');
               default:
-                throw new Error('ACCOUNT_NOT_APPROVED')
+                throw new Error('ACCOUNT_NOT_APPROVED');
             }
           }
 
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
-          )
+          );
 
           if (!isPasswordValid) {
-            return null
+            return null;
           }
 
           // OPTIMIZED: Update lastLoginAt asynchronously (non-blocking)
-          prisma.user.update({
-            where: { id: user.id },
-            data: { lastLoginAt: new Date() }
-          }).catch(error => {
-            // Don't fail auth for this non-critical update
-          })
+          prisma.user
+            .update({
+              where: { id: user.id },
+              data: { lastLoginAt: new Date() },
+            })
+            .catch(error => {
+              // Don't fail auth for this non-critical update
+            });
 
           const authUser = {
             id: user.id,
@@ -110,38 +152,38 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
             status: user.status,
             universityId: user.universityId,
-            university: user.university?.name || 'Unknown'
-          }
+            university: user.university?.name || 'Unknown',
+          };
 
-          return authUser
+          return authUser;
         } catch (error: any) {
           // For authentication errors, we want to return null so NextAuth handles it as invalid credentials
           // For status errors, we want to pass the specific error message
-          if (error.message && error.message.startsWith('ACCOUNT_')) {
-            throw error // Re-throw the custom error so NextAuth can handle it
+          if (error.message?.startsWith('ACCOUNT_')) {
+            throw error; // Re-throw the custom error so NextAuth can handle it
           }
-          
-          return null
+
+          return null;
         }
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
       // This callback runs after authorize and can be used to handle custom logic
-      return true
+      return true;
     },
     async jwt({ token, user, trigger }) {
       try {
         if (user) {
           // Set all user data in token
-          token.id = user.id
-          token.role = user.role
-          token.status = user.status
-          token.universityId = user.universityId
-          token.university = user.university || 'Unknown'
-          token.iat = Math.floor(Date.now() / 1000)
-          token.exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+          token.id = user.id;
+          token.role = user.role;
+          token.status = user.status;
+          token.universityId = user.universityId;
+          token.university = user.university || 'Unknown';
+          token.iat = Math.floor(Date.now() / 1000);
+          token.exp = Math.floor(Date.now() / 1000) + 24 * 60 * 60; // 24 hours
         }
 
         // Validate token structure
@@ -153,12 +195,12 @@ export const authOptions: NextAuthOptions = {
             role: token.role || 'STUDENT',
             status: token.status || 'INACTIVE',
             universityId: token.universityId || null,
-            university: token.university || 'Unknown'
-          } as JWT
+            university: token.university || 'Unknown',
+          } as JWT;
         }
 
         // Token validated successfully for middleware use
-        return token
+        return token;
       } catch (error) {
         // Return a minimal token instead of null
         return {
@@ -167,17 +209,17 @@ export const authOptions: NextAuthOptions = {
           role: token.role || 'STUDENT',
           status: token.status || 'INACTIVE',
           universityId: token.universityId || null,
-          university: token.university || 'Unknown'
-        } as JWT
+          university: token.university || 'Unknown',
+        } as JWT;
       }
     },
-    
+
     async session({ session, token }) {
       try {
         // Processing token for session creation
-        
-        if (!token || !token.id || !token.role) {
-          throw new Error('Invalid session token')
+
+        if (!token?.id || !token.role) {
+          throw new Error('Invalid session token');
         }
 
         // Build complete session user object
@@ -189,11 +231,11 @@ export const authOptions: NextAuthOptions = {
           status: token.status as UserStatus,
           universityId: token.universityId as string,
           university: token.university as string,
-          image: token.picture as string
-        }
+          image: token.picture as string,
+        };
 
         // Session created successfully
-        return session
+        return session;
       } catch (error) {
         // Return a minimal session with default user structure
         return {
@@ -206,25 +248,25 @@ export const authOptions: NextAuthOptions = {
             status: 'INACTIVE' as UserStatus,
             universityId: 'invalid',
             university: 'Unknown',
-            image: undefined
+            image: undefined,
           },
-          expires: new Date(0).toISOString() // Expire immediately
-        }
+          expires: new Date(0).toISOString(), // Expire immediately
+        };
       }
-    }
+    },
   },
   pages: {
     signIn: '/auth/signin',
-    error: '/auth/signin'
+    error: '/auth/signin',
   },
   events: {
     async signOut({ token }) {
       // Clear any server-side session data
-      console.log('User signed out:', token?.id)
+      console.log('User signed out:', token?.id);
     },
     async session({ session, token }) {
       // Session accessed - no action needed
-    }
+    },
   },
-  debug: false // Disable debug in production
-} 
+  debug: false, // Disable debug in production
+};

@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { MessageCircle, Clock, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 
 interface WhatsAppLoginProps {
   onSuccess?: (user: unknown) => void;
@@ -91,7 +92,9 @@ export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
 
   // Handle OTP input
   const handleOTPChange = (index: number, value: string) => {
-    if (value.length > 1) {return;}
+    if (value.length > 1) {
+      return;
+    }
 
     const newOTP = otp.split('');
     newOTP[index] = value;
@@ -128,24 +131,26 @@ export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
 
     try {
       const fullPhoneNumber = `${countryCode}${phone}`;
-      const response = await fetch('/api/auth/whatsapp/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: fullPhoneNumber,
-          otp: otpCode,
-        }),
+
+      // Use NextAuth signIn directly for proper session creation
+      const result = await signIn('credentials', {
+        loginType: 'whatsapp',
+        phone: fullPhoneNumber,
+        otp: otpCode,
+        redirect: false, // Don't redirect automatically, we'll handle it
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        onSuccess?.(data.user);
-
-        // Redirect immediately to dashboard
-        router.push(data.redirectTo ?? '/student');
+      if (result?.ok) {
+        // Successful login - redirect to dashboard
+        router.push('/student');
+        router.refresh(); // Refresh to update session
       } else {
-        setError(data.error ?? 'Invalid OTP');
+        // Handle different error types
+        if (result?.error === 'CredentialsSignin') {
+          setError('Invalid OTP or phone number not registered.');
+        } else {
+          setError('Login failed. Please try again.');
+        }
         setOtp('');
         // Focus first OTP input
         otpInputs.current[0]?.focus();
