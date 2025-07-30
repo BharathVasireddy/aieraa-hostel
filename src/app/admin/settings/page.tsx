@@ -28,7 +28,7 @@ export default function ManagerSettings() {
 
   useEffect(() => {
     if (session?.user) {
-      fetchStats()
+      void fetchStats()
     }
   }, [session])
 

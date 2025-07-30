@@ -38,7 +38,7 @@ export default function PromotionalSlider({ universityId }: PromotionalSliderPro
     }
 
     if (universityId) {
-      fetchBanners()
+      void fetchBanners()
     }
   }, [universityId])
 

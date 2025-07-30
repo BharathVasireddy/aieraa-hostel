@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       controller.enqueue(encoder.encode(`data: ${welcomeMessage}\n\n`))
       
       // Send initial data based on user role
-      sendInitialData(controller, user, encoder)
+      void sendInitialData(controller, user, encoder)
       
       // Set up periodic heartbeat to keep connection alive
       const heartbeatInterval = setInterval(() => {

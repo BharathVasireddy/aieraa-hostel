@@ -59,7 +59,7 @@ export default function SuperAdminUniversities() {
       router.push('/admin')
       return
     }
-    fetchUniversities()
+    void fetchUniversities()
   }, [session?.user?.role, includeInactive])
 
   const fetchUniversities = async () => {

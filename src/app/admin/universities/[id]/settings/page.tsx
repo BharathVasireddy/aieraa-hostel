@@ -42,7 +42,7 @@ export default function UniversitySettings() {
 
   useEffect(() => {
     if (params.id) {
-      fetchUniversitySettings()
+      void fetchUniversitySettings()
     }
   }, [params.id])
 

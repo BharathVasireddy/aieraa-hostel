@@ -250,16 +250,16 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (user?.role === 'ADMIN') {
       // Load critical stats first
-      fetchStats();
+      void fetchStats();
 
       // Load secondary data after a short delay
       setTimeout(() => {
-        fetchRecentOrders();
+        void fetchRecentOrders();
       }, 100);
 
       // Load tertiary data after stats are likely loaded
       setTimeout(() => {
-        fetchPopularItems();
+        void fetchPopularItems();
       }, 300);
     }
   }, [user?.role, fetchStats, fetchRecentOrders, fetchPopularItems]);

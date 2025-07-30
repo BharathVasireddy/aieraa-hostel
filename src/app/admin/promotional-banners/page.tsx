@@ -62,7 +62,7 @@ export default function PromotionalBannersPage() {
 
       const data = await response.json()
       if (data.success) {
-        fetchBanners() // Refresh the list
+        void fetchBanners() // Refresh the list
       } else {
         setError(data.error || 'Failed to update banner status')
       }
@@ -82,7 +82,7 @@ export default function PromotionalBannersPage() {
 
       const data = await response.json()
       if (data.success) {
-        fetchBanners() // Refresh the list
+        void fetchBanners() // Refresh the list
       } else {
         setError(data.error || 'Failed to delete banner')
       }
@@ -104,7 +104,7 @@ export default function PromotionalBannersPage() {
 
       const data = await response.json()
       if (data.success) {
-        fetchBanners() // Refresh the list
+        void fetchBanners() // Refresh the list
       } else {
         setError(data.error || 'Failed to update order')
       }

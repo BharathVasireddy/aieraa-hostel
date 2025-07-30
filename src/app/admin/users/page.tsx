@@ -101,7 +101,7 @@ export default function AdminUsers() {
   }, [users, selectedStatusTab, selectedRoleFilter, searchQuery])
 
   useEffect(() => {
-    fetchUsers()
+    void fetchUsers()
     
     // Show role-based header message
     if (session?.data?.user?.role === 'ADMIN') {
@@ -174,15 +174,15 @@ export default function AdminUsers() {
   }
 
   const approveUser = (userId: string) => {
-    updateUserStatus(userId, 'APPROVED')
+    void updateUserStatus(userId, 'APPROVED')
   }
 
   const rejectUser = (userId: string, reason = 'Registration rejected by admin') => {
-    updateUserStatus(userId, 'REJECTED', reason)
+    void updateUserStatus(userId, 'REJECTED', reason)
   }
 
   const suspendUser = (userId: string) => {
-    updateUserStatus(userId, 'SUSPENDED')
+    void updateUserStatus(userId, 'SUSPENDED')
   }
 
   const getStatusIcon = (status: string) => {
@@ -276,7 +276,7 @@ export default function AdminUsers() {
                 </p>
               </div>
               <button
-                onClick={refreshUsers}
+                onClick={() => void refreshUsers()}
                 disabled={refreshing}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >

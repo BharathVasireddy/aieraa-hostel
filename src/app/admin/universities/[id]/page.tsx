@@ -198,9 +198,9 @@ export default function UniversityDetailsPage() {
 
       if (response.ok) {
         console.log('✅ User assigned successfully')
-        fetchUniversity()
+        void fetchUniversity()
         setShowAddStaffModal(false)
-        fetchAvailableUsers()
+        void fetchAvailableUsers()
         setError('') // Clear any previous errors
       } else {
         console.error('❌ Assignment failed:', data.error)
@@ -226,8 +226,8 @@ export default function UniversityDetailsPage() {
       const data = await response.json()
 
       if (response.ok) {
-        fetchUniversity()
-        fetchAvailableUsers()
+        void fetchUniversity()
+        void fetchAvailableUsers()
       } else {
         setError(data.error || 'Failed to remove user')
       }
@@ -256,7 +256,7 @@ export default function UniversityDetailsPage() {
       const data = await response.json()
 
       if (response.ok) {
-        fetchUniversity()
+        void fetchUniversity()
         setShowCreateStaffModal(false)
         setNewStaff({ name: '', email: '', role: 'MANAGER', phone: '', password: '' })
         setError('')
@@ -287,7 +287,7 @@ export default function UniversityDetailsPage() {
 
   // Load university data on mount and when universityId changes
   useEffect(() => {
-    fetchUniversity()
+    void fetchUniversity()
   }, [fetchUniversity])
 
   const managers = university?.users?.filter(user => user.role === 'MANAGER') || []
@@ -365,7 +365,7 @@ export default function UniversityDetailsPage() {
             <button
               onClick={() => {
                 setError('')
-                fetchUniversity()
+                void fetchUniversity()
               }}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
             >
@@ -416,7 +416,7 @@ export default function UniversityDetailsPage() {
                     Cancel
                   </button>
                   <button
-                    onClick={handleUpdateUniversity}
+                    onClick={() => void handleUpdateUniversity()}
                     disabled={saving}
                     className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                   >
@@ -752,7 +752,7 @@ export default function UniversityDetailsPage() {
                   <button
                     onClick={() => {
                       setShowAddStaffModal(true)
-                      fetchAvailableUsers()
+                      void fetchAvailableUsers()
                     }}
                     className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >
@@ -794,7 +794,7 @@ export default function UniversityDetailsPage() {
                           )}
                         </div>
                         <button
-                          onClick={() => handleRemoveUser(manager.id)}
+                          onClick={() => void handleRemoveUser(manager.id)}
                           className="ml-2 p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -832,7 +832,7 @@ export default function UniversityDetailsPage() {
                           )}
                         </div>
                         <button
-                          onClick={() => handleRemoveUser(caterer.id)}
+                          onClick={() => void handleRemoveUser(caterer.id)}
                           className="ml-2 p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -937,7 +937,7 @@ export default function UniversityDetailsPage() {
                             </div>
                             {canAssign ? (
                               <button
-                                onClick={() => handleAssignUser(user.id)}
+                                onClick={() => void handleAssignUser(user.id)}
                                 className="ml-2 px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
                               >
                                 {user.university ? 'Reassign' : 'Assign'}
@@ -1057,7 +1057,7 @@ export default function UniversityDetailsPage() {
                 Cancel
               </button>
               <button
-                onClick={handleCreateStaff}
+                onClick={() => void handleCreateStaff()}
                 disabled={createStaffLoading}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
               >
