@@ -201,8 +201,6 @@ export default function ManagerStudentsPage() {
       } else {
         throw new Error(data.error || 'Failed to update user status');
       }
-    } catch (error) {
-      throw error;
     } finally {
       setUpdating(null);
     }

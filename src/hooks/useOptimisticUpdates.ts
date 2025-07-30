@@ -219,9 +219,6 @@ export function useOptimisticCart() {
       )
 
       return response
-    } catch (error) {
-      // Error handling is done by the optimistic update hook
-      throw error
     }
   }, [cart, cartTotal, cartOptimistic])
 
