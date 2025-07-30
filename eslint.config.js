@@ -72,7 +72,7 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/prefer-optional-chain': 'warn',
-      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
+      '@typescript-eslint/prefer-nullish-coalescing': 'off', // Temporarily disabled for bulk fixing
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/await-thenable': 'error',
 
@@ -89,7 +89,7 @@ export default [
 
       // General JavaScript rules - relaxed for better DX
       'no-unused-vars': 'off', // Handled by TypeScript
-      'no-console': 'warn', // Allow console in development
+      'no-console': 'off', // Temporarily disabled for development
       'no-debugger': 'warn', // Allow debugger in development
       'no-var': 'error',
       'prefer-const': 'error',

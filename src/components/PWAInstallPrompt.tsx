@@ -119,7 +119,7 @@ export default function PWAInstallPrompt() {
             </div>
           </div>
           <button
-            onClick={handleDismiss}
+            onClick={() => void handleDismiss()}
             className='w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors'
           >
             <X className='w-5 h-5 text-gray-600' />
@@ -173,7 +173,7 @@ export default function PWAInstallPrompt() {
           ) : (
             deferredPrompt && (
               <button
-                onClick={handleInstallClick}
+                onClick={() => void handleInstallClick()}
                 className='w-full bg-green-600 text-white py-4 rounded-xl font-medium hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 mb-4'
               >
                 <Download className='w-5 h-5' />
@@ -199,7 +199,7 @@ export default function PWAInstallPrompt() {
 
           {/* Dismiss Button */}
           <button
-            onClick={handleDismiss}
+            onClick={() => void handleDismiss()}
             className='w-full py-3 text-gray-600 text-sm hover:text-gray-800 transition-colors'
           >
             Maybe later

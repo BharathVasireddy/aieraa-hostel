@@ -101,7 +101,7 @@ export default function ManagerHeader({ user }: ManagerHeaderProps) {
                   </button>
 
                   <button
-                    onClick={handleLogout}
+                    onClick={() => void handleLogout()}
                     className='w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 transition-colors'
                   >
                     Sign Out

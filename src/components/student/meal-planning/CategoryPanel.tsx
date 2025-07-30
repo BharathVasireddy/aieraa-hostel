@@ -75,7 +75,7 @@ export default function CategoryPanel({
       {/* Overlay */}
       <div 
         className="fixed inset-0 bg-black bg-opacity-40 z-40"
-        onClick={onClose}
+        onClick={() => void onClose()}
       />
       
       {/* Panel */}
@@ -175,7 +175,7 @@ export default function CategoryPanel({
         {/* Actions */}
         <div className="p-6 border-t border-gray-200 bg-gray-50">
           <button
-            onClick={onConfirm}
+            onClick={() => void onConfirm()}
             disabled={!selectedCategory}
             className={`
               w-full py-4 rounded-xl font-semibold transition-all duration-200

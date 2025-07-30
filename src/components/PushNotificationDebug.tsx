@@ -227,7 +227,7 @@ export default function PushNotificationDebug() {
           <div className="space-y-2">
             {!isSubscribed ? (
               <button
-                onClick={subscribeToNotifications}
+                onClick={() => void subscribeToNotifications()}
                 disabled={loading}
                 className="w-full bg-green-600 text-white py-2 px-3 rounded text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
               >
@@ -246,14 +246,14 @@ export default function PushNotificationDebug() {
             ) : (
               <>
                 <button
-                  onClick={sendTestNotification}
+                  onClick={() => void sendTestNotification()}
                   disabled={loading}
                   className="w-full bg-blue-600 text-white py-2 px-3 rounded text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
                   Send Test Notification
                 </button>
                 <button
-                  onClick={unsubscribeFromNotifications}
+                  onClick={() => void unsubscribeFromNotifications()}
                   disabled={loading}
                   className="w-full bg-red-600 text-white py-2 px-3 rounded text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
                 >

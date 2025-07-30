@@ -69,7 +69,7 @@ const OrderItem = memo<OrderItemProps>(({ order, onClick }) => {
 
   return (
     <div
-      onClick={onClick}
+      onClick={() => void onClick()}
       className='p-4 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0'
     >
       <div className='flex items-center justify-between'>
@@ -156,7 +156,7 @@ const RecentOrdersWidget = memo<RecentOrdersWidgetProps>(
           <div className='flex items-center justify-between'>
             <h3 className='font-semibold text-gray-900'>Recent Orders</h3>
             <button
-              onClick={handleViewAll}
+              onClick={() => void handleViewAll()}
               className='text-sm text-green-600 hover:text-green-700 font-medium'
             >
               View All

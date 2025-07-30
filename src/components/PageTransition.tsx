@@ -68,7 +68,7 @@ export function SlideUpModal({ isOpen, children, onClose }: {
     <>
       <div
         className="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-200"
-        onClick={onClose}
+        onClick={() => void onClose()}
       />
       <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-xl z-50 max-h-96 overflow-hidden transform transition-transform duration-300 translate-y-0">
         {children}

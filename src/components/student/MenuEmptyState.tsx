@@ -24,7 +24,7 @@ export const MenuEmptyState: React.FC<MenuEmptyStateProps> = ({
         title: 'No dishes found',
         description: `We couldn't find any dishes matching "${searchQuery}"`,
         action: onClearSearch ? (
-          <Button variant="primary" onClick={onClearSearch}>
+          <Button variant="primary" onClick={() => void onClearSearch()}>
             Clear Search
           </Button>
         ) : null,
@@ -37,7 +37,7 @@ export const MenuEmptyState: React.FC<MenuEmptyStateProps> = ({
         title: 'No dishes match your filters',
         description: 'Try adjusting your filters to see more options',
         action: onClearFilters ? (
-          <Button variant="primary" onClick={onClearFilters}>
+          <Button variant="primary" onClick={() => void onClearFilters()}>
             Clear All Filters
           </Button>
         ) : null,
@@ -49,7 +49,7 @@ export const MenuEmptyState: React.FC<MenuEmptyStateProps> = ({
       title: 'No dishes available',
       description: 'There are no dishes available for the selected date',
       action: onChangeDate ? (
-        <Button variant="primary" onClick={onChangeDate}>
+        <Button variant="primary" onClick={() => void onChangeDate()}>
           <Calendar className="w-4 h-4 mr-2" />
           Change Date
         </Button>

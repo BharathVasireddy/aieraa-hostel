@@ -162,7 +162,7 @@ export const MenuFilters: React.FC<MenuFiltersProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={clearAllFilters}
+            onClick={() => void clearAllFilters()}
             className="flex-shrink-0 text-error-600 hover:text-error-700 hover:bg-error-50"
           >
             Clear All
@@ -275,7 +275,7 @@ export const MenuFilters: React.FC<MenuFiltersProps> = ({
           <div className="flex justify-between pt-4 border-t border-neutral-200">
             <Button
               variant="ghost"
-              onClick={clearAllFilters}
+              onClick={() => void clearAllFilters()}
               disabled={activeFiltersCount === 0}
             >
               Clear All Filters

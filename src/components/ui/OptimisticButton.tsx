@@ -117,7 +117,7 @@ export const OptimisticButton: React.FC<OptimisticButtonProps> = ({
 
   return (
     <button
-      onClick={handleClick}
+      onClick={() => void handleClick()}
       disabled={isDisabled}
       className={`
         ${baseClasses}

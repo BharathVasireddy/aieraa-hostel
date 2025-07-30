@@ -216,7 +216,7 @@ export default function AdminAnalytics() {
         showNotifications={true}
         rightElement={
           <button
-            onClick={handleRefresh}
+            onClick={() => void handleRefresh()}
             disabled={refreshing}
             className='p-2 text-gray-600 hover:text-gray-900 disabled:opacity-50'
           >

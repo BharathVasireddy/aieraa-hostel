@@ -425,7 +425,7 @@ export default function MenuItemDetailsPage() {
             </h3>
             <div className='space-y-3'>
               <button
-                onClick={toggleFeatured}
+                onClick={() => void toggleFeatured()}
                 disabled={updating}
                 className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg transition-colors ${
                   menuItem.isFeatured
@@ -446,7 +446,7 @@ export default function MenuItemDetailsPage() {
               </button>
 
               <button
-                onClick={toggleItemStatus}
+                onClick={() => void toggleItemStatus()}
                 disabled={updating}
                 className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg transition-colors ${
                   menuItem.isActive

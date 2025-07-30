@@ -118,7 +118,7 @@ const OrderStatusWidget: React.FC<OrderStatusWidgetProps> = ({
           <p className="text-body-sm">Track your meals</p>
         </div>
         <button
-          onClick={handleViewAllOrders}
+          onClick={() => void handleViewAllOrders()}
           className="btn-ghost btn-sm"
         >
           <span>View All</span>

@@ -234,7 +234,7 @@ export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
           </div>
 
           <button
-            onClick={handleSendOTP}
+            onClick={() => void handleSendOTP()}
             disabled={loading || !isPhoneValid}
             className='w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200'
           >
@@ -259,7 +259,7 @@ export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
                 Verification Code
               </label>
               <button
-                onClick={handleBack}
+                onClick={() => void handleBack()}
                 className='text-sm text-blue-600 hover:text-blue-800'
               >
                 Change number
@@ -299,7 +299,7 @@ export default function WhatsAppLogin({ onSuccess }: WhatsAppLoginProps) {
               </div>
             ) : (
               <button
-                onClick={handleResendOTP}
+                onClick={() => void handleResendOTP()}
                 disabled={!canResend || loading}
                 className='text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400'
               >

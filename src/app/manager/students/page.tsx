@@ -265,7 +265,7 @@ export default function ManagerStudentsPage() {
 
           <div className='space-y-3'>
             <button
-              onClick={handleRefreshSession}
+              onClick={() => void handleRefreshSession()}
               className='w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'
             >
               <RefreshCw className='w-4 h-4 mr-2' />
@@ -273,7 +273,7 @@ export default function ManagerStudentsPage() {
             </button>
 
             <button
-              onClick={handleForceLogout}
+              onClick={() => void handleForceLogout()}
               className='w-full flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors'
             >
               <LogOut className='w-4 h-4 mr-2' />

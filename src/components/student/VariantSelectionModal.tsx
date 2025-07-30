@@ -62,7 +62,7 @@ export const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/50 z-[60] animate-fade-in"
-        onClick={onClose}
+        onClick={() => void onClose()}
       />
       
       {/* Modal Container */}
@@ -78,7 +78,7 @@ export const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => void onClose()}
             className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
           >
             <X className="w-5 h-5 text-neutral-500" />
@@ -177,7 +177,7 @@ export const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
           </div>
           
           <Button
-            onClick={handleSelect}
+            onClick={() => void handleSelect()}
             disabled={!selectedVariantId || selectedVariant?.isAvailable === false}
             size="lg"
             className="w-full"

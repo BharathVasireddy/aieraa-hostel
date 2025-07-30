@@ -26,7 +26,7 @@ export default function MobileHeader({
         <div className="flex items-center">
           {showMenu && (
             <button 
-              onClick={onMenuClick}
+              onClick={() => void onMenuClick()}
               className="mr-3 p-2 -ml-2 rounded-lg hover:bg-gray-100"
             >
               <Menu className="h-5 w-5 text-gray-600" />

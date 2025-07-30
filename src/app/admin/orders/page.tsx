@@ -499,7 +499,7 @@ export default function AdminOrders() {
         rightElement={
           <div className='flex items-center space-x-2'>
             <button
-              onClick={handleRefresh}
+              onClick={() => void handleRefresh()}
               disabled={refreshing}
               className='p-2 bg-gray-100 rounded-lg disabled:opacity-50 hover:bg-gray-200 transition-colors'
             >

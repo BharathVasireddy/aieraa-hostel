@@ -75,7 +75,7 @@ function CutoffTimeNotice({ selectedDate }: { selectedDate: Date }) {
       }
     }
 
-    fetchCutoffInfo()
+    void fetchCutoffInfo()
     
     // Update every minute
     const interval = setInterval(fetchCutoffInfo, 60000)
@@ -195,7 +195,7 @@ function OrderPageContent() {
       }
     }
 
-    fetchMenuForDate()
+    void fetchMenuForDate()
   }, [selectedDate])
 
   const addToCart = (itemId: string) => {
@@ -441,7 +441,7 @@ function OrderPageContent() {
                 </div>
               </div>
               <button 
-                onClick={proceedToCheckout}
+                onClick={() => void proceedToCheckout()}
                 className="bg-white text-blue-600 px-6 py-2 rounded-lg font-semibold hover:bg-blue-50"
               >
                 Checkout

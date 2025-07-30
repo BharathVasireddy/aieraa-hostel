@@ -57,7 +57,7 @@ export default function ScannedOrderModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => void onClose()}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-gray-600" />
@@ -121,13 +121,13 @@ export default function ScannedOrderModal({
           {/* Action Buttons */}
           <div className="flex space-x-3">
             <button
-              onClick={onClose}
+              onClick={() => void onClose()}
               className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
             >
               Cancel
             </button>
             <button
-              onClick={handleServe}
+              onClick={() => void handleServe()}
               disabled={isServing}
               className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >

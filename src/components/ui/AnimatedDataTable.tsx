@@ -87,7 +87,7 @@ const AnimatedTableRow = ({
       ref={ref}
       data-index={index}
       onMouseEnter={onMouseEnter}
-      onClick={onClick}
+      onClick={() => void onClick()}
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={inView ? { 
         opacity: 1, 

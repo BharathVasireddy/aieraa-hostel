@@ -59,7 +59,7 @@ const PopularItemCard = memo<PopularItemCardProps>(
 
     return (
       <div
-        onClick={onClick}
+        onClick={() => void onClick()}
         className='p-4 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0'
       >
         <div className='flex items-center space-x-3'>
@@ -149,7 +149,7 @@ const PopularItemsWidget = memo<PopularItemsWidgetProps>(
           <div className='flex items-center justify-between'>
             <h3 className='font-semibold text-gray-900'>Popular Items</h3>
             <button
-              onClick={handleViewMenu}
+              onClick={() => void handleViewMenu()}
               className='text-sm text-green-600 hover:text-green-700 font-medium'
             >
               View Menu

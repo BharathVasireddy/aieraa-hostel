@@ -30,7 +30,7 @@ interface QuickActionProps {
 const QuickAction = memo<QuickActionProps>(
   ({ title, description, icon: Icon, color, badge, onClick }) => (
     <button
-      onClick={onClick}
+      onClick={() => void onClick()}
       className='bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 text-left group'
     >
       <div className='flex items-start justify-between'>

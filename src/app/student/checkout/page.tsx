@@ -573,7 +573,7 @@ export default function CheckoutPage() {
         {/* Bottom Action Bar */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 z-10 safe-area-pb">
           <Button
-            onClick={handlePlaceOrder}
+            onClick={() => void handlePlaceOrder()}
             disabled={!isValidForm || loading}
             loading={loading}
             size="lg"

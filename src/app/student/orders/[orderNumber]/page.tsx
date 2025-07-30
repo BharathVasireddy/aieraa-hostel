@@ -331,7 +331,7 @@ export default function StudentOrderDetail({
               <ArrowLeft className='w-5 h-5 text-gray-600' />
             </Link>
             <button
-              onClick={shareOrder}
+              onClick={() => void shareOrder()}
               className='p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors'
             >
               <Share2 className='w-5 h-5 text-gray-600' />

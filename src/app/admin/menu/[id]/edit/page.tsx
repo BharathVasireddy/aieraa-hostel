@@ -293,7 +293,7 @@ export default function EditMenuItemPage() {
         showNotifications={false}
         rightElement={
           <button
-            onClick={handleCancel}
+            onClick={() => void handleCancel()}
             className="p-2 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -527,7 +527,7 @@ export default function EditMenuItemPage() {
                   <label className="block text-sm font-medium text-gray-700">Product Variants</label>
                   <button
                     type="button"
-                    onClick={addVariant}
+                    onClick={() => void addVariant()}
                     className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     + Add Variant
@@ -606,7 +606,7 @@ export default function EditMenuItemPage() {
               <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={handleCancel}
+                  onClick={() => void handleCancel()}
                   className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                 >
                   Cancel

@@ -168,7 +168,7 @@ export default function UniversitySettings() {
             </div>
           </div>
           <button
-            onClick={updateSettings}
+            onClick={() => void updateSettings()}
             disabled={saving}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium ${
               saved 
@@ -374,7 +374,7 @@ export default function UniversitySettings() {
                 className="w-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <button
-                onClick={addAdditionalTax}
+                onClick={() => void addAdditionalTax()}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
                 Add

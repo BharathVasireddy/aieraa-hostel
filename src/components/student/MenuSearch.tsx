@@ -134,7 +134,7 @@ export const MenuSearch: React.FC<MenuSearchProps> = ({
           {value && (
             <button
               type="button"
-              onClick={handleClear}
+              onClick={() => void handleClear()}
               className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-neutral-100 rounded-full transition-colors"
             >
               <X className="w-4 h-4 text-neutral-500" />

@@ -560,7 +560,7 @@ export default function SuperAdminUniversities() {
                 Cancel
               </button>
               <button
-                onClick={createUniversity}
+                onClick={() => void createUniversity()}
                 disabled={createLoading}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
               >
@@ -658,7 +658,7 @@ export default function SuperAdminUniversities() {
                 Cancel
               </button>
               <button
-                onClick={assignStaff}
+                onClick={() => void assignStaff()}
                 disabled={staffLoading}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
               >

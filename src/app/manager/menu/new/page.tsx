@@ -569,7 +569,7 @@ export default function AddMenuItemPage() {
                   />
                   <button
                     type='button'
-                    onClick={addCustomAllergen}
+                    onClick={() => void addCustomAllergen()}
                     className='px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm'
                   >
                     Add
@@ -626,7 +626,7 @@ export default function AddMenuItemPage() {
             </h2>
             <button
               type='button'
-              onClick={addVariant}
+              onClick={() => void addVariant()}
               className='flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm'
             >
               <Plus className='w-4 h-4' />

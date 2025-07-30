@@ -126,7 +126,7 @@ export default function QRCodeGenerator({
       <div className="flex gap-2">
         {showDownload && (
           <button
-            onClick={downloadQR}
+            onClick={() => void downloadQR()}
             className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
           >
             <Download size={16} />
@@ -136,7 +136,7 @@ export default function QRCodeGenerator({
         
         {showCopy && (
           <button
-            onClick={copyQRData}
+            onClick={() => void copyQRData()}
             className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
             {copied ? <Check size={16} /> : <Copy size={16} />}

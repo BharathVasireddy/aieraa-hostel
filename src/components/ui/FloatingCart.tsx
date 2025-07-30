@@ -69,7 +69,7 @@ const FloatingCart = ({
         {/* Cart Icon and Summary */}
         <div 
           className="flex items-center space-x-3 flex-1 cursor-pointer"
-          onClick={handleToggleCart}
+          onClick={() => void handleToggleCart()}
         >
           <div className="relative">
             <div className="w-12 h-12 bg-primary-gradient rounded-xl flex items-center justify-center shadow-sm">
@@ -119,7 +119,7 @@ const FloatingCart = ({
 
         {/* Checkout Button */}
         <button
-          onClick={handleCheckout}
+          onClick={() => void handleCheckout()}
           disabled={isOrderingClosed}
           className={`flex items-center space-x-2 px-4 py-2.5 rounded-button font-semibold text-sm transition-all duration-350 shadow-button ${
             isOrderingClosed 
@@ -154,7 +154,7 @@ const FloatingCart = ({
         <div className="flex items-center space-x-2">
           <span className="text-sm text-neutral-600">{cartSummary.totalItems} items</span>
           <button
-            onClick={handleToggleCart}
+            onClick={() => void handleToggleCart()}
             className="p-1 hover:bg-neutral-100 rounded-full transition-colors"
           >
             <ArrowRight className="w-4 h-4 text-neutral-600 rotate-90" />
@@ -202,7 +202,7 @@ const FloatingCart = ({
         </div>
         
         <button
-          onClick={handleCheckout}
+          onClick={() => void handleCheckout()}
           disabled={isOrderingClosed}
           className={`w-full flex items-center justify-center space-x-2 py-3 rounded-button font-semibold transition-all duration-350 ${
             isOrderingClosed 
@@ -253,7 +253,7 @@ export const EmptyCartState = ({ onBrowseMenu }: { onBrowseMenu: () => void }) =
     <h3 className="text-lg font-semibold text-neutral-800 mb-2">Your cart is empty</h3>
     <p className="text-neutral-600 mb-4">Add some delicious items to get started!</p>
     <button
-      onClick={onBrowseMenu}
+      onClick={() => void onBrowseMenu()}
       className="btn-primary"
     >
       <Utensils className="w-4 h-4 mr-2" />

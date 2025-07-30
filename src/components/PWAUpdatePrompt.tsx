@@ -147,7 +147,7 @@ export default function PWAUpdatePrompt() {
           
           <div className="flex space-x-2">
             <button
-              onClick={handleUpdate}
+              onClick={() => void handleUpdate()}
               disabled={isUpdating}
               className="bg-white text-blue-600 px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-50 transition-colors flex items-center space-x-1 disabled:opacity-50"
             >
@@ -165,7 +165,7 @@ export default function PWAUpdatePrompt() {
             </button>
             
             <button
-              onClick={handleDismiss}
+              onClick={() => void handleDismiss()}
               className="text-blue-100 hover:text-white text-sm px-2 py-1.5 transition-colors"
             >
               Later

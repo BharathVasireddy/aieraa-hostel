@@ -193,7 +193,7 @@ export default function MealPlanUploadPage() {
               </p>
             </div>
             <button
-              onClick={downloadTemplate}
+              onClick={() => void downloadTemplate()}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
             >
               <Download className="w-5 h-5" />
@@ -318,7 +318,7 @@ export default function MealPlanUploadPage() {
           {/* Upload Button */}
           <div className="mt-6 flex justify-end">
             <button
-              onClick={handleUpload}
+              onClick={() => void handleUpload()}
               disabled={!selectedFile || uploading}
               className="bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
             >

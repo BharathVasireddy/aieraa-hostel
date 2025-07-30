@@ -248,7 +248,7 @@ export default function MealCategoriesPage() {
                   {editingCategory ? 'Edit Category' : 'Add New Category'}
                 </h3>
                 <button
-                  onClick={handleCancel}
+                  onClick={() => void handleCancel()}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-5 h-5" />
@@ -341,7 +341,7 @@ export default function MealCategoriesPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={handleCancel}
+                    onClick={() => void handleCancel()}
                     className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
                   >
                     Cancel

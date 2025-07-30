@@ -113,7 +113,7 @@ const StatsCardGrid = memo<StatsCardGridProps>(
         <div className='flex items-center justify-between'>
           <h2 className='text-lg font-semibold text-gray-900'>Key Metrics</h2>
           <button
-            onClick={onRefresh}
+            onClick={() => void onRefresh()}
             className='p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors'
             disabled={loading}
           >

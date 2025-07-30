@@ -492,7 +492,7 @@ export default function NewMenuItemPage() {
               <h2 className='text-xl font-semibold'>Variants</h2>
               <button
                 type='button'
-                onClick={addVariant}
+                onClick={() => void addVariant()}
                 className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
               >
                 <Plus className='w-4 h-4' />

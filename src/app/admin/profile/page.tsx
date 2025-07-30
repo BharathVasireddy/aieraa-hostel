@@ -323,7 +323,7 @@ export default function AdminProfile() {
           <AlertTriangle className='w-12 h-12 text-red-500 mx-auto mb-4' />
           <p className='text-gray-600'>Failed to load profile data</p>
           <button
-            onClick={fetchProfileData}
+            onClick={() => void fetchProfileData()}
             className='mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'
           >
             Retry
@@ -591,7 +591,7 @@ export default function AdminProfile() {
                     </div>
                     <div className='flex space-x-3'>
                       <button
-                        onClick={handleProfileUpdate}
+                        onClick={() => void handleProfileUpdate()}
                         disabled={profileUpdateLoading}
                         className='flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50'
                       >
@@ -817,7 +817,7 @@ export default function AdminProfile() {
                       </div>
                       <div className='flex space-x-3'>
                         <button
-                          onClick={handlePasswordChange}
+                          onClick={() => void handlePasswordChange()}
                           disabled={passwordChangeLoading}
                           className='flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50'
                         >
@@ -932,7 +932,7 @@ export default function AdminProfile() {
               </p>
             </div>
             <button
-              onClick={handleLogout}
+              onClick={() => void handleLogout()}
               className='flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'
             >
               <LogOut className='w-4 h-4' />

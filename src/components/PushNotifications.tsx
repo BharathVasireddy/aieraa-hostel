@@ -169,7 +169,7 @@ export default function PushNotifications() {
 
             <div className='flex items-center space-x-2 mt-3'>
               <button
-                onClick={subscribeUser}
+                onClick={() => void subscribeUser()}
                 disabled={loading}
                 className='bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
               >
@@ -177,7 +177,7 @@ export default function PushNotifications() {
               </button>
 
               <button
-                onClick={dismissPrompt}
+                onClick={() => void dismissPrompt()}
                 className='text-gray-500 px-3 py-2 rounded-lg text-sm hover:text-gray-700 transition-colors'
               >
                 Not now
@@ -186,7 +186,7 @@ export default function PushNotifications() {
           </div>
 
           <button
-            onClick={dismissPrompt}
+            onClick={() => void dismissPrompt()}
             className='w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors flex-shrink-0'
           >
             <X className='w-4 h-4 text-gray-600' />
@@ -307,7 +307,7 @@ export function NotificationSettings() {
         </div>
 
         <button
-          onClick={toggleNotifications}
+          onClick={() => void toggleNotifications()}
           disabled={loading}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 ${
             isSubscribed ? 'bg-green-600' : 'bg-gray-200'

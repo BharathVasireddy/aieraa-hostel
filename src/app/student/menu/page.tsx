@@ -289,7 +289,7 @@ export default function StudentMenu() {
 
             {totalCartItems > 0 && (
               <button
-                onClick={handleCheckout}
+                onClick={() => void handleCheckout()}
                 className='flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors'
               >
                 <ShoppingCart className='w-4 h-4' />
@@ -330,7 +330,7 @@ export default function StudentMenu() {
             <div className='text-center py-12'>
               <p className='text-gray-500 mb-4'>Failed to load menu</p>
               <button
-                onClick={refetchMenu}
+                onClick={() => void refetchMenu()}
                 className='bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors'
               >
                 Try Again

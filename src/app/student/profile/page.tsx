@@ -264,7 +264,7 @@ export default function StudentProfile() {
 
           <div className='space-y-0'>
             <button
-              onClick={handleEditProfile}
+              onClick={() => void handleEditProfile()}
               className='w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors'
             >
               <div className='flex items-center space-x-3'>
@@ -275,7 +275,7 @@ export default function StudentProfile() {
             </button>
 
             <button
-              onClick={handlePrivacySecurity}
+              onClick={() => void handlePrivacySecurity()}
               className='w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors'
             >
               <div className='flex items-center space-x-3'>
@@ -295,7 +295,7 @@ export default function StudentProfile() {
 
           <div className='space-y-0'>
             <button
-              onClick={handleHelpSupport}
+              onClick={() => void handleHelpSupport()}
               className='w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors'
             >
               <div className='flex items-center space-x-3'>
@@ -306,7 +306,7 @@ export default function StudentProfile() {
             </button>
 
             <button
-              onClick={handleAppRating}
+              onClick={() => void handleAppRating()}
               className='w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors'
             >
               <div className='flex items-center space-x-3'>
@@ -329,7 +329,7 @@ export default function StudentProfile() {
         {/* Logout */}
         <div className='bg-white rounded-xl shadow-sm'>
           <button
-            onClick={handleLogout}
+            onClick={() => void handleLogout()}
             className='w-full flex items-center justify-between p-4 hover:bg-red-50 text-red-600 transition-colors'
           >
             <div className='flex items-center space-x-3'>

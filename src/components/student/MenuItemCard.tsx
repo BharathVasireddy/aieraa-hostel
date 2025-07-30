@@ -251,7 +251,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
               {quantity > 0 ? (
                 <div className="quantity-controls shadow-sm">
                   <button
-                    onClick={handleQuantityDecrease}
+                    onClick={() => void handleQuantityDecrease()}
                     disabled={isLoading || !item.isAvailable}
                     className={cn(
                       "quantity-btn hover:bg-neutral-100 active:scale-95",
@@ -268,7 +268,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
                     {quantity}
                   </span>
                   <button
-                    onClick={handleQuantityIncrease}
+                    onClick={() => void handleQuantityIncrease()}
                     disabled={isLoading || !item.isAvailable}
                     className={cn(
                       "quantity-btn bg-primary-600 text-white hover:bg-primary-700 active:scale-95",
@@ -281,7 +281,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
                 </div>
               ) : (
                 <Button
-                  onClick={handleAddClick}
+                  onClick={() => void handleAddClick()}
                   disabled={isLoading || !item.isAvailable}
                   loading={isLoading}
                   size="sm"

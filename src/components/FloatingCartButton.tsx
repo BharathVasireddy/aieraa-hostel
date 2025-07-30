@@ -77,7 +77,7 @@ export default function FloatingCartButton({
           <div className='flex items-center justify-between p-4 border-b border-gray-100'>
             <h3 className='text-lg font-bold text-gray-900'>Your Cart</h3>
             <button
-              onClick={handleToggleExpanded}
+              onClick={() => void handleToggleExpanded()}
               className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
             >
               <X className='w-5 h-5 text-gray-500' />
@@ -183,7 +183,7 @@ export default function FloatingCartButton({
               </span>
             </div>
             <button
-              onClick={handleCheckout}
+              onClick={() => void handleCheckout()}
               disabled={isLoading}
               className='w-full bg-green-600 text-white py-3 px-4 rounded-xl font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
             >

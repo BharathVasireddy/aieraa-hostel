@@ -384,7 +384,7 @@ export default function AdminDashboard() {
 
             {/* Refresh Button */}
             <button
-              onClick={handleRefresh}
+              onClick={() => void handleRefresh()}
               disabled={loadingStats}
               className='p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors'
             >

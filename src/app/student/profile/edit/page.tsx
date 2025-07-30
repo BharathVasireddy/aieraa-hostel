@@ -393,7 +393,7 @@ export default function EditProfile() {
                         maxLength={6}
                       />
                       <button
-                        onClick={verifyCurrentPhoneOTP}
+                        onClick={() => void verifyCurrentPhoneOTP()}
                         disabled={otpLoading}
                         className='px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50'
                       >
@@ -401,7 +401,7 @@ export default function EditProfile() {
                       </button>
                     </div>
                     <button
-                      onClick={sendCurrentPhoneOTP}
+                      onClick={() => void sendCurrentPhoneOTP()}
                       disabled={otpLoading}
                       className='text-sm text-amber-700 hover:text-amber-800 mt-2'
                     >
@@ -441,7 +441,7 @@ export default function EditProfile() {
 
                     {!userData?.phone && (
                       <button
-                        onClick={sendNewPhoneOTP}
+                        onClick={() => void sendNewPhoneOTP()}
                         disabled={
                           otpLoading || !isValidPhone(newPhone, countryCode)
                         }
@@ -470,7 +470,7 @@ export default function EditProfile() {
                         maxLength={6}
                       />
                       <button
-                        onClick={verifyNewPhoneOTP}
+                        onClick={() => void verifyNewPhoneOTP()}
                         disabled={otpLoading}
                         className='px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50'
                       >
@@ -478,7 +478,7 @@ export default function EditProfile() {
                       </button>
                     </div>
                     <button
-                      onClick={sendNewPhoneOTP}
+                      onClick={() => void sendNewPhoneOTP()}
                       disabled={otpLoading}
                       className='text-sm text-green-700 hover:text-green-800 mt-2'
                     >
@@ -508,7 +508,7 @@ export default function EditProfile() {
 
           {/* Save Button */}
           <button
-            onClick={handleSaveProfile}
+            onClick={() => void handleSaveProfile()}
             disabled={saving || isEditingPhone}
             className='w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
           >

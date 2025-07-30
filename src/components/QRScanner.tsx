@@ -149,7 +149,7 @@ export default function QRScanner({ onScanSuccess, onScanError, className = '' }
             <Camera className="mx-auto text-gray-400 mb-2" size={48} />
             <p className="text-gray-600 mb-4">Camera access required for scanning</p>
           <button
-              onClick={requestPermission}
+              onClick={() => void requestPermission()}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
           >
               Enable Camera
@@ -189,7 +189,7 @@ export default function QRScanner({ onScanSuccess, onScanError, className = '' }
             <div className="flex gap-2">
               {!isScanning ? (
                 <button
-                  onClick={startScanning}
+                  onClick={() => void startScanning()}
                   className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
                 >
                   <Camera size={16} />
@@ -197,7 +197,7 @@ export default function QRScanner({ onScanSuccess, onScanError, className = '' }
                 </button>
               ) : (
                 <button
-                  onClick={stopStream}
+                  onClick={() => void stopStream()}
                   className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
                 >
                   <CameraOff size={16} />
@@ -246,7 +246,7 @@ export default function QRScanner({ onScanSuccess, onScanError, className = '' }
               className="flex-1 p-2 border border-gray-300 rounded-lg text-sm"
             />
             <button
-              onClick={processManualInput}
+              onClick={() => void processManualInput()}
               className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm"
             >
               Process

@@ -39,7 +39,7 @@ export default function ManagerSettings() {
       router.push('/manager')
       return
     }
-    fetchUniversitySettings()
+    void fetchUniversitySettings()
   }, [session])
 
   const fetchUniversitySettings = async () => {
@@ -154,7 +154,7 @@ export default function ManagerSettings() {
             </div>
           </div>
           <button
-            onClick={updateSettings}
+            onClick={() => void updateSettings()}
             disabled={saving}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               saved 

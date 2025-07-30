@@ -195,7 +195,7 @@ export default function ManagerSettings() {
               </div>
             </div>
             <button
-              onClick={handleEditProfile}
+              onClick={() => void handleEditProfile()}
               className="flex items-center space-x-2 px-3 py-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
             >
               <Edit3 className="w-4 h-4" />
@@ -212,7 +212,7 @@ export default function ManagerSettings() {
           
           <div className="space-y-0">
             <button 
-              onClick={handleHomepageConfig}
+              onClick={() => void handleHomepageConfig()}
               className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center space-x-3">
@@ -227,7 +227,7 @@ export default function ManagerSettings() {
             
             <button 
               className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-              onClick={handleOrderCutoffConfig}
+              onClick={() => void handleOrderCutoffConfig()}
             >
               <div className="flex items-center space-x-3">
                 <Clock className="w-5 h-5 text-gray-400" />
@@ -241,7 +241,7 @@ export default function ManagerSettings() {
             
             <button 
               className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-              onClick={handleKitchenCapacity}
+              onClick={() => void handleKitchenCapacity()}
             >
               <div className="flex items-center space-x-3">
                 <Package className="w-5 h-5 text-gray-400" />
@@ -385,7 +385,7 @@ export default function ManagerSettings() {
             
             <button 
               className="p-4 bg-red-50 rounded-xl text-center hover:bg-red-100 transition-colors"
-              onClick={handleSystemBackup}
+              onClick={() => void handleSystemBackup()}
             >
               <div className="text-2xl mb-2">🔧</div>
               <p className="text-sm font-medium text-red-700">System Backup</p>
@@ -401,7 +401,7 @@ export default function ManagerSettings() {
           
           <div className="space-y-0">
             <button 
-              onClick={handleEditProfile}
+              onClick={() => void handleEditProfile()}
               className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center space-x-3">
@@ -412,7 +412,7 @@ export default function ManagerSettings() {
             </button>
             
             <button 
-              onClick={handleChangePassword}
+              onClick={() => void handleChangePassword()}
               className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center space-x-3">
@@ -423,7 +423,7 @@ export default function ManagerSettings() {
             </button>
             
             <button 
-              onClick={handleActivityLog}
+              onClick={() => void handleActivityLog()}
               className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center space-x-3">
@@ -438,7 +438,7 @@ export default function ManagerSettings() {
         {/* Logout */}
         <div className="bg-red-50 border border-red-200 rounded-xl shadow-sm">
           <button 
-            onClick={handleLogout}
+            onClick={() => void handleLogout()}
             className="w-full flex items-center justify-between p-4 hover:bg-red-100 text-red-600 transition-colors"
           >
             <div className="flex items-center space-x-3">
@@ -505,7 +505,7 @@ export default function ManagerSettings() {
                 Cancel
               </button>
               <button
-                onClick={handleForceLogoutStudents}
+                onClick={() => void handleForceLogoutStudents()}
                 disabled={forceLogoutLoading}
                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center"
               >

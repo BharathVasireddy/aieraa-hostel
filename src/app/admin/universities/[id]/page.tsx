@@ -409,7 +409,7 @@ export default function UniversityDetailsPage() {
               ) : (
                 <div className="flex space-x-2">
                   <button
-                    onClick={cancelEdit}
+                    onClick={() => void cancelEdit()}
                     className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                   >
                     <X className="w-4 h-4 mr-2" />
