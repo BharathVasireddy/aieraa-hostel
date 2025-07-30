@@ -58,7 +58,7 @@ export default function CheckoutPage() {
       const saved =
         localStorage.getItem('checkoutDate') ||
         localStorage.getItem('selectedOrderDate');
-      if (saved) return saved;
+      if (saved) {return saved;}
     }
     const tomorrow = addDays(startOfToday(), 1);
     return format(tomorrow, 'yyyy-MM-dd');
@@ -179,7 +179,7 @@ export default function CheckoutPage() {
   }, [cartItems, countdown]);
 
   const handlePlaceOrder = useCallback(async () => {
-    if (!isValidForm || loading) return;
+    if (!isValidForm || loading) {return;}
 
     setLoading(true);
     try {

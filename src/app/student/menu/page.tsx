@@ -184,7 +184,7 @@ export default function StudentMenu() {
 
   // Filter items - memoized for performance
   const filteredItems = useMemo(() => {
-    if (!menuItems) return [];
+    if (!menuItems) {return [];}
 
     return menuItems.filter((item: MenuItem) => {
       const matchesCategory =
@@ -239,7 +239,7 @@ export default function StudentMenu() {
   const totalCartAmount = getTotalPrice();
 
   const handleCheckout = () => {
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0) {return;}
 
     // Store the selected date for checkout
     localStorage.setItem('checkoutDate', selectedDate);

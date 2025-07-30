@@ -39,7 +39,7 @@ const PendingApprovalsWidget = memo<PendingApprovalsWidgetProps>(
     const [localPendingCount, setLocalPendingCount] = useState(pendingCount);
 
     const fetchPendingStudents = useCallback(async () => {
-      if (!user?.universityId) return;
+      if (!user?.universityId) {return;}
 
       try {
         setLoading(true);

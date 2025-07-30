@@ -90,7 +90,7 @@ export default function UniversityDetailsPage() {
 
   // Fetch university details with useCallback to prevent infinite re-renders
   const fetchUniversity = useCallback(async () => {
-    if (!universityId) return
+    if (!universityId) {return}
     
     try {
       setLoading(true)

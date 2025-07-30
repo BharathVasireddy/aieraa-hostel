@@ -90,7 +90,7 @@ export default function ManagerOrdersPage() {
 
   const fetchOrders = useCallback(
     async (status = 'ALL') => {
-      if (!user?.university?.id) return;
+      if (!user?.university?.id) {return;}
 
       try {
         setLoading(true);
@@ -166,11 +166,11 @@ export default function ManagerOrdersPage() {
   };
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {return 'N/A';}
     
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
+      if (isNaN(date.getTime())) {return 'Invalid Date';}
       
       // Format date directly with timezone consideration
       const options: Intl.DateTimeFormatOptions = {
@@ -190,11 +190,11 @@ export default function ManagerOrdersPage() {
   };
 
   const formatDateOnly = (dateString: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {return 'N/A';}
     
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
+      if (isNaN(date.getTime())) {return 'Invalid Date';}
       
       const options: Intl.DateTimeFormatOptions = {
         timeZone: 'Asia/Ho_Chi_Minh',

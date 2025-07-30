@@ -28,7 +28,7 @@ export default function PromotionalBannersPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetchBanners()
+    void fetchBanners()
   }, [])
 
   const fetchBanners = async () => {
@@ -73,7 +73,7 @@ export default function PromotionalBannersPage() {
   }
 
   const deleteBanner = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this banner?')) return
+    if (!confirm('Are you sure you want to delete this banner?')) {return}
 
     try {
       const response = await fetch(`/api/admin/promotional-banners/${id}`, {
@@ -131,7 +131,7 @@ export default function PromotionalBannersPage() {
   }
 
   const isExpired = (offerValidUntil?: string) => {
-    if (!offerValidUntil) return false
+    if (!offerValidUntil) {return false}
     return new Date(offerValidUntil) < new Date()
   }
 

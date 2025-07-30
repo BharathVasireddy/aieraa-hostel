@@ -56,7 +56,7 @@ export default function ManagerDashboard() {
 
   // Progressive loading - fetch critical stats first
   const fetchStats = useCallback(async () => {
-    if (!user?.universityId) return;
+    if (!user?.universityId) {return;}
 
     try {
       const response = await fetch(
@@ -88,7 +88,7 @@ export default function ManagerDashboard() {
 
   // Fetch recent orders (less critical, can load after stats)
   const fetchRecentOrders = useCallback(async () => {
-    if (!user?.universityId) return;
+    if (!user?.universityId) {return;}
 
     try {
       const response = await fetch(
@@ -108,7 +108,7 @@ export default function ManagerDashboard() {
 
   // Fetch popular items (least critical, load last)
   const fetchPopularItems = useCallback(async () => {
-    if (!user?.universityId) return;
+    if (!user?.universityId) {return;}
 
     try {
       const response = await fetch(

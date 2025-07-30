@@ -53,7 +53,7 @@ export default function DateRibbon({ selectedDate, onDateSelect, getDayStatus }:
   };
 
   const handleDaySelect = (date: Date, isPast: boolean) => {
-    if (isPast) return; // Prevent selecting past dates
+    if (isPast) {return;} // Prevent selecting past dates
     onDateSelect(date);
   };
 

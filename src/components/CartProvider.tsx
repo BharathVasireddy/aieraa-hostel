@@ -65,7 +65,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Sync cart with database
   const syncWithDatabase = useCallback(async () => {
-    if (!session?.user?.id || status !== 'authenticated') return;
+    if (!session?.user?.id || status !== 'authenticated') {return;}
 
     try {
       setIsLoading(true);
@@ -111,7 +111,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Load from localStorage as fallback
   const loadFromLocalStorage = useCallback(() => {
-    if (!isMounted || !session?.user?.id) return;
+    if (!isMounted || !session?.user?.id) {return;}
 
     try {
       const cartKey = `cart_${session.user.id}`;
@@ -131,7 +131,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Initial cart load
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted) {return;}
 
     if (status === 'authenticated' && session?.user?.id) {
       syncWithDatabase();
@@ -222,12 +222,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Remove item from cart
   const removeItem = useCallback(
     async (itemId: string, variantId?: string) => {
-      if (!session?.user?.id) return;
+      if (!session?.user?.id) {return;}
 
       try {
         setIsLoading(true);
         const params = new URLSearchParams({ menuItemId: itemId });
-        if (variantId) params.append('variantId', variantId);
+        if (variantId) {params.append('variantId', variantId);}
 
         const response = await fetch(`/api/cart?${params}`, {
           method: 'DELETE',
@@ -272,7 +272,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Update item quantity
   const updateQuantity = useCallback(
     async (itemId: string, quantity: number, variantId?: string) => {
-      if (!session?.user?.id) return;
+      if (!session?.user?.id) {return;}
 
       if (quantity <= 0) {
         await removeItem(itemId, variantId);
@@ -333,7 +333,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Clear entire cart
   const clearCart = useCallback(async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) {return;}
 
     try {
       setIsLoading(true);

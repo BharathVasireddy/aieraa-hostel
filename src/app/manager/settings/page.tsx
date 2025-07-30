@@ -33,7 +33,7 @@ export default function ManagerSettings() {
 
   useEffect(() => {
     // Don't redirect if session is still loading
-    if (!session) return
+    if (!session) {return}
     
     if (session.user?.role !== 'MANAGER') {
       router.push('/manager')
@@ -70,7 +70,7 @@ export default function ManagerSettings() {
   }
 
   const updateSettings = async () => {
-    if (!settings) return
+    if (!settings) {return}
 
     try {
       setSaving(true)

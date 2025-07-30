@@ -103,7 +103,7 @@ export default function MenuItemDetailsPage() {
   };
 
   const toggleItemStatus = async () => {
-    if (!menuItem) return;
+    if (!menuItem) {return;}
 
     try {
       setUpdating(true);
@@ -130,7 +130,7 @@ export default function MenuItemDetailsPage() {
   };
 
   const toggleFeatured = async () => {
-    if (!menuItem) return;
+    if (!menuItem) {return;}
 
     try {
       setUpdating(true);

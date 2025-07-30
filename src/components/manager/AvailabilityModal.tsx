@@ -158,7 +158,7 @@ export default function AvailabilityModal({
       setLoading(true);
       setError(null);
 
-      let payload: any = {
+      const payload: any = {
         menuItemId: menuItem.id,
         mode,
         isAvailable: true,

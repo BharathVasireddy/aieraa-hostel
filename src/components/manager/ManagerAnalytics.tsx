@@ -31,7 +31,7 @@ const ManagerAnalytics = memo<ManagerAnalyticsProps>(
 
     useEffect(() => {
       const fetchWeeklyData = async () => {
-        if (!universityId) return;
+        if (!universityId) {return;}
 
         try {
           // Simulate API call delay

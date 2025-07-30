@@ -24,7 +24,7 @@ export function usePullToRefresh({
   const scrollContainer = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {return;}
 
     const container = document.documentElement || document.body;
     scrollContainer.current = container;
@@ -35,7 +35,7 @@ export function usePullToRefresh({
 
     const handleTouchStart = (e: TouchEvent) => {
       // Only allow pull-to-refresh at the top of the page
-      if (window.scrollY > 0) return;
+      if (window.scrollY > 0) {return;}
       
       touchStartY = e.touches[0].clientY;
       startY.current = touchStartY;
@@ -43,7 +43,7 @@ export function usePullToRefresh({
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!canPull) return;
+      if (!canPull) {return;}
       
       touchCurrentY = e.touches[0].clientY;
       currentY.current = touchCurrentY;
@@ -64,7 +64,7 @@ export function usePullToRefresh({
     };
 
     const handleTouchEnd = async () => {
-      if (!canPull) return;
+      if (!canPull) {return;}
       
       canPull = false;
       

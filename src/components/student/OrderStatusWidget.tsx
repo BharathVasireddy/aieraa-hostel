@@ -85,7 +85,7 @@ const OrderStatusWidget: React.FC<OrderStatusWidgetProps> = ({
 
   // Safe date formatting function
   const formatDate = (dateString: string | undefined | null, formatString: string): string => {
-    if (!dateString) return 'Date not available';
+    if (!dateString) {return 'Date not available';}
     
     try {
       const date = parseISO(dateString);

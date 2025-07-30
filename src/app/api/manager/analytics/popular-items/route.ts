@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
     const transformedItems = popularItemsData
       .map(orderData => {
         const menuItem = menuItemMap.get(orderData.menuItemId);
-        if (!menuItem) return null;
+        if (!menuItem) {return null;}
 
         return {
           id: menuItem.id,

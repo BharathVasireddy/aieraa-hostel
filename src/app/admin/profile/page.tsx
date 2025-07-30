@@ -92,7 +92,7 @@ export default function AdminProfile() {
   useEffect(() => {
     // Only fetch once when session user is available
     if (session?.user?.id && !profileData) {
-      fetchProfileData();
+      void fetchProfileData();
     }
   }, [session?.user?.id]); // Removed redundant session dependency
 
@@ -156,7 +156,7 @@ export default function AdminProfile() {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {return;}
 
     // Validate file type
     if (!file.type.startsWith('image/')) {

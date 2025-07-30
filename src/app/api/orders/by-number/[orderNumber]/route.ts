@@ -19,7 +19,7 @@ export async function GET(
       select: { id: true, role: true, universityId: true },
     });
 
-    if (!currentUser || !currentUser.universityId) {
+    if (!currentUser?.universityId) {
       return NextResponse.json(
         { error: 'User university not found' },
         { status: 404 }

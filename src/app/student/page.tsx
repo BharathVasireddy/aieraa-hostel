@@ -16,7 +16,7 @@ export default function StudentDashboard() {
   const [selectedDate, setSelectedDate] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('selectedOrderDate');
-      if (saved) return saved;
+      if (saved) {return saved;}
     }
     const tomorrow = addDays(startOfToday(), 1);
     return format(tomorrow, 'yyyy-MM-dd');

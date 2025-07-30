@@ -96,7 +96,7 @@ function CutoffTimeNotice({ selectedDate }: { selectedDate: Date }) {
     )
   }
 
-  if (!cutoffInfo) return null
+  if (!cutoffInfo) {return null}
 
   const tomorrow = addDays(new Date(), 1)
   const isOrderingForTomorrow = isSameDay(selectedDate, tomorrow)
@@ -200,7 +200,7 @@ function OrderPageContent() {
 
   const addToCart = (itemId: string) => {
     const item = menuItems.find(item => item.id === itemId)
-    if (!item) return
+    if (!item) {return}
 
     const currentCartQuantity = cart[itemId] || 0
     const remainingStock = (item.maxQuantity || 50) - (item.currentQuantity || 0) - currentCartQuantity
@@ -237,8 +237,8 @@ function OrderPageContent() {
   }
 
   const getDateLabel = (date: Date) => {
-    if (isToday(date)) return 'Today'
-    if (isTomorrow(date)) return 'Tomorrow'
+    if (isToday(date)) {return 'Today'}
+    if (isTomorrow(date)) {return 'Tomorrow'}
     return format(date, 'EEE')
   }
 

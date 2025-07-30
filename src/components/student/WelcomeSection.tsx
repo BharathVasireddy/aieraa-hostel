@@ -21,13 +21,13 @@ const WelcomeSection: React.FC<WelcomeSectionProps> = ({
 }) => {
   const currentHour = new Date().getHours();
   const getGreeting = () => {
-    if (currentHour < 12) return 'Good morning';
-    if (currentHour < 17) return 'Good afternoon';
+    if (currentHour < 12) {return 'Good morning';}
+    if (currentHour < 17) {return 'Good afternoon';}
     return 'Good evening';
   };
 
   const formatSelectedDate = () => {
-    if (!selectedDate) return 'Select a date';
+    if (!selectedDate) {return 'Select a date';}
     return format(new Date(selectedDate), 'EEEE, MMM d');
   };
 

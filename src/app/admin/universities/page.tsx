@@ -232,7 +232,7 @@ export default function SuperAdminUniversities() {
       return
     }
 
-    if (!selectedUniversity) return
+    if (!selectedUniversity) {return}
 
     try {
       setStaffLoading(true)

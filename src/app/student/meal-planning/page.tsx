@@ -96,8 +96,8 @@ export default function MealPlanningPage() {
     const dateStr = date.toISOString().split('T')[0];
     const daySelections = selections.filter(s => s.date.split('T')[0] === dateStr);
     
-    if (daySelections.length === 0) return null;
-    if (daySelections.length === 3) return 'complete';
+    if (daySelections.length === 0) {return null;}
+    if (daySelections.length === 3) {return 'complete';}
     return 'partial';
   };
 
@@ -121,7 +121,7 @@ export default function MealPlanningPage() {
   };
 
   const confirmSelection = async () => {
-    if (!selectedCategory || !currentMealType) return;
+    if (!selectedCategory || !currentMealType) {return;}
 
     try {
       const response = await fetch('/api/meal-planning/selections', {

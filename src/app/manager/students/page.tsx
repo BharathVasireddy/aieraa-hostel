@@ -75,7 +75,7 @@ export default function ManagerStudentsPage() {
 
   // Fetch summary data (always all students - static)
   const fetchSummary = useCallback(async () => {
-    if (!user?.universityId) return;
+    if (!user?.universityId) {return;}
 
     try {
       const response = await fetch(`/api/manager/users?role=STUDENT&limit=1`, {

@@ -65,7 +65,7 @@ export default function UniversitySettings() {
   }
 
   const updateSettings = async () => {
-    if (!settings) return
+    if (!settings) {return}
 
     try {
       setSaving(true)

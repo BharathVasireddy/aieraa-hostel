@@ -97,7 +97,7 @@ export default function EditMenuItemPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const handleImageUpload = async (file: File) => {
-    if (!file) return;
+    if (!file) {return;}
 
     try {
       setUploadingImage(true);
@@ -259,19 +259,19 @@ export default function EditMenuItemPage() {
   };
 
   const validateForm = (): string | null => {
-    if (!formData.name.trim()) return 'Name is required';
-    if (formData.basePrice <= 0) return 'Base price must be greater than 0';
+    if (!formData.name.trim()) {return 'Name is required';}
+    if (formData.basePrice <= 0) {return 'Base price must be greater than 0';}
     if (formData.categories.length === 0)
-      return 'At least one category is required';
+      {return 'At least one category is required';}
     if (formData.offerPrice && formData.offerPrice >= formData.basePrice) {
       return 'Offer price must be less than base price';
     }
 
     for (let i = 0; i < formData.variants.length; i++) {
       const variant = formData.variants[i];
-      if (!variant.name.trim()) return `Variant ${i + 1} name is required`;
+      if (!variant.name.trim()) {return `Variant ${i + 1} name is required`;}
       if (variant.price <= 0)
-        return `Variant ${i + 1} price must be greater than 0`;
+        {return `Variant ${i + 1} price must be greater than 0`;}
     }
 
     return null;

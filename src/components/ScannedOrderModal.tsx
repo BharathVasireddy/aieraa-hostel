@@ -35,7 +35,7 @@ export default function ScannedOrderModal({
   onServe, 
   isServing 
 }: ScannedOrderModalProps) {
-  if (!isOpen || !order) return null
+  if (!isOpen || !order) {return null}
 
   const handleServe = async () => {
     await onServe(order.id)

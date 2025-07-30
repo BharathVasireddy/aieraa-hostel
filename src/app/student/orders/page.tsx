@@ -50,7 +50,7 @@ export default function StudentOrders() {
       setLoading(true);
       const response = await fetch('/api/orders', { cache: 'no-store' });
 
-      if (!response.ok) throw new Error('Failed to fetch orders');
+      if (!response.ok) {throw new Error('Failed to fetch orders');}
 
       const data = await response.json();
       const processedOrders = (data.orders || data || []).sort(

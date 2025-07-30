@@ -78,7 +78,7 @@ export function useProgressiveLoading<T>(
         attemptCountRef.current++;
 
         // Only update state if component is still mounted
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {return;}
 
         // Retry logic
         if (attemptCountRef.current <= retryCount) {

@@ -1,12 +1,12 @@
 // Utility function to migrate localStorage cart data to database
 export async function migrateLocalStorageCart(userId: string) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {return;}
 
   try {
     const cartKey = `cart_${userId}`;
     const localCart = localStorage.getItem(cartKey);
 
-    if (!localCart) return;
+    if (!localCart) {return;}
 
     const cartItems = JSON.parse(localCart);
 
@@ -45,12 +45,12 @@ export async function migrateLocalStorageCart(userId: string) {
 
 // Function to check if migration is needed
 export function needsCartMigration(userId: string): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined') {return false;}
 
   const cartKey = `cart_${userId}`;
   const localCart = localStorage.getItem(cartKey);
 
-  if (!localCart) return false;
+  if (!localCart) {return false;}
 
   try {
     const cartItems = JSON.parse(localCart);

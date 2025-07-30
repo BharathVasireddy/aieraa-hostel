@@ -39,7 +39,7 @@ export const connectWithRetry = async (retries = 3) => {
       return true
     } catch (error) {
       console.warn(`Database connection attempt ${i + 1} failed:`, error)
-      if (i === retries - 1) throw error
+      if (i === retries - 1) {throw error}
       await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)))
     }
   }

@@ -103,7 +103,7 @@ export default function ManagerOrderDetailsPage() {
   const updateOrderStatus = async (
     status: 'APPROVED' | 'PREPARING' | 'READY' | 'SERVED' | 'CANCELLED'
   ) => {
-    if (!order) return;
+    if (!order) {return;}
 
     try {
       setUpdating(true);
@@ -148,11 +148,11 @@ export default function ManagerOrderDetailsPage() {
   };
 
   const formatDateOnly = (dateString: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {return 'N/A';}
     
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
+      if (isNaN(date.getTime())) {return 'Invalid Date';}
       
       const options: Intl.DateTimeFormatOptions = {
         timeZone: 'Asia/Ho_Chi_Minh',
@@ -169,11 +169,11 @@ export default function ManagerOrderDetailsPage() {
   };
 
   const formatDateTime = (dateString: string) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {return 'N/A';}
     
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
+      if (isNaN(date.getTime())) {return 'Invalid Date';}
       
       const options: Intl.DateTimeFormatOptions = {
         timeZone: 'Asia/Ho_Chi_Minh',

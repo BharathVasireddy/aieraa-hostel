@@ -69,9 +69,9 @@ export default function EditMenuItemPage() {
 
   useEffect(() => {
     if (session?.user && itemId) {
-      fetchCurrentUser()
-      fetchUniversities()
-      fetchMenuItem()
+      void fetchCurrentUser()
+      void fetchUniversities()
+      void fetchMenuItem()
     }
   }, [session, itemId])
 
@@ -254,7 +254,7 @@ export default function EditMenuItemPage() {
     // If setting this variant as default, unset others
     if (field === 'isDefault' && value === true) {
       updatedVariants.forEach((variant, i) => {
-        if (i !== index) variant.isDefault = false
+        if (i !== index) {variant.isDefault = false}
       })
     }
     
@@ -455,7 +455,7 @@ export default function EditMenuItemPage() {
                         accept="image/*"
                         onChange={async (e) => {
                           const file = e.target.files?.[0]
-                          if (!file) return
+                          if (!file) {return}
                           
                           // Validate file
                           if (!file.type.startsWith('image/')) {

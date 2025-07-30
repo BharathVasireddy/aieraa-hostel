@@ -72,7 +72,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
   };
 
   const handleQuantityIncrease = async () => {
-    if (!item.isAvailable || isUpdatingQuantity) return;
+    if (!item.isAvailable || isUpdatingQuantity) {return;}
 
     setIsUpdatingQuantity(true);
     try {
@@ -85,7 +85,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
   };
 
   const handleQuantityDecrease = async () => {
-    if (!item.isAvailable || quantity <= 0 || isUpdatingQuantity) return;
+    if (!item.isAvailable || quantity <= 0 || isUpdatingQuantity) {return;}
 
     setIsUpdatingQuantity(true);
     try {

@@ -52,7 +52,7 @@ export const OptimisticButton: React.FC<OptimisticButtonProps> = ({
   };
 
   const handleClick = async () => {
-    if (disabled || isPending) return;
+    if (disabled || isPending) {return;}
 
     // Start transition for non-blocking UI updates
     startTransition(async () => {

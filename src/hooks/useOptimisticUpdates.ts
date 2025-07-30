@@ -212,7 +212,7 @@ export function useOptimisticCart() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ itemId: item.id, quantity })
         }).then(res => {
-          if (!res.ok) throw new Error('Failed to add to cart')
+          if (!res.ok) {throw new Error('Failed to add to cart')}
           return res.json()
         }),
         { cart: currentCart, total: currentTotal } // Rollback data
@@ -245,7 +245,7 @@ export function useOptimisticCart() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ itemId })
         }).then(res => {
-          if (!res.ok) throw new Error('Failed to remove from cart')
+          if (!res.ok) {throw new Error('Failed to remove from cart')}
           return res.json()
         }),
         { cart: currentCart, total: currentTotal }
@@ -281,7 +281,7 @@ export function useOptimisticCart() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ itemId, quantity: newQuantity })
         }).then(res => {
-          if (!res.ok) throw new Error('Failed to update quantity')
+          if (!res.ok) {throw new Error('Failed to update quantity')}
           return res.json()
         }),
         { cart: currentCart, total: currentTotal }
@@ -339,7 +339,7 @@ export function useOptimisticOrderStatus() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus })
         }).then(res => {
-          if (!res.ok) throw new Error('Failed to update order status')
+          if (!res.ok) {throw new Error('Failed to update order status')}
           return res.json()
         }),
         currentOrders

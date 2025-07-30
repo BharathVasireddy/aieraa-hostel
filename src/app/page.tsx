@@ -53,7 +53,7 @@ export default function LandingPage() {
 
   // Get dashboard URL based on user role
   const getDashboardUrl = () => {
-    if (!session?.user?.role) return '/auth/signin';
+    if (!session?.user?.role) {return '/auth/signin';}
 
     if (session.user.role === 'ADMIN' || session.user.role === 'MANAGER') {
       return '/admin';

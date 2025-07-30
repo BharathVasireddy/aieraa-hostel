@@ -26,7 +26,7 @@ export async function GET(
       select: { id: true, role: true, universityId: true },
     });
 
-    if (!currentUser || !currentUser.universityId) {
+    if (!currentUser?.universityId) {
       return NextResponse.json(
         { error: 'Manager university not found' },
         { status: 404 }
@@ -118,7 +118,7 @@ export async function PATCH(
       select: { id: true, role: true, universityId: true, name: true },
     });
 
-    if (!currentUser || !currentUser.universityId) {
+    if (!currentUser?.universityId) {
       return NextResponse.json(
         { error: 'Manager university not found' },
         { status: 404 }

@@ -26,7 +26,7 @@ export function isValidOrderStatus(status: string): status is OrderStatus {
  * @returns OrderStatus if valid, undefined otherwise
  */
 export function toOrderStatus(status: string | null): OrderStatus | undefined {
-  if (!status) return undefined
+  if (!status) {return undefined}
   
   const upperStatus = status.toUpperCase()
   return isValidOrderStatus(upperStatus) ? upperStatus as OrderStatus : undefined
@@ -46,7 +46,7 @@ export function getValidOrderStatuses(): string[] {
  * Sanitize string input to prevent XSS attacks
  */
 export function sanitizeString(input: string): string {
-  if (typeof input !== 'string') return ''
+  if (typeof input !== 'string') {return ''}
   
   return input
     .trim()
@@ -115,7 +115,7 @@ export function validatePassword(password: string): {
 export function sanitizeNumber(input: any, min: number = 0, max: number = Number.MAX_SAFE_INTEGER): number {
   const num = parseFloat(input)
   
-  if (isNaN(num)) return min
+  if (isNaN(num)) {return min}
   
   return Math.max(min, Math.min(max, num))
 }

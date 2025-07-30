@@ -76,9 +76,9 @@ export default function AdminMenu() {
 
   useEffect(() => {
     if (session?.user) {
-      fetchCurrentUser()
-      fetchUniversities()
-      fetchMenuItems()
+      void fetchCurrentUser()
+      void fetchUniversities()
+      void fetchMenuItems()
     }
   }, [session])
 
@@ -229,7 +229,7 @@ export default function AdminMenu() {
   }
 
   const getItemCount = (category: string) => {
-    if (category === 'all') return menuItems.length
+    if (category === 'all') {return menuItems.length}
     return menuItems.filter(item => 
       item.categories?.includes(category)
     ).length

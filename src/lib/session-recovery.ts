@@ -30,7 +30,7 @@ class SessionRecovery {
   }
 
   private startSessionMonitoring() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {return;}
 
     // Reduce frequency of automatic session checks
     this.sessionCheckInterval = setInterval(() => {

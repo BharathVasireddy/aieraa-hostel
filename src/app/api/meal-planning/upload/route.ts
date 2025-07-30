@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
         for (let i = 1; i <= 8; i++) {
           const itemKey = `Item_${i}` as keyof typeof row;
           const itemValue = row[itemKey];
-          if (itemValue && itemValue.trim()) {
+          if (itemValue?.trim()) {
             mealItems.push({
               mealPlanId: mealPlan.id,
               name: itemValue.trim(),

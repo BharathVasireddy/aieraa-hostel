@@ -170,11 +170,11 @@ export default function AnimatedDataTable<T extends Record<string, any>>({
 
   // Sorting
   const sortedData = useMemo(() => {
-    if (!sortConfig) return filteredData;
+    if (!sortConfig) {return filteredData;}
 
     return [...filteredData].sort((a, b) => {
       const column = columns.find(col => col.id === sortConfig.key);
-      if (!column) return 0;
+      if (!column) {return 0;}
 
       const aVal =
         typeof column.accessor === 'function'
@@ -185,15 +185,15 @@ export default function AnimatedDataTable<T extends Record<string, any>>({
           ? column.accessor(b)
           : b[column.accessor];
 
-      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      if (aVal < bVal) {return sortConfig.direction === 'asc' ? -1 : 1;}
+      if (aVal > bVal) {return sortConfig.direction === 'asc' ? 1 : -1;}
       return 0;
     });
   }, [filteredData, sortConfig, columns]);
 
   // Pagination
   const paginatedData = useMemo(() => {
-    if (!pagination) return sortedData;
+    if (!pagination) {return sortedData;}
 
     const startIndex = (currentPage - 1) * pageSize;
     return sortedData.slice(startIndex, startIndex + pageSize);
@@ -204,7 +204,7 @@ export default function AnimatedDataTable<T extends Record<string, any>>({
   // Handle sorting
   const handleSort = (columnId: string) => {
     const column = columns.find(col => col.id === columnId);
-    if (!column?.sortable) return;
+    if (!column?.sortable) {return;}
 
     setSortConfig(current => {
       if (current?.key === columnId) {
@@ -228,7 +228,7 @@ export default function AnimatedDataTable<T extends Record<string, any>>({
 
   // Handle scroll for gradients
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    if (!showGradients) return;
+    if (!showGradients) {return;}
     
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     setTopGradientOpacity(Math.min(scrollTop / 50, 1));
@@ -240,11 +240,11 @@ export default function AnimatedDataTable<T extends Record<string, any>>({
 
   // Keyboard navigation
   useEffect(() => {
-    if (!enableKeyboardNavigation || !enableAnimations) return;
+    if (!enableKeyboardNavigation || !enableAnimations) {return;}
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const dataLength = paginatedData.length;
-      if (dataLength === 0) return;
+      if (dataLength === 0) {return;}
 
       if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
         e.preventDefault();
@@ -268,7 +268,7 @@ export default function AnimatedDataTable<T extends Record<string, any>>({
 
   // Auto-scroll to selected row
   useEffect(() => {
-    if (!keyboardNav || selectedRowIndex < 0 || !tableRef.current || !enableAnimations) return;
+    if (!keyboardNav || selectedRowIndex < 0 || !tableRef.current || !enableAnimations) {return;}
 
     const container = tableRef.current;
     const selectedRow = container.querySelector(`[data-index="${selectedRowIndex}"]`);

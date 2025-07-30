@@ -122,7 +122,7 @@ export function usePrefetch() {
       const { rootMargin = '50px', condition = () => true } = options;
 
       useEffect(() => {
-        if (!condition()) return;
+        if (!condition()) {return;}
 
         const observer = new IntersectionObserver(
           entries => {

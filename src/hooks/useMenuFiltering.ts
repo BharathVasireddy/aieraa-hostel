@@ -172,7 +172,7 @@ export const useMenuFiltering = ({
 
   // Get suggestions for search
   const searchSuggestions = useMemo(() => {
-    if (!searchQuery || searchQuery.length < 2) return [];
+    if (!searchQuery || searchQuery.length < 2) {return [];}
 
     const suggestions = new Set<string>();
     const query = searchQuery.toLowerCase();

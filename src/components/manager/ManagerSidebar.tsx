@@ -100,7 +100,7 @@ export default function ManagerSidebar({
     parentHref: string,
     children?: NavigationItem['children']
   ) => {
-    if (!children) return false;
+    if (!children) {return false;}
     return children.some(child => isActive(child.href));
   };
 

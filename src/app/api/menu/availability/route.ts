@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const formattedItems = menuItems
       .filter(item => {
         // If no availability record exists, item is NOT available for this date
-        if (item.availability.length === 0) return false;
+        if (item.availability.length === 0) {return false;}
         // If availability record exists, check if it's available
         return item.availability[0].isAvailable;
       })

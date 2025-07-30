@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
       where.date = new Date(date);
     } else if (startDate || endDate) {
       where.date = {};
-      if (startDate) where.date.gte = new Date(startDate);
-      if (endDate) where.date.lte = new Date(endDate);
+      if (startDate) {where.date.gte = new Date(startDate);}
+      if (endDate) {where.date.lte = new Date(endDate);}
     }
 
     if (mealType) {
@@ -186,8 +186,8 @@ export async function GET(request: NextRequest) {
       mealPlansWhere.date = new Date(date);
     } else if (startDate || endDate) {
       mealPlansWhere.date = {};
-      if (startDate) mealPlansWhere.date.gte = new Date(startDate);
-      if (endDate) mealPlansWhere.date.lte = new Date(endDate);
+      if (startDate) {mealPlansWhere.date.gte = new Date(startDate);}
+      if (endDate) {mealPlansWhere.date.lte = new Date(endDate);}
     }
 
     if (mealType) {

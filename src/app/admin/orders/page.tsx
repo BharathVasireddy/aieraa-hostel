@@ -181,7 +181,7 @@ export default function AdminOrders() {
   const fetchUniversities = useCallback(async () => {
     try {
       // Only fetch for Super Admins
-      if (currentUserData?.role !== 'ADMIN') return;
+      if (currentUserData?.role !== 'ADMIN') {return;}
 
       // Always fetch fresh data - no caching
       const universitiesResponse = await fetch('/api/admin/universities', {
@@ -242,9 +242,9 @@ export default function AdminOrders() {
   useEffect(() => {
     // Only run when session is first available and we haven't fetched yet
     if (session?.user?.id && !currentUserData) {
-      fetchCurrentUser();
-      fetchOrders();
-      fetchUniversities();
+      void fetchCurrentUser();
+      void fetchOrders();
+      void fetchUniversities();
     }
   }, [session?.user?.id]); // Only depend on user ID, not entire session object
 
@@ -310,30 +310,30 @@ export default function AdminOrders() {
   };
 
   const approveOrder = (orderId: string) => {
-    updateOrderStatus(orderId, 'APPROVED');
+    void updateOrderStatus(orderId, 'APPROVED');
   };
 
   const startPreparing = (orderId: string) => {
-    updateOrderStatus(orderId, 'PREPARING');
+    void updateOrderStatus(orderId, 'PREPARING');
   };
 
   const markReady = (orderId: string) => {
-    updateOrderStatus(orderId, 'READY');
+    void updateOrderStatus(orderId, 'READY');
   };
 
   const markServed = (orderId: string) => {
-    updateOrderStatus(orderId, 'SERVED');
+    void updateOrderStatus(orderId, 'SERVED');
   };
 
   const rejectOrder = (orderId: string, reason = 'Order rejected by admin') => {
-    updateOrderStatus(orderId, 'REJECTED', reason);
+    void updateOrderStatus(orderId, 'REJECTED', reason);
   };
 
   const cancelOrder = (
     orderId: string,
     reason = 'Order cancelled by admin'
   ) => {
-    updateOrderStatus(orderId, 'CANCELLED', reason);
+    void updateOrderStatus(orderId, 'CANCELLED', reason);
   };
 
   const getStatusIcon = (status: string) => {

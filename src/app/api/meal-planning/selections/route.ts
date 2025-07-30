@@ -68,8 +68,8 @@ export async function GET(request: NextRequest) {
       where.date = new Date(date);
     } else if (startDate || endDate) {
       where.date = {};
-      if (startDate) where.date.gte = new Date(startDate);
-      if (endDate) where.date.lte = new Date(endDate);
+      if (startDate) {where.date.gte = new Date(startDate);}
+      if (endDate) {where.date.lte = new Date(endDate);}
     }
 
     if (mealType) {

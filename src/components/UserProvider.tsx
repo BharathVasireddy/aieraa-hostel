@@ -49,7 +49,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Memoize session user info to prevent unnecessary re-renders
   const sessionUserInfo = useMemo(() => {
-    if (!session?.user) return null;
+    if (!session?.user) {return null;}
     return {
       id: session.user.id,
       role: session.user.role,
@@ -132,7 +132,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Main effect to handle session changes - optimized to reduce unnecessary calls
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted) {return;}
 
     if (status === 'loading') {
       setLoading(true);

@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
 
-      if (date > endDate) break;
+      if (date > endDate) {break;}
 
       const dayOrders = orders.filter(order => {
         const orderDate = new Date(order.createdAt);

@@ -47,12 +47,12 @@ export default function CategoryPanel({
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const getCategoryIcon = (category: any) => {
-    if (category.isVegetarian && !category.isVegan) return '🥗';
-    if (category.isVegan) return '🌱';
-    if (category.isHalal) return '☪️';
-    if (category.name.includes('Continental')) return '🍝';
-    if (category.name.includes('South')) return '🥥';
-    if (category.name.includes('North')) return '🫓';
+    if (category.isVegetarian && !category.isVegan) {return '🥗';}
+    if (category.isVegan) {return '🌱';}
+    if (category.isHalal) {return '☪️';}
+    if (category.name.includes('Continental')) {return '🍝';}
+    if (category.name.includes('South')) {return '🥥';}
+    if (category.name.includes('North')) {return '🫓';}
     return '🍽️';
   };
 
@@ -68,7 +68,7 @@ export default function CategoryPanel({
     });
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   return (
     <>

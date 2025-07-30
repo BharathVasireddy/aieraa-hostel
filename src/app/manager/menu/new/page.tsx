@@ -93,7 +93,7 @@ export default function AddMenuItemPage() {
   const [newAllergen, setNewAllergen] = useState('');
 
   const handleImageUpload = async (file: File) => {
-    if (!file) return;
+    if (!file) {return;}
 
     try {
       setUploadingImage(true);
@@ -210,10 +210,10 @@ export default function AddMenuItemPage() {
   };
 
   const validateForm = (): string | null => {
-    if (!formData.name.trim()) return 'Name is required';
-    if (formData.basePrice <= 0) return 'Base price must be greater than 0';
+    if (!formData.name.trim()) {return 'Name is required';}
+    if (formData.basePrice <= 0) {return 'Base price must be greater than 0';}
     if (formData.categories.length === 0)
-      return 'At least one category is required';
+      {return 'At least one category is required';}
     if (formData.offerPrice && formData.offerPrice >= formData.basePrice) {
       return 'Offer price must be less than base price';
     }
@@ -221,9 +221,9 @@ export default function AddMenuItemPage() {
     // Validate variants
     for (let i = 0; i < formData.variants.length; i++) {
       const variant = formData.variants[i];
-      if (!variant.name.trim()) return `Variant ${i + 1} name is required`;
+      if (!variant.name.trim()) {return `Variant ${i + 1} name is required`;}
       if (variant.price <= 0)
-        return `Variant ${i + 1} price must be greater than 0`;
+        {return `Variant ${i + 1} price must be greater than 0`;}
     }
 
     return null;
@@ -354,7 +354,7 @@ export default function AddMenuItemPage() {
                         accept='image/*'
                         onChange={e => {
                           const file = e.target.files?.[0];
-                          if (file) handleImageUpload(file);
+                          if (file) {handleImageUpload(file);}
                         }}
                         className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100'
                         disabled={uploadingImage}

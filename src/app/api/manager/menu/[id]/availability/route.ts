@@ -45,7 +45,7 @@ export async function POST(
       select: { id: true, role: true, universityId: true, name: true },
     });
 
-    if (!currentUser || !currentUser.universityId) {
+    if (!currentUser?.universityId) {
       return NextResponse.json(
         { error: 'Manager university not found' },
         { status: 404 }
@@ -168,7 +168,7 @@ function generateRecurringDates(
   const endDate = new Date(pattern.endDate);
   const selectedDays = pattern.days.map(d => parseInt(d)); // Convert string days to numbers
 
-  let currentDate = new Date(startDate);
+  const currentDate = new Date(startDate);
 
   while (currentDate <= endDate) {
     const dayOfWeek = currentDate.getDay();
@@ -191,7 +191,7 @@ function generateDateRangeDates(
   const startDate = new Date(range.startDate);
   const endDate = new Date(range.endDate);
 
-  let currentDate = new Date(startDate);
+  const currentDate = new Date(startDate);
 
   while (currentDate <= endDate) {
     dates.push(new Date(currentDate));
@@ -217,7 +217,7 @@ export async function GET(
       select: { id: true, role: true, universityId: true },
     });
 
-    if (!currentUser || !currentUser.universityId) {
+    if (!currentUser?.universityId) {
       return NextResponse.json(
         { error: 'Manager university not found' },
         { status: 404 }

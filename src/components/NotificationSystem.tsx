@@ -107,7 +107,7 @@ export function useRealTimeNotifications(userId: string | undefined) {
   const [lastCheck, setLastCheck] = useState<Date>(new Date())
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId) {return}
 
     const pollNotifications = async () => {
       try {
@@ -230,7 +230,7 @@ export default function NotificationSystem() {
     }
   }
 
-  if (notifications.length === 0) return null
+  if (notifications.length === 0) {return null}
 
   return (
     <div className="fixed top-4 right-4 z-50 w-80 max-w-sm">

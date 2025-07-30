@@ -96,11 +96,11 @@ export default function DataTable<T extends Record<string, any>>({
 
   // Sorting
   const sortedData = useMemo(() => {
-    if (!sortConfig) return filteredData;
+    if (!sortConfig) {return filteredData;}
 
     return [...filteredData].sort((a, b) => {
       const column = columns.find(col => col.id === sortConfig.key);
-      if (!column) return 0;
+      if (!column) {return 0;}
 
       const aVal =
         typeof column.accessor === 'function'
@@ -111,15 +111,15 @@ export default function DataTable<T extends Record<string, any>>({
           ? column.accessor(b)
           : b[column.accessor];
 
-      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      if (aVal < bVal) {return sortConfig.direction === 'asc' ? -1 : 1;}
+      if (aVal > bVal) {return sortConfig.direction === 'asc' ? 1 : -1;}
       return 0;
     });
   }, [filteredData, sortConfig, columns]);
 
   // Pagination
   const paginatedData = useMemo(() => {
-    if (!pagination) return sortedData;
+    if (!pagination) {return sortedData;}
 
     const startIndex = (currentPage - 1) * pageSize;
     return sortedData.slice(startIndex, startIndex + pageSize);
@@ -129,7 +129,7 @@ export default function DataTable<T extends Record<string, any>>({
 
   const handleSort = (columnId: string) => {
     const column = columns.find(col => col.id === columnId);
-    if (!column?.sortable) return;
+    if (!column?.sortable) {return;}
 
     setSortConfig(current => {
       if (current?.key === columnId) {

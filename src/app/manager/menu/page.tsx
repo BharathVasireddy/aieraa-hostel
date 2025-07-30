@@ -110,7 +110,7 @@ export default function ManagerMenuPage() {
   ];
 
   const fetchMenuItems = useCallback(async () => {
-    if (!user?.universityId) return;
+    if (!user?.universityId) {return;}
 
     try {
       setLoading(true);

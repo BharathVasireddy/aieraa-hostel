@@ -62,7 +62,7 @@ export function SlideUpModal({ isOpen, children, onClose }: {
   children: React.ReactNode,
   onClose: () => void 
 }) {
-  if (!isOpen) return null
+  if (!isOpen) {return null}
 
   return (
     <>

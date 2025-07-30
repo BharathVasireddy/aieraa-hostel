@@ -11,13 +11,13 @@ export default function PWAUpdatePrompt() {
 
   useEffect(() => {
     // Check if we're in a PWA environment
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {return;}
 
     let refreshing = false;
 
     // Listen for service worker updates
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshing) return;
+      if (refreshing) {return;}
       refreshing = true;
       setUpdateComplete(true);
       
@@ -95,7 +95,7 @@ export default function PWAUpdatePrompt() {
   }, []);
 
   const handleUpdate = async () => {
-    if (!updateAvailable) return;
+    if (!updateAvailable) {return;}
 
     setIsUpdating(true);
     console.log('🔄 Starting app update...');
@@ -133,7 +133,7 @@ export default function PWAUpdatePrompt() {
     );
   }
 
-  if (!showPrompt || !updateAvailable) return null;
+  if (!showPrompt || !updateAvailable) {return null;}
 
   return (
     <div className="fixed top-4 right-4 z-50 bg-blue-600 text-white p-4 rounded-lg shadow-lg max-w-sm">

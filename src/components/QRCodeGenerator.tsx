@@ -44,7 +44,7 @@ export default function QRCodeGenerator({
     
     // Create SVG from QR code
     const svg = document.querySelector(`#qr-${orderId}`)
-    if (!svg) return
+    if (!svg) {return}
     
     const svgData = new XMLSerializer().serializeToString(svg)
     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })

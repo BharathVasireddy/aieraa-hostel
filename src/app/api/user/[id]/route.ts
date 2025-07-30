@@ -99,14 +99,14 @@ export async function PATCH(
     // Build update data object with only provided fields
     const updateData: any = {};
 
-    if (profileImage !== undefined) updateData.profileImage = profileImage;
-    if (name !== undefined) updateData.name = name;
-    if (phone !== undefined) updateData.phone = phone;
-    if (roomNumber !== undefined) updateData.roomNumber = roomNumber;
-    if (course !== undefined) updateData.course = course;
-    if (year !== undefined) updateData.year = year;
+    if (profileImage !== undefined) {updateData.profileImage = profileImage;}
+    if (name !== undefined) {updateData.name = name;}
+    if (phone !== undefined) {updateData.phone = phone;}
+    if (roomNumber !== undefined) {updateData.roomNumber = roomNumber;}
+    if (course !== undefined) {updateData.course = course;}
+    if (year !== undefined) {updateData.year = year;}
     if (dietaryPreferences !== undefined)
-      updateData.dietaryPreferences = dietaryPreferences;
+      {updateData.dietaryPreferences = dietaryPreferences;}
 
     console.log('📝 Updating user profile:', {
       userId: params.id,

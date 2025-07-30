@@ -44,7 +44,7 @@ export const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
     }
   }, [item]);
 
-  if (!isOpen || !item || !item.variants || item.variants.length === 0) {
+  if (!isOpen || !item?.variants || item.variants.length === 0) {
     return null;
   }
 

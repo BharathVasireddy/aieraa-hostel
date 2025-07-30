@@ -48,7 +48,7 @@ export function useRealTimeUpdates({
 
   // Create WebSocket connection
   const connect = () => {
-    if (isConnectingRef.current || !shouldReconnectRef.current) return
+    if (isConnectingRef.current || !shouldReconnectRef.current) {return}
     
     isConnectingRef.current = true
     
@@ -141,7 +141,7 @@ export function useRealTimeUpdates({
 
   // Schedule reconnection attempt
   const scheduleReconnect = () => {
-    if (!shouldReconnectRef.current) return
+    if (!shouldReconnectRef.current) {return}
     
     setConnectionStats(prev => {
       const newAttempts = prev.reconnectAttempts + 1

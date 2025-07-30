@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       select: { id: true, role: true, universityId: true },
     });
 
-    if (!currentUser || !currentUser.universityId) {
+    if (!currentUser?.universityId) {
       return NextResponse.json(
         { error: 'Manager university not found' },
         { status: 404 }
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       select: { id: true, role: true, universityId: true, name: true },
     });
 
-    if (!currentUser || !currentUser.universityId) {
+    if (!currentUser?.universityId) {
       return NextResponse.json(
         { error: 'Manager university not found' },
         { status: 404 }
