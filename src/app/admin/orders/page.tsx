@@ -144,7 +144,7 @@ export default function AdminOrders() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (_event: MouseEvent) => {
+    const handleClickOutside = (_: MouseEvent) => {
       if (showUniversityDropdown) {
         setShowUniversityDropdown(false);
       }

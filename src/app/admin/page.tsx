@@ -8,11 +8,9 @@ import {
   Bell,
   Building,
   CheckCircle,
-  ChefHat,
   Clock,
   Crown,
   DollarSign,
-  Download,
   Eye,
   RefreshCw,
   Settings,
@@ -23,7 +21,6 @@ import {
   Users,
   Utensils,
   UtensilsCrossed,
-  Zap,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useRouter } from 'next/navigation';

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MessageCircle, Mail, Bell, Send, CheckCircle, AlertCircle, Settings, TestTube, Globe } from 'lucide-react'
+import { MessageCircle, Mail, Bell, Send, CheckCircle, AlertCircle, Settings, Globe } from 'lucide-react'
 
 export default function NotificationSettingsPage() {
   // WhatsApp/Wati state
