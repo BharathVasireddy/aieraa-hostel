@@ -15,6 +15,7 @@ import {
   Building2,
   LogOut,
   ChevronUp,
+  Calendar,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 
@@ -64,6 +65,7 @@ export default function ManagerSidebar({
       badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined,
     },
     { name: 'Menu Management', href: '/manager/menu', icon: UtensilsCrossed },
+    { name: 'Daily Meal Planning', href: '/manager/meal-planning', icon: Calendar },
     { name: 'Students', href: '/manager/students', icon: Users },
     { name: 'Analytics', href: '/manager/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/manager/settings', icon: Settings },

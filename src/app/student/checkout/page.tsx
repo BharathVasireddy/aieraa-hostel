@@ -7,10 +7,12 @@ import {
   Edit3,
   Info,
   Minus,
+  Package,
   Plus,
   Shield,
   Trash2,
   User,
+  Calendar,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -20,6 +22,9 @@ import { getVietnamTime, getOrderingCountdown } from '@/lib/timezone';
 import { useUser } from '@/components/UserProvider';
 import { useCart } from '@/components/CartProvider';
 import Script from 'next/script';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Textarea, FormField } from '@/components/ui/Input';
 
 // Declare confetti as a global function
 declare global {
@@ -38,11 +43,14 @@ export default function CheckoutPage() {
     getTotalItems,
     getTotalPrice,
     clearCart,
+    isLoading: cartLoading,
   } = useCart();
+  
   const [loading, setLoading] = useState(false);
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const [cutoffHours, setCutoffHours] = useState<number | null>(null); // Start with null to prevent jerk
-  const [orderPlaced, setOrderPlaced] = useState(false); // Track if order has been placed
+  const [cutoffHours, setCutoffHours] = useState<number | null>(null);
+  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set());
 
   // Get selected date from localStorage
   const [selectedDate] = useState(() => {
@@ -50,7 +58,7 @@ export default function CheckoutPage() {
       const saved =
         localStorage.getItem('checkoutDate') ||
         localStorage.getItem('selectedOrderDate');
-      if (saved) {return saved;}
+      if (saved) return saved;
     }
     const tomorrow = addDays(startOfToday(), 1);
     return format(tomorrow, 'yyyy-MM-dd');
@@ -67,35 +75,28 @@ export default function CheckoutPage() {
             setCutoffHours(data.cutoffHours);
           }
         } else {
-          console.warn(
-            'Checkout cutoff API error:',
-            response.status,
-            'Using default 22 hours'
-          );
-          setCutoffHours(22); // Fallback
+          console.warn('Checkout cutoff API error:', response.status, 'Using default 22 hours');
+          setCutoffHours(22);
         }
       } catch (error) {
         console.error('Failed to fetch cutoff time:', error);
-        setCutoffHours(22); // Fallback to default 22 (10 PM) if API fails
+        setCutoffHours(22);
       }
     };
 
     void fetchCutoffTime();
   }, []);
 
-  // Time is updated through the countdown calculation automatically
-
-  // Get countdown for selected date - only if cutoffHours is loaded
+  // Get countdown for selected date
   const countdown = useMemo(() => {
     return cutoffHours !== null
       ? getOrderingCountdown(selectedDate, cutoffHours)
       : null;
   }, [selectedDate, cutoffHours]);
 
-  // Check if cart is empty and redirect to menu (but not if order was just placed)
+  // Check if cart is empty and redirect to menu
   useEffect(() => {
     if (cartItems.length === 0 && !orderPlaced && !loading) {
-      // Add a small delay to prevent immediate redirects on page load
       const timer = setTimeout(() => {
         router.push('/student/menu');
       }, 1000);
@@ -119,36 +120,74 @@ export default function CheckoutPage() {
     };
   }, [getTotalPrice, getTotalItems]);
 
-  // Cart management functions using CartProvider
+  // Create unique cart item key
+  const getCartItemKey = (itemId: string, variantId?: string) => {
+    return `${itemId}${variantId ? `-${variantId}` : ''}`;
+  };
+
+  // Enhanced cart management functions
   const handleUpdateQuantity = useCallback(
-    async (itemId: string, newQuantity: number) => {
-      await updateQuantity(itemId, newQuantity);
+    async (itemId: string, newQuantity: number, variantId?: string) => {
+      try {
+        console.log('Updating quantity:', { itemId, newQuantity, variantId });
+        
+        if (newQuantity <= 0) {
+          // Don't call handleRemoveItem here - just return early
+          // The separate delete button should handle removal
+          return;
+        } else {
+          await updateQuantity(itemId, newQuantity, variantId);
+        }
+      } catch (error) {
+        console.error('Failed to update quantity:', error);
+      }
     },
     [updateQuantity]
   );
 
   const handleRemoveItem = useCallback(
-    async (itemId: string) => {
-      await removeItem(itemId);
+    async (itemId: string, variantId?: string) => {
+      const itemKey = getCartItemKey(itemId, variantId);
+      
+      try {
+        console.log('Removing item:', { itemId, variantId, itemKey });
+        
+        // Add to deleting state to show loading
+        setDeletingItems(prev => new Set(prev).add(itemKey));
+        
+        // Call remove with exact same parameters as cart item
+        await removeItem(itemId, variantId);
+        
+        console.log('Item removed successfully');
+      } catch (error) {
+        console.error('Failed to remove item:', error);
+      } finally {
+        // Remove from deleting state
+        setDeletingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemKey);
+          return newSet;
+        });
+      }
     },
     [removeItem]
   );
 
-  // Simplified validation - only check if cart has items and not past cutoff
+  // Validation
   const isValidForm = useMemo(() => {
     return cartItems.length > 0 && (countdown ? !countdown.isPastCutoff : true);
   }, [cartItems, countdown]);
 
   const handlePlaceOrder = useCallback(async () => {
-    if (!isValidForm || loading) {return;}
+    if (!isValidForm || loading) return;
 
     setLoading(true);
     try {
-      // Prepare order data for API
       const orderData = {
         items: cartItems.map(item => ({
           menuItemId: item.id,
           quantity: item.quantity,
+          variantId: item.variantId,
         })),
         orderDate: selectedDate,
         specialInstructions: specialInstructions || undefined,
@@ -157,7 +196,6 @@ export default function CheckoutPage() {
 
       console.log('Placing order with data:', orderData);
 
-      // Call the actual orders API
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: {
@@ -166,38 +204,23 @@ export default function CheckoutPage() {
         body: JSON.stringify(orderData),
       });
 
-      console.log('Order API response status:', response.status);
-
       if (response.ok) {
         const result = await response.json();
         console.log('Order placed successfully:', result);
 
-        // Ensure we have the required data for redirect
         if (!result.order?.id || !result.order?.orderNumber) {
-          console.error('Missing order data in response:', result);
-          throw new Error(
-            'Order was placed but missing details for confirmation'
-          );
+          throw new Error('Order was placed but missing details for confirmation');
         }
 
-        // Mark order as placed to prevent cart empty redirect
         setOrderPlaced(true);
 
-        // Launch confetti celebration immediately after successful order
+        // Launch confetti celebration
         if (typeof window !== 'undefined' && window.confetti) {
           window.confetti({
             particleCount: 150,
             spread: 70,
             origin: { y: 0.6 },
-            colors: [
-              '#22C55E',
-              '#4ADE80',
-              '#BBF7D0',
-              '#F1F5F9',
-              '#10B981',
-              '#3B82F6',
-              '#60A5FA',
-            ],
+            colors: ['#22C55E', '#4ADE80', '#BBF7D0', '#F1F5F9', '#10B981', '#3B82F6', '#60A5FA'],
           });
         }
 
@@ -205,31 +228,18 @@ export default function CheckoutPage() {
         try {
           await clearCart();
           localStorage.removeItem('checkoutDate');
-          console.log('Cart cleared successfully');
         } catch (cartError) {
           console.warn('Failed to clear cart:', cartError);
-          // Don't fail the order process if cart clearing fails
         }
 
-        // Small delay to ensure cart clearing is processed and let confetti show
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Redirect to order success page with proper error handling
         const successUrl = `/student/order-success?orderId=${result.order.id}&orderNumber=${result.order.orderNumber}`;
-        console.log('Redirecting to:', successUrl);
-
-        try {
-          router.push(successUrl);
-        } catch (redirectError) {
-          console.error('Router push failed:', redirectError);
-          // Fallback: Use window.location as backup
-          window.location.href = successUrl;
-        }
+        router.push(successUrl);
       } else {
         const error = await response.json();
         console.error('Order API error:', error);
 
-        // Handle specific error cases
         if (error.cutoffPassed) {
           alert('Order deadline has passed. Please select a different date.');
           return;
@@ -245,19 +255,13 @@ export default function CheckoutPage() {
     } catch (error) {
       console.error('Order placement failed:', error);
 
-      // More user-friendly error messages
       let errorMessage = 'Failed to place order. Please try again.';
 
       if (error instanceof Error) {
         if (error.message.includes('Network')) {
-          errorMessage =
-            'Network error. Please check your connection and try again.';
-        } else if (
-          error.message.includes('cutoff') ||
-          error.message.includes('deadline')
-        ) {
-          errorMessage =
-            'Order deadline has passed. Please select a different date.';
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('cutoff') || error.message.includes('deadline')) {
+          errorMessage = 'Order deadline has passed. Please select a different date.';
         } else {
           errorMessage = `Failed to place order: ${error.message}`;
         }
@@ -267,35 +271,30 @@ export default function CheckoutPage() {
     } finally {
       setLoading(false);
     }
-  }, [
-    isValidForm,
-    loading,
-    cartItems,
-    selectedDate,
-    specialInstructions,
-    router,
-    clearCart,
-  ]);
+  }, [isValidForm, loading, cartItems, selectedDate, specialInstructions, router, clearCart]);
 
-  // Show loading state if user not loaded
+  // Loading state
   if (!user) {
     return (
       <StudentLayout>
-        <div className='flex items-center justify-center min-h-[400px]'>
-          <div className='w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin'></div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="spinner mx-auto mb-4"></div>
+            <p className="text-body-sm">Loading...</p>
+          </div>
         </div>
       </StudentLayout>
     );
   }
 
-  // Show loading state if cart is being loaded
+  // Empty cart state
   if (cartItems.length === 0 && !loading) {
     return (
       <StudentLayout>
-        <div className='flex items-center justify-center min-h-[400px]'>
-          <div className='text-center'>
-            <div className='w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4'></div>
-            <p className='text-gray-600'>Loading your cart...</p>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="spinner mx-auto mb-4"></div>
+            <p className="text-body-sm">Loading your cart...</p>
           </div>
         </div>
       </StudentLayout>
@@ -305,296 +304,293 @@ export default function CheckoutPage() {
   return (
     <>
       <Script
-        src='https://cdn.jsdelivr.net/npm/tsparticles-confetti@2.12.0/tsparticles.confetti.bundle.min.js'
-        strategy='lazyOnload'
+        src="https://cdn.jsdelivr.net/npm/tsparticles-confetti@2.12.0/tsparticles.confetti.bundle.min.js"
+        strategy="lazyOnload"
       />
       <StudentLayout>
         {/* Header */}
-        <div className='bg-white border-b border-neutral-100 px-4 py-4'>
-          <div className='flex items-center space-x-3'>
-            <button
+        <div className="bg-white border-b border-neutral-200 px-4 py-4 sticky top-0 z-10">
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => router.back()}
-              className='p-2 -ml-2 hover:bg-neutral-100 rounded-full transition-colors'
+              className="p-2 -ml-2"
             >
-              <ArrowLeft className='w-5 h-5 text-neutral-600' />
-            </button>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <div>
-              <h1 className='text-lg font-bold text-neutral-800'>Checkout</h1>
-              <p className='text-sm text-neutral-600'>
-                Order for {format(new Date(selectedDate), 'MMM d, yyyy')}
-              </p>
+              <h1 className="text-heading-2">Checkout</h1>
+              <div className="flex items-center space-x-2 mt-1">
+                <Calendar className="w-4 h-4 text-neutral-500" />
+                <p className="text-body-sm text-neutral-600">
+                  {format(new Date(selectedDate), 'EEEE, MMM d, yyyy')}
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className='px-4 py-6 space-y-6'>
+        {/* Content */}
+        <div className="page-section pb-32">
           {/* Order Cutoff Warning */}
           {countdown && countdown.isPastCutoff && (
-            <div className='bg-red-50 border border-red-200 rounded-xl p-4'>
-              <div className='flex items-start space-x-3'>
-                <AlertCircle className='w-5 h-5 text-red-600 mt-0.5 flex-shrink-0' />
-                <div>
-                  <h3 className='font-semibold text-red-800 mb-1'>
-                    Ordering Deadline Passed
-                  </h3>
-                  <p className='text-sm text-red-700'>
-                    Orders must be placed before the daily cutoff time the day
-                    before. Please select a different date to place your order.
-                  </p>
+            <Card className="bg-error-50 border-error-200">
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-3">
+                  <AlertCircle className="w-5 h-5 text-error-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-heading-4 text-error-800 mb-1">
+                      Ordering Deadline Passed
+                    </h3>
+                    <p className="text-body-sm text-error-700">
+                      Orders must be placed before the daily cutoff time the day before. 
+                      Please select a different date to place your order.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Student Information */}
-          <section className='bg-white rounded-xl border border-neutral-100 p-6'>
-            <div className='flex items-center space-x-3 mb-4'>
-              <User className='w-5 h-5 text-blue-600' />
-              <h2 className='text-lg font-semibold text-neutral-800'>
-                Student Information
-              </h2>
-            </div>
+          {/* Cart Items */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Your Order</CardTitle>
+                <span className="text-body-sm text-neutral-600">
+                  {totals.itemCount} item{totals.itemCount > 1 ? 's' : ''}
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {cartItems.map(item => {
+                  const itemKey = getCartItemKey(item.id, item.variantId);
+                  const isDeleting = deletingItems.has(itemKey);
+                  
+                  return (
+                    <div
+                      key={itemKey}
+                      className={`card-interactive p-4 transition-all duration-200 ${
+                        isDeleting ? 'opacity-50 pointer-events-none' : ''
+                      }`}
+                    >
+                      <div className="flex items-center space-x-4">
+                        {/* Image */}
+                        <div className="w-16 h-16 bg-neutral-100 rounded-xl flex-shrink-0 overflow-hidden">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-6 h-6 text-neutral-400" />
+                            </div>
+                          )}
+                        </div>
 
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Name
-                </label>
-                <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
-                  {user.name}
-                </div>
-              </div>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Student ID
-                </label>
-                <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
-                  {user.studentId}
-                </div>
-              </div>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Room Number
-                </label>
-                <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
-                  {user.roomNumber}
-                </div>
-              </div>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Phone Number
-                </label>
-                <div className='p-3 bg-gray-50 rounded-lg text-gray-900'>
-                  {user.phone}
-                </div>
-              </div>
-            </div>
-          </section>
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-heading-4 truncate">{item.name}</h3>
+                          {item.variantName && (
+                            <p className="text-body-sm text-neutral-600 mt-0.5">
+                              Size: {item.variantName}
+                            </p>
+                          )}
+                          <div className="flex items-center space-x-2 mt-1">
+                            {item.isVegetarian && (
+                              <div className="veg-indicator">
+                                <div className="veg-indicator-dot"></div>
+                              </div>
+                            )}
+                            <span className="price-display">₹{item.price}</span>
+                          </div>
+                        </div>
 
-          {/* Cart Items Section */}
-          <section className='bg-white rounded-xl border border-neutral-100 p-6'>
-            <div className='flex items-center justify-between mb-4'>
-              <h2 className='text-lg font-semibold text-neutral-800'>
-                Your Order
-              </h2>
-              <span className='text-sm text-neutral-600'>
-                {totals.itemCount} item{totals.itemCount > 1 ? 's' : ''}
-              </span>
-            </div>
-
-            <div className='space-y-4'>
-              {cartItems.map(item => (
-                <div
-                  key={item.id}
-                  className='flex items-center space-x-4 p-4 bg-neutral-50 rounded-lg'
-                >
-                  <div className='w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden'>
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className='w-full h-full object-cover'
-                      />
-                    ) : (
-                      <div className='w-full h-full flex items-center justify-center text-gray-400'>
-                        <User className='w-6 h-6' />
+                        {/* Quantity Controls */}
+                        <div className="flex items-center space-x-2">
+                          <div className="quantity-controls">
+                            <button
+                              onClick={() => handleUpdateQuantity(item.id, item.quantity - 1, item.variantId)}
+                              disabled={cartLoading || isDeleting}
+                              className="quantity-btn"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <span className="quantity-display">{item.quantity}</span>
+                            <button
+                              onClick={() => handleUpdateQuantity(item.id, item.quantity + 1, item.variantId)}
+                              disabled={cartLoading || isDeleting}
+                              className="quantity-btn"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveItem(item.id, item.variantId)}
+                            disabled={cartLoading || isDeleting}
+                            className="p-2 text-error-600 hover:bg-error-50"
+                          >
+                            {isDeleting ? (
+                              <div className="spinner w-4 h-4" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                    )}
-                  </div>
-
-                  <div className='flex-1 min-w-0'>
-                    <h3 className='font-medium text-neutral-900 truncate'>
-                      {item.name}
-                    </h3>
-                    <div className='flex items-center space-x-2 mt-1'>
-                      {item.isVegetarian && (
-                        <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
-                          Veg
-                        </span>
-                      )}
-                      <span className='text-sm font-semibold text-neutral-900'>
-                        ₹{item.price}
-                      </span>
                     </div>
-                  </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
 
-                  <div className='flex items-center space-x-2'>
-                    <button
-                      onClick={() =>
-                        handleUpdateQuantity(item.id, item.quantity - 1)
-                      }
-                      className='p-1 rounded-full hover:bg-neutral-200 transition-colors'
-                    >
-                      <Minus className='w-4 h-4 text-neutral-600' />
-                    </button>
-                    <span className='w-8 text-center font-medium text-neutral-900'>
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() =>
-                        handleUpdateQuantity(item.id, item.quantity + 1)
-                      }
-                      className='p-1 rounded-full hover:bg-neutral-200 transition-colors'
-                    >
-                      <Plus className='w-4 h-4 text-neutral-600' />
-                    </button>
-                    <button
-                      onClick={() => handleRemoveItem(item.id)}
-                      className='p-1 rounded-full hover:bg-red-100 transition-colors ml-2'
-                    >
-                      <Trash2 className='w-4 h-4 text-red-600' />
-                    </button>
-                  </div>
+          {/* Student Information */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className="icon-container-primary">
+                  <User className="w-5 h-5 text-primary-600" />
                 </div>
-              ))}
-            </div>
-          </section>
+                <CardTitle>Student Information</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-caption">Name</label>
+                  <div className="text-body font-medium">{user.name}</div>
+                </div>
+                <div>
+                  <label className="text-caption">Student ID</label>
+                  <div className="text-body font-medium">{user.studentId}</div>
+                </div>
+                <div>
+                  <label className="text-caption">Room Number</label>
+                  <div className="text-body font-medium">{user.roomNumber}</div>
+                </div>
+                <div>
+                  <label className="text-caption">Phone Number</label>
+                  <div className="text-body font-medium">{user.phone}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Special Instructions */}
-          <section className='bg-white rounded-xl border border-neutral-100 p-6'>
-            <div className='flex items-center space-x-3 mb-4'>
-              <Edit3 className='w-5 h-5 text-gray-600' />
-              <h2 className='text-lg font-semibold text-neutral-800'>
-                Special Instructions
-              </h2>
-            </div>
-
-            <textarea
-              value={specialInstructions}
-              onChange={e => setSpecialInstructions(e.target.value)}
-              placeholder='Any special instructions for your order (optional)'
-              className='w-full p-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none'
-              rows={3}
-            />
-          </section>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className="icon-container">
+                  <Edit3 className="w-5 h-5 text-neutral-600" />
+                </div>
+                <CardTitle>Special Instructions</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                help="Any special instructions for your order (optional)"
+              >
+                <Textarea
+                  value={specialInstructions}
+                  onChange={e => setSpecialInstructions(e.target.value)}
+                  placeholder="e.g., Extra spicy, no onions, deliver to room entrance..."
+                  rows={3}
+                />
+              </FormField>
+            </CardContent>
+          </Card>
 
           {/* Order Summary */}
-          <section className='bg-white rounded-xl border border-neutral-100 p-6'>
-            <h2 className='text-lg font-semibold text-neutral-800 mb-4'>
-              Order Summary
-            </h2>
-
-            <div className='space-y-3'>
-              <div className='flex justify-between items-center'>
-                <span className='text-neutral-600'>Subtotal</span>
-                <span className='font-medium text-neutral-900'>
-                  ₹{totals.subtotal}
-                </span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-neutral-600'>Delivery Fee</span>
-                <span className='font-medium text-green-600'>Free</span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-neutral-600'>Tax (5%)</span>
-                <span className='font-medium text-neutral-900'>
-                  ₹{totals.tax}
-                </span>
-              </div>
-              <div className='border-t border-neutral-200 pt-3'>
-                <div className='flex justify-between items-center'>
-                  <span className='text-lg font-semibold text-neutral-900'>
-                    Total
-                  </span>
-                  <span className='text-lg font-bold text-blue-600'>
-                    ₹{totals.total}
-                  </span>
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-body">Subtotal</span>
+                  <span className="text-body font-medium">₹{totals.subtotal}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-body">Delivery Fee</span>
+                  <span className="text-body font-medium text-success-600">Free</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-body">Tax (5%)</span>
+                  <span className="text-body font-medium">₹{totals.tax}</span>
+                </div>
+                <div className="border-t border-neutral-200 pt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-heading-3">Total</span>
+                    <span className="text-heading-2 text-primary-600">₹{totals.total}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </CardContent>
+          </Card>
 
           {/* Delivery Information */}
-          <section className='bg-blue-50 border border-blue-200 rounded-xl p-4'>
-            <div className='flex items-start space-x-3'>
-              <Info className='w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0' />
-              <div>
-                <h3 className='font-semibold text-blue-800 mb-2'>
-                  Delivery Information
-                </h3>
-                <ul className='text-sm text-blue-700 space-y-1'>
-                  <li>
-                    • Food will be delivered to your room: {user.roomNumber}
-                  </li>
-                  <li>
-                    • Delivery time: 12:00 PM - 2:00 PM on{' '}
-                    {format(new Date(selectedDate), 'MMM d, yyyy')}
-                  </li>
-                  <li>• Payment: Cash on delivery</li>
-                  <li>• Please be available during delivery hours</li>
-                </ul>
+          <Card className="bg-info-50 border-info-200">
+            <CardContent className="p-4">
+              <div className="flex items-start space-x-3">
+                <Info className="w-5 h-5 text-info-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="text-heading-4 text-info-800 mb-2">
+                    Delivery Information
+                  </h3>
+                  <ul className="text-body-sm text-info-700 space-y-1">
+                    <li>• Food will be delivered to your room: {user.roomNumber}</li>
+                    <li>• Delivery time: 12:00 PM - 2:00 PM on {format(new Date(selectedDate), 'MMM d, yyyy')}</li>
+                    <li>• Payment: Cash on delivery</li>
+                    <li>• Please be available during delivery hours</li>
+                  </ul>
+                </div>
               </div>
-            </div>
-          </section>
+            </CardContent>
+          </Card>
 
           {/* Security Notice */}
-          <section className='bg-green-50 border border-green-200 rounded-xl p-4'>
-            <div className='flex items-center space-x-3'>
-              <Shield className='w-5 h-5 text-green-600' />
-              <div>
-                <span className='text-sm text-green-700'>
+          <Card className="bg-success-50 border-success-200">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <Shield className="w-5 h-5 text-success-600" />
+                <span className="text-body-sm text-success-700">
                   🔒 Your order is secured with university authentication
                 </span>
               </div>
-            </div>
-          </section>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Bottom Action */}
-        <div className='sticky bottom-0 bg-white border-t border-neutral-100 p-4'>
-          <button
+        {/* Bottom Action Bar */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 z-10 safe-area-pb">
+          <Button
             onClick={handlePlaceOrder}
             disabled={!isValidForm || loading}
-            className={`w-full flex items-center justify-center space-x-2 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${
-              !isValidForm || loading
-                ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
-            }`}
+            loading={loading}
+            size="lg"
+            className="w-full"
           >
-            {loading ? (
-              <>
-                <div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
-                <span>Placing Order...</span>
-              </>
-            ) : (
-              <>
-                <CreditCard className='w-5 h-5' />
-                <span>Place Order • ₹{totals.total}</span>
-              </>
-            )}
-          </button>
+            <CreditCard className="w-5 h-5" />
+            Place Order • ₹{totals.total}
+          </Button>
 
-          {!isValidForm &&
-            cartItems.length > 0 &&
-            countdown &&
-            countdown.isPastCutoff && (
-              <p className='text-center text-sm text-red-600 mt-2'>
-                Ordering deadline has passed for this date
-              </p>
-            )}
+          {!isValidForm && cartItems.length > 0 && countdown && countdown.isPastCutoff && (
+            <p className="text-center text-body-sm text-error-600 mt-2">
+              Ordering deadline has passed for this date
+            </p>
+          )}
 
           {cartItems.length === 0 && (
-            <p className='text-center text-sm text-gray-600 mt-2'>
+            <p className="text-center text-body-sm text-neutral-600 mt-2">
               Your cart is empty
             </p>
           )}

@@ -32,6 +32,9 @@ model University {
   orders    Order[]
   settings  UniversitySettings?
   promotionalBanners PromotionalBanner[]
+  // Meal planning system relations
+  mealCategories MealCategory[]
+  mealPlans     MealPlan[]
 
   // Indexes for performance
   @@index([isActive]) // Index for fast active university queries
@@ -122,6 +125,7 @@ model User {
   sessions     Session[]
   cart         Cart?
   pushSubscription PushSubscription?
+  mealSelections MealSelection[] // Meal planning selections
 
   @@map("users")
 }
@@ -474,4 +478,108 @@ model PhoneOTP {
   @@index([expiresAt])
   @@index([phone, verified])
   @@map("phone_otps")
+}
+
+// ==============================================
+// MEAL PLANNING SYSTEM - SEPARATE FUNCTIONALITY
+// ==============================================
+
+// Meal type enum for daily meal planning
+enum MealType {
+  BREAKFAST
+  LUNCH  
+  DINNER
+}
+
+// Meal category model - different cuisine types
+model MealCategory {
+  id           String @id @default(cuid())
+  name         String // e.g., "South Indian Veg", "North Indian Non Veg", "Halal"
+  description  String?
+  isVegetarian Boolean @default(false)
+  isVegan      Boolean @default(false)
+  isHalal      Boolean @default(false)
+  isActive     Boolean @default(true)
+  universityId String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  mealPlans  MealPlan[]
+
+  // Indexes
+  @@index([universityId, isActive])
+  @@index([universityId, isVegetarian, isActive])
+  @@unique([universityId, name])
+  @@map("meal_categories")
+}
+
+// Daily meal plan - specific menu for a date and meal type
+model MealPlan {
+  id             String   @id @default(cuid())
+  date           DateTime @db.Date
+  mealType       MealType
+  mealCategoryId String
+  universityId   String
+  isActive       Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  university   University    @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  mealCategory MealCategory  @relation(fields: [mealCategoryId], references: [id], onDelete: Cascade)
+  mealItems    MealItem[]
+  selections   MealSelection[]
+
+  // Indexes and constraints
+  @@unique([date, mealType, mealCategoryId, universityId])
+  @@index([universityId, date, isActive])
+  @@index([date, mealType, universityId])
+  @@map("meal_plans")
+}
+
+// Individual food items in a meal plan
+model MealItem {
+  id         String @id @default(cuid())
+  mealPlanId String
+  name       String // e.g., "Idli", "Sambar", "Coconut Chutney"
+  description String?
+  order      Int    @default(0) // Display order in the meal
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  mealPlan MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([mealPlanId, order])
+  @@map("meal_items")
+}
+
+// Student meal selections for each day
+model MealSelection {
+  id         String   @id @default(cuid())
+  userId     String
+  mealPlanId String
+  date       DateTime @db.Date
+  mealType   MealType
+  isLocked   Boolean  @default(false) // Locked after 5 PM deadline
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealPlan MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+
+  // Constraints and indexes
+  @@unique([userId, date, mealType]) // One selection per meal per day per user
+  @@index([date, mealType, isLocked])
+  @@index([userId, date])
+  @@index([mealPlanId, date])
+  @@map("meal_selections")
 }

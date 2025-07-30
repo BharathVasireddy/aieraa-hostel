@@ -60,6 +60,12 @@ const BottomNavigation = memo(function BottomNavigation() {
         isActive: pathname === '/student/menu' || (isPending && activeRoute === '/student/menu')
       },
       { 
+        icon: ChefHat, 
+        label: 'Meal Plan', 
+        path: '/student/meal-planning',
+        isActive: pathname === '/student/meal-planning' || (isPending && activeRoute === '/student/meal-planning')
+      },
+      { 
         icon: Clock, 
         label: 'Orders', 
         path: '/student/orders',

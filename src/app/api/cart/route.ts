@@ -184,8 +184,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check if item already exists in cart
-    const existingCartItem = await prisma.cartItem.findUnique({
+    // Use upsert to handle race conditions atomically
+    await prisma.cartItem.upsert({
       where: {
         cartId_menuItemId_variantId: {
           cartId: cart.id,
@@ -193,28 +193,19 @@ export async function POST(request: NextRequest) {
           variantId: variantId || '', // Use empty string instead of null
         },
       },
+      update: {
+        quantity: {
+          increment: quantity, // Increment existing quantity
+        },
+        updatedAt: new Date(),
+      },
+      create: {
+        cartId: cart.id,
+        menuItemId,
+        variantId: variantId || '', // Use empty string instead of null/undefined
+        quantity,
+      },
     });
-
-    if (existingCartItem) {
-      // Update quantity
-      await prisma.cartItem.update({
-        where: { id: existingCartItem.id },
-        data: {
-          quantity: existingCartItem.quantity + quantity,
-          updatedAt: new Date(),
-        },
-      });
-    } else {
-      // Create new cart item
-      await prisma.cartItem.create({
-        data: {
-          cartId: cart.id,
-          menuItemId,
-          variantId: variantId || '', // Use empty string instead of null/undefined
-          quantity,
-        },
-      });
-    }
 
     // Return updated cart
     const response = await GET(request);

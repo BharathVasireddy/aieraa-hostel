@@ -25,6 +25,9 @@ import { useProgressiveLoading } from '@/hooks/useProgressiveLoading';
 import BottomNavigation from '@/components/BottomNavigation';
 import StudentLayout from '@/components/StudentLayout';
 import { useCart } from '@/components/CartProvider';
+import { VariantSelectionModal } from '@/components/student/VariantSelectionModal';
+import { MenuItemCard } from '@/components/student/MenuItemCard';
+import { useMenuFiltering } from '@/hooks/useMenuFiltering';
 
 interface MenuItem {
   id: string;
@@ -48,6 +51,8 @@ interface MenuVariant {
   name: string;
   price: number;
   isDefault: boolean;
+  description?: string;
+  isAvailable?: boolean;
 }
 
 export default function StudentMenu() {
@@ -344,126 +349,22 @@ export default function StudentMenu() {
               )}
             </div>
           ) : (
-            <div className='space-y-4'>
+            <div className='space-y-3'>
               {filteredItems.map((item: MenuItem) => {
                 const cartQuantity = getCartItemQuantity(item.id);
 
                 return (
-                  <div
+                  <MenuItemCard
                     key={item.id}
-                    className='bg-white rounded-xl p-4 shadow-sm border hover:shadow-md transition-shadow'
-                  >
-                    <div className='flex space-x-4'>
-                      <div className='w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden'>
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className='w-full h-full object-cover'
-                            loading='lazy'
-                          />
-                        ) : (
-                          <div className='w-full h-full flex items-center justify-center text-gray-400'>
-                            <span className='text-2xl'>🍽️</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className='flex-1'>
-                        <div className='flex items-start justify-between mb-2'>
-                          <div>
-                            <h3 className='font-semibold text-gray-900 mb-1'>
-                              {item.name}
-                            </h3>
-                            <p className='text-sm text-gray-600 line-clamp-2'>
-                              {item.description}
-                            </p>
-                          </div>
-                          <div className='flex items-center space-x-1'>
-                            {item.isVegetarian && (
-                              <div className='w-4 h-4 border-2 border-green-500 rounded-sm flex items-center justify-center'>
-                                <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className='flex items-center justify-between'>
-                          <div className='space-y-1'>
-                            <div className='flex items-center space-x-2'>
-                              {item.offerPrice ? (
-                                <>
-                                  <span className='text-lg font-bold text-green-600'>
-                                    ₹{item.offerPrice}
-                                  </span>
-                                  <span className='text-sm text-gray-500 line-through'>
-                                    ₹{item.price}
-                                  </span>
-                                </>
-                              ) : (
-                                <span className='text-lg font-bold text-gray-900'>
-                                  ₹{item.price}
-                                </span>
-                              )}
-                            </div>
-
-                            {(item.rating || item.orderCount) && (
-                              <div className='flex items-center space-x-2 text-xs text-gray-500'>
-                                {item.rating && (
-                                  <div className='flex items-center space-x-1'>
-                                    <Star className='w-3 h-3 text-yellow-500 fill-current' />
-                                    <span>{item.rating}</span>
-                                  </div>
-                                )}
-                                {item.orderCount && (
-                                  <span>{item.orderCount} orders</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className='flex items-center space-x-2'>
-                            {cartQuantity > 0 ? (
-                              <div className='flex items-center space-x-2'>
-                                <button
-                                  onClick={() =>
-                                    updateCartQuantity(
-                                      item.id,
-                                      cartQuantity - 1
-                                    )
-                                  }
-                                  className='w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors'
-                                >
-                                  <span className='text-lg'>−</span>
-                                </button>
-                                <span className='font-semibold text-green-600'>
-                                  {cartQuantity}
-                                </span>
-                                <button
-                                  onClick={() =>
-                                    updateCartQuantity(
-                                      item.id,
-                                      cartQuantity + 1
-                                    )
-                                  }
-                                  className='w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center hover:bg-green-700 transition-colors'
-                                >
-                                  <span className='text-lg'>+</span>
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => addToCart(item)}
-                                className='bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium'
-                              >
-                                Add
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    item={item}
+                    quantity={cartQuantity}
+                    onAdd={(item, variantId) => addToCart(item, 1, variantId)}
+                    onUpdateQuantity={updateCartQuantity}
+                    onShowVariants={(item) => {
+                      setSelectedItem(item);
+                      setShowVariationSheet(true);
+                    }}
+                  />
                 );
               })}
             </div>
@@ -472,49 +373,22 @@ export default function StudentMenu() {
       </div>
 
       {/* Variant Selection Modal */}
-      {showVariationSheet && selectedItem && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50">
-          <div className="bg-white rounded-t-2xl w-full max-h-[70vh] overflow-y-auto">
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Select Size for {selectedItem.name}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowVariationSheet(false);
-                    setSelectedItem(null);
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-full"
-                >
-                  <span className="text-2xl">&times;</span>
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-4 space-y-3">
-              {selectedItem.variants?.map((variant) => (
-                <button
-                  key={variant.id}
-                  onClick={() => {
-                    addToCart(selectedItem, 1, variant.id);
-                    setShowVariationSheet(false);
-                    setSelectedItem(null);
-                  }}
-                  className="w-full flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
-                >
-                  <div className="text-left">
-                    <div className="font-medium text-gray-900">{variant.name}</div>
-                    {variant.isDefault && (
-                      <div className="text-sm text-green-600">Recommended</div>
-                    )}
-                  </div>
-                  <div className="font-semibold text-gray-900">₹{variant.price}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+      {selectedItem && (
+        <VariantSelectionModal
+          item={selectedItem}
+          isOpen={showVariationSheet}
+          onClose={() => {
+            setShowVariationSheet(false);
+            setSelectedItem(null);
+          }}
+          onSelect={(item, variantId) => {
+            // Convert the modal's simplified MenuItem to our full MenuItem
+            const fullItem = selectedItem!; // We know selectedItem is not null here
+            addToCart(fullItem, 1, variantId);
+            setShowVariationSheet(false);
+            setSelectedItem(null);
+          }}
+        />
       )}
     </StudentLayout>
   );

@@ -166,19 +166,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Add to cart API response:', data);
+          
           if (data.success) {
-            setItems(data.items || []);
+            // Ensure we're setting the latest cart state
+            const updatedItems = data.items || [];
+            console.log('Updating cart items:', updatedItems.length, 'items');
+            setItems(updatedItems);
 
             // Update localStorage
             if (typeof window !== 'undefined') {
               const cartKey = `cart_${session.user.id}`;
-              localStorage.setItem(cartKey, JSON.stringify(data.items || []));
+              localStorage.setItem(cartKey, JSON.stringify(updatedItems));
             }
+          } else {
+            console.error('Add to cart API returned success:false', data);
+            throw new Error('API returned success:false');
           }
         } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Add to cart API failed:', response.status, errorData);
+          
           // Fallback to local state update if API fails
           setItems(currentItems => {
-            const itemKey = `${newItem.id}-${variantId || ''}`;
+            console.log('Using fallback cart update');
             const existingItem = currentItems.find(
               item =>
                 item.id === newItem.id &&
@@ -193,7 +204,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
                   : item
               );
             } else {
-              return [...currentItems, { ...newItem, quantity: 1, variantId }];
+              const newCartItems = [...currentItems, { ...newItem, quantity: 1, variantId }];
+              console.log('Added new item to cart, total items:', newCartItems.length);
+              return newCartItems;
             }
           });
         }
@@ -225,18 +238,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
         });
 
         if (response.ok) {
-          await syncWithDatabase();
-        } else {
-          // Fallback to local state update
-          setItems(currentItems =>
-            currentItems.filter(
+          // Immediately update local state to remove the item
+          setItems(currentItems => {
+            const updatedItems = currentItems.filter(
               item =>
                 !(
                   item.id === itemId &&
                   (item.variantId || '') === (variantId || '')
                 )
-            )
-          );
+            );
+            
+            // Update localStorage
+            if (typeof window !== 'undefined' && session?.user?.id) {
+              const cartKey = `cart_${session.user.id}`;
+              localStorage.setItem(cartKey, JSON.stringify(updatedItems));
+            }
+            
+            return updatedItems;
+          });
+        } else {
+          console.error('Failed to remove item from cart');
+          // Don't sync with database on error - keep current state
         }
       } catch (error) {
         console.error('Failed to remove item from cart:', error);
@@ -244,7 +266,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     },
-    [session?.user?.id, syncWithDatabase]
+    [session?.user?.id]
   );
 
   // Update item quantity
@@ -275,15 +297,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (response.ok) {
           const data = await response.json();
           if (data.success) {
-            setItems(data.items || []);
+            const updatedItems = data.items || [];
+            setItems(updatedItems);
 
             // Update localStorage
             if (typeof window !== 'undefined') {
               const cartKey = `cart_${session.user.id}`;
-              localStorage.setItem(cartKey, JSON.stringify(data.items || []));
+              localStorage.setItem(cartKey, JSON.stringify(updatedItems));
             }
+          } else {
+            console.error('Update quantity API returned success:false');
+            throw new Error('API returned success:false');
           }
         } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Update quantity API failed:', response.status, errorData);
+          
           // Fallback to local state update
           setItems(currentItems =>
             currentItems.map(item =>
